@@ -68,7 +68,7 @@ public:
                              const double /*t*/, const double /*delta_t*/) {}
 
     /// Postprocessing after a complete timestep.
-    virtual void postTimestep(GlobalVector const& /*x*/) {}
+    virtual void postTimestep(GlobalVector const& /*x*/, double const /*t*/) {}
 
     /// Process output.
     /// The file_name is indicating the name of possible output file.
