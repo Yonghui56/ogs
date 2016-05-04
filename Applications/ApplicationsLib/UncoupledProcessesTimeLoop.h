@@ -354,7 +354,7 @@ solveOneTimeStepOneProcess(
     auto& mat_strg = process_data.mat_strg;
     time_disc.pushState(t, x, mat_strg);
 
-    process.postTimestep(x);
+    process.postTimestep(x, t);
 
     return nonlinear_solver_succeeded;
 }
