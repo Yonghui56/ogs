@@ -142,6 +142,22 @@ public:
     }
 
 private:
+    void assembleJacobian(double const /*t*/,
+                          std::vector<double> const& /*local_x*/) override
+    {
+    }
+    void addJacobianToGlobal(
+        AssemblerLib::LocalToGlobalIndexMap::RowColumnIndices const& /*indices*/,
+        GlobalMatrix& /*Jac*/) const override
+    {
+    }
+    void preTimestep(std::vector<double> const& /*local_x*/) override {}
+    void postTimestep(std::vector<double> const& /*local_x*/,
+                      double const /*t*/) override
+    {
+    }
+
+private:
     MeshLib::Element const& _element;
     std::vector<ShapeMatrices> _shape_matrices;
     GroundwaterFlowProcessData const& _process_data;
