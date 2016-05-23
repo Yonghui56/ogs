@@ -17,10 +17,12 @@
 
 namespace ProcessLib
 {
-template <typename ShapeFunction, typename ShapeMatricesType,
-          typename IntegrationMethod, unsigned GlobalDim>
-std::vector<typename ShapeMatricesType::ShapeMatrices> initShapeMatrices(
-    MeshLib::Element const& e, IntegrationMethod const& integration_method)
+
+
+template<typename ShapeFunction, typename ShapeMatricesType, typename IntegrationMethod,
+         unsigned GlobalDim>
+std::vector<typename ShapeMatricesType::ShapeMatrices, Eigen::aligned_allocator<typename ShapeMatricesType::ShapeMatrices>>
+initShapeMatrices(MeshLib::Element const& e, unsigned integration_order)
 {
     std::vector<typename ShapeMatricesType::ShapeMatrices, Eigen::aligned_allocator<typename ShapeMatricesType::ShapeMatrices>> shape_matrices;
 
