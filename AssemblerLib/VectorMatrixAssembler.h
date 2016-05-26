@@ -153,16 +153,18 @@ public:
     /// \attention The index \c id is not necessarily the mesh item's id.
     void postTimestep(std::size_t const id,
                       LocalAssembler& local_assembler,
-                      GlobalVector const& x) const
+                      GlobalVector const& x,
+                      double const t) const
     {
         auto cb = [&local_assembler](
             std::vector<double> const& local_x,
-            LocalToGlobalIndexMap::RowColumnIndices const& /*r_c_indices*/)
+            LocalToGlobalIndexMap::RowColumnIndices const& /*r_c_indices*/,
+            const double t)
         {
-            local_assembler.postTimestep(local_x);
+            local_assembler.postTimestep(local_x, t);
         };
 
-        passLocalVector_(cb, id, _data_pos, x);
+        passLocalVector_(cb, id, _data_pos, x, t);
     }
 
     /// Executes the given callback function for the given mesh item

@@ -88,7 +88,7 @@ double PiecewiseLinearInterpolation::PressureSaturationDependency(double pnt_to_
 {
 	double dpds, dsdp, lim;
 	dpds = GetCurveDerivative(pnt_to_interpolate);
-	lim = (-1.0) / DBL_EPSILON;
+	lim = std::numeric_limits<double>::lowest();
 	//
 	if (invert)
 	{ // Return dSw/dPc

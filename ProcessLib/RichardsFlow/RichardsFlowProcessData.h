@@ -68,6 +68,9 @@ struct RichardsFlowProcessData
     Parameter<double, MeshLib::Element const&> const& intrinsic_permeability;
 	Parameter<double, MeshLib::Element const&> const& porosity;
 	Parameter<double, MeshLib::Element const&> const& viscosity;
+	//std::vector<double> local_x0;
+	
+	double dt;
 	std::map<std::string,
 		std::unique_ptr<MathLib::PiecewiseLinearInterpolation >> const&
 		curves;
