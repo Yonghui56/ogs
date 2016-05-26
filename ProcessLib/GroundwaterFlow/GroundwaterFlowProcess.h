@@ -122,6 +122,22 @@ private:
                                  _local_assemblers));
         }
     }
+    void postSetInitialConditions(GlobalVector const& x) override
+    {
+        DBUG("post set init GroundwaterFlowProcess.");
+
+        auto cb = [&](std::size_t id, LocalAssemblerInterface& loc_asm) {
+            auto inner_cb = [&loc_asm](
+                std::vector<double> const& local_x,
+                AssemblerLib::LocalToGlobalIndexMap::RowColumnIndices const&) {
+                loc_asm.postSetInitialConditions(local_x);
+            };
+
+            _global_assembler->passLocalVector(inner_cb, id, x);
+        };
+
+        GlobalSetup::executeDereferenced(cb, _local_assemblers);
+    }
 
     void assembleConcreteProcess(const double t, GlobalVector const& x,
                                  GlobalMatrix& M, GlobalMatrix& K, GlobalVector& b) override

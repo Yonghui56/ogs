@@ -38,7 +38,11 @@ template <typename GlobalMatrix, typename GlobalVector>
 class GroundwaterFlowLocalAssemblerInterface
         : public ProcessLib::LocalAssemblerInterface<GlobalMatrix, GlobalVector>
         , public NumLib::Extrapolatable<GlobalVector, IntegrationPointValue>
-{};
+{
+public:
+    virtual void postSetInitialConditions(
+        std::vector<double> const& local_x) = 0;
+};
 
 template <typename ShapeFunction,
          typename IntegrationMethod,
@@ -75,6 +79,11 @@ public:
     {
         // This assertion is valid only if all nodal d.o.f. use the same shape matrices.
         assert(local_matrix_size == ShapeFunction::NPOINTS * NUM_NODAL_DOF);
+    }
+
+    void postSetInitialConditions(std::vector<double> const& /*local_x*/) override
+    {
+
     }
 
     void assemble(double const /*t*/, std::vector<double> const& local_x) override

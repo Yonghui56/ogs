@@ -113,6 +113,7 @@ public:
         {
             setInitialConditions(pv, 0, x);  // 0 is the component id
         }
+        postSetInitialConditions(x);
     }
 
     MathLib::MatrixSpecifications getMatrixSpecifications() const override final
@@ -183,6 +184,8 @@ private:
         AssemblerLib::LocalToGlobalIndexMap const& dof_table,
         MeshLib::Mesh const& mesh,
         unsigned const integration_order) = 0;
+
+    virtual void postSetInitialConditions(GlobalVector const& x) {};
 
     virtual void assembleConcreteProcess(
         const double t, GlobalVector const& x,
