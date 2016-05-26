@@ -36,7 +36,11 @@ namespace RichardsFlow
     class RichardsFlowLocalAssemblerInterface
         : public ProcessLib::LocalAssemblerInterface<GlobalMatrix, GlobalVector>
         , public NumLib::Extrapolatable<GlobalVector, IntegrationPointValue>
-    {};
+	{
+	public:
+		virtual void postSetInitialConditions(
+			std::vector<double> const& local_x) = 0;
+	};
 	
 template <typename ShapeFunction,
          typename IntegrationMethod,
@@ -69,7 +73,7 @@ public:
         , _localM(local_matrix_size, local_matrix_size)
         , _localA(local_matrix_size, local_matrix_size) // TODO narrowing conversion
         , _localRhs(local_matrix_size)
-		//, _localJac(local_matrix_size, local_matrix_size)
+		, _localJac(local_matrix_size, local_matrix_size)
         , _integration_order(integration_order)
     {
 		
@@ -79,7 +83,10 @@ public:
 		dim = coordsystem.getDimension();
 		//local_x0=
     }
-
+	void postSetInitialConditions(std::vector<double> const& local_x) override
+	{
+		local_x0 = local_x;
+	}
     void assemble(double const t, std::vector<double> const& local_x) override
     {
         _localA.setZero();
@@ -212,7 +219,7 @@ public:
 			TMP_M_2 = (1.0 / _process_data.dt) * _localM - (1. - _Theta) * _localA;
 			local_r_2.noalias() -= TMP_M_2 *local_x0_;//u0
             local_r_2.noalias() -= _localRhs;
-            _localJac.block(0, u_idx, local_x.size(), 1) = (local_r_1 - local_r_2) / 2 / eps / (1 + std::abs(local_x_[u_idx]));
+            _localJac.block(0, u_idx, local_x.size(), 1) = -(local_r_1 - local_r_2) / 2 / eps / (1 + std::abs(local_x_[u_idx]));
   //          debugging--------------------------
   //          std::cout << "_localJac: \n";
   //          std::cout << _localJac << std::endl;
