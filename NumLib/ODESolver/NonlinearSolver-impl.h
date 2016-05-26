@@ -177,7 +177,7 @@ solve(Vector &x)
     for (; iteration<_maxiter; ++iteration)
     {
         sys.preIteration(iteration, x);
-
+		
         sys.assembleResidualNewton(x);
         sys.getResidual(x, res);
 
