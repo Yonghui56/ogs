@@ -253,7 +253,7 @@ bool NonlinearSolver<NonlinearSolverTag::Newton>::solve(
 				{
 					INFO("Global Line Search begins!");
 					LinAlg::copy(x, x_new);//restore the x_new to be x
-					LinAlg::axpy(x_new, -_alpha, minus_delta_x);
+					LinAlg::axpy(x_new, -_beta, minus_delta_x);
 				}
 				/*calculate the new residual*/
 				BaseLib::RunTime time_iteration;

@@ -118,7 +118,7 @@ private:
 
     double const _alpha =
         1;  //!< Damping factor. \todo Add constructor parameter.
-
+	double const _beta = 0.5;
     std::size_t _res_id = 0u;            //!< ID of the residual vector.
     std::size_t _J_id = 0u;              //!< ID of the Jacobian matrix.
     std::size_t _minus_delta_x_id = 0u;  //!< ID of the \f$ -\Delta x\f$ vector.
