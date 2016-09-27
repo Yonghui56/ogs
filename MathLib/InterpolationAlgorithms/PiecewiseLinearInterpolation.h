@@ -57,6 +57,9 @@ public:
      * @return The interpolated value.
      */
     double getValue(double pnt_to_interpolate) const;
+    double getSlope(double pnt_to_interpolate) const;
+    double GetCurveDerivative(double pnt_to_interpolate) const;
+	double PressureSaturationDependency(double pnt_to_interpolate, bool invert) const;
 
 private:
     std::vector<double> _supp_pnts;
