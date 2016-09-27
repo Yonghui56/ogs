@@ -146,8 +146,8 @@ public:
 				sm.detJ * wp.getWeight();
 
 			//std::cout << t << "  " << _localA << "\n";
-			local_M.noalias() += sm.N *
-				mass_mat_coeff(0, 0) * sm.N.transpose() *
+			local_M.noalias() += sm.N.transpose() *
+				mass_mat_coeff(0, 0) * sm.N *
 				sm.detJ * wp.getWeight();//Eigen::Map<Eigen::VectorXd>
 										 //std::cout << t << "  " << _localM << "\n";
 			if (_process_data.has_gravity) {
@@ -161,7 +161,14 @@ public:
 				local_b.noalias() += sm.dNdx.transpose()*K_mat_coeff(0, 0) * rho_w * vec_g * sm.detJ * wp.getWeight();
 			} // end of if hasGravityEffect
 			  //std::cout << t << "  " << _localRhs << "\n";
-        }
+        }//end of GP
+		for (int idx_ml = 0; idx_ml < local_M.cols(); idx_ml++)
+		{
+			double mass_lump_val;
+			mass_lump_val = local_M.col(idx_ml).sum();
+			local_M.col(idx_ml).setZero();
+			local_M(idx_ml, idx_ml) = mass_lump_val;
+		}
     }
 
     Eigen::Map<const Eigen::RowVectorXd>
