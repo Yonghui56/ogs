@@ -126,6 +126,64 @@ private:
         0u;  //!< ID of the vector storing \f$ x - (-\Delta x) \f$.
 };
 
+/*! Find a solution to a nonlinear equation using the Newton with linesearch iteration
+* method.
+*
+*/
+
+template <>
+class NonlinearSolver<NonlinearSolverTag::Newton_Linesearch> final
+	: public NonlinearSolverBase
+{
+public:
+	//! Type of the nonlinear equation system to be solved.
+	using System = NonlinearSystem<NonlinearSolverTag::Newton_Linesearch>;
+
+	/*! Constructs a new instance.
+	*
+	* \param linear_solver the linear solver used by this nonlinear solver.
+	* \param maxiter the maximum number of iterations used to solve the
+	*                equation.
+	*/
+	explicit NonlinearSolver(
+		GlobalLinearSolver& linear_solver,
+		const unsigned maxiter)
+		: _linear_solver(linear_solver),
+		_maxiter(maxiter)
+	{
+	}
+
+	//! Set the nonlinear equation system that will be solved.
+	//! TODO doc
+	void setEquationSystem(System& eq, ConvergenceCriterion& conv_crit)
+	{
+		_equation_system = &eq;
+		_convergence_criterion = &conv_crit;
+	}
+	void assemble(GlobalVector const& x) const override;
+
+	bool solve(GlobalVector& x,
+		std::function<void(unsigned, GlobalVector const&)> const&
+		postIterationCallback) override;
+
+private:
+	GlobalLinearSolver& _linear_solver;
+	System* _equation_system = nullptr;
+
+	// TODO doc
+	ConvergenceCriterion* _convergence_criterion = nullptr;
+	const unsigned _maxiter;  //!< maximum number of iterations
+
+	double const _alpha =
+		1;  //!< Damping factor. \todo Add constructor parameter.
+	double const _beta = 0.5;
+	std::size_t _res_id = 0u;            //!< ID of the residual vector.
+	std::size_t _J_id = 0u;              //!< ID of the Jacobian matrix.
+	std::size_t _minus_delta_x_id = 0u;  //!< ID of the \f$ -\Delta x\f$ vector.
+	std::size_t _x_new_id =
+		0u;  //!< ID of the vector storing \f$ x - (-\Delta x) \f$.
+};
+
 /*! Find a solution to a nonlinear equation using the Picard fixpoint iteration
  * method.
  *

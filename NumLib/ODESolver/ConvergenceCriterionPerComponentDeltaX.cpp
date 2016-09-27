@@ -13,6 +13,7 @@
 #include "BaseLib/ConfigTree.h"
 #include "NumLib/DOF/LocalToGlobalIndexMap.h"
 #include "NumLib/DOF/DOFTableUtil.h"
+#include "MathLib/LinAlg/LinAlg.h"
 
 namespace NumLib
 {

@@ -19,7 +19,8 @@ namespace NumLib
 //! Tag used to specify which nonlinear solver will be used.
 enum class NonlinearSolverTag : bool {
     Picard /*!< Picard fixpoint iteration scheme */,
-    Newton /*!< Newton-Raphson iteration scheme */
+    Newton /*!< Newton-Raphson iteration scheme */,
+	Newton_Linesearch/*!< Newton with line search iteration scheme */
 };
 
 //! Tag used to specify the type of ODE.

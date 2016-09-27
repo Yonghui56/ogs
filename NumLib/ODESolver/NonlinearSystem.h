@@ -63,6 +63,45 @@ public:
                                            GlobalVector& minus_delta_x) = 0;
 };
 
+/*! A System of nonlinear equations to be solved with the Newton LineSearch
+*  iteration method.
+*
+* The Newton LS method will iterate the linearized equation
+* \f$ \mathtt{A} \cdot x_i = \mathtt{rhs} \f$.
+*/
+template <>
+class NonlinearSystem<NonlinearSolverTag::Newton_Linesearch> : public EquationSystem
+{
+public:
+	//! Assembles the linearized equation system at the point \c x.
+	//! The linearized system is \f$A(x) \cdot x = b(x)\f$. Here the matrix
+	//! \f$A(x)\f$ and the vector \f$b(x)\f$ are assembled.
+	virtual void assemble(GlobalVector const& x) = 0;
+
+	/*! Writes the residual at point \c x to \c res.
+	*
+	* \pre assemble() must have been called before with the same argument \c x.
+	*
+	* \todo Remove argument \c x.
+	*/
+	virtual void getResidual(GlobalVector const& x,
+		GlobalVector& res) const = 0;
+
+	/*! Writes the Jacobian of the residual to \c Jac.
+	*
+	* \pre assemble() must have been called before.
+	*/
+	virtual void getJacobian(GlobalMatrix& Jac) const = 0;
+
+	//! Apply known solutions to the solution vector \c x.
+	virtual void applyKnownSolutions(GlobalVector& x) const = 0;
+
+	//! Apply known solutions to the linearized equation system
+	//! \f$ \mathit{Jac} \cdot (-\Delta x) = \mathit{res} \f$.
+	virtual void applyKnownSolutionsNewton(GlobalMatrix& Jac, GlobalVector& res,
+		GlobalVector& minus_delta_x) = 0;
+};
+
 /*! A System of nonlinear equations to be solved with the Picard fixpoint
  *  iteration method.
  *
