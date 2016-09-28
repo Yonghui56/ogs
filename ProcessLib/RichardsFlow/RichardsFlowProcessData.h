@@ -32,6 +32,7 @@ struct RichardsFlowProcessData
 		Parameter<double> const& porosity_,
 		Parameter<double> const& viscosity_,
 		bool const has_gravity_,
+		bool const has_mass_lumping_,
 		std::map<std::string,
 		std::unique_ptr<MathLib::PiecewiseLinearInterpolation >> const&
 		curves_)
@@ -39,6 +40,7 @@ struct RichardsFlowProcessData
 		, porosity(porosity_)
 		, viscosity(viscosity_)
 		, has_gravity(has_gravity_)
+		, has_mass_lumping(has_mass_lumping_)
 		, curves(curves_)
     {}
 
@@ -47,6 +49,7 @@ struct RichardsFlowProcessData
 		, porosity(other.porosity)
 		, viscosity(other.viscosity)
 		, has_gravity(other.has_gravity)
+		, has_mass_lumping(other.has_mass_lumping)
 		, curves(other.curves)
     {}
 
@@ -66,6 +69,7 @@ struct RichardsFlowProcessData
 		std::unique_ptr<MathLib::PiecewiseLinearInterpolation >> const&
 		curves;
 	bool const has_gravity;
+	bool const has_mass_lumping;
 };
 
 } // namespace RichardsFlow

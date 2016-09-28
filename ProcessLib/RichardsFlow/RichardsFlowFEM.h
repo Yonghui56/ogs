@@ -89,7 +89,7 @@ public:
         // This assertion is valid only if all nodal d.o.f. use the same shape matrices.
         assert(local_matrix_size == ShapeFunction::NPOINTS * NUM_NODAL_DOF);
 
-		double Sw(0.0);//water saturation
+		double Sw(1.0);//water saturation
 		double Pc(0.0);//capillary pressure
 		double k_rel = 0.0;  // relative permeability
 		double drhow_dp(0.0);
@@ -129,13 +129,15 @@ public:
 
 			Pc = -P_int_pt;
 			//Sw = getSwbyPc_van(Pc);
-
-			Sw = interP_Pc.getValue(Pc);//read from Pc-S curve
+			if (Pc > 0) {
+                Sw = interP_Pc.getValue(Pc);//read from Pc-S curve
 										//dSwdPc = getdSwdPc_van(Pc);
+				dSwdPc = interP_Pc.PressureSaturationDependency(Pc, true);
+			}
+			
 			_saturation[ip] = Sw;
 			//dSwdPc = interP_Pc.getSlope(Pc);//read from slope of Pc-S curve
 			//k_rel = getKrelbySw_van(Sw,0);
-			dSwdPc = interP_Pc.PressureSaturationDependency(Pc, true);
 			k_rel = interP_Kr.getValue(Sw);//read from S-Kr curve
 
 			mass_mat_coeff(0, 0) = storage * Sw + poro * Sw * drhow_dp - poro * dSwdPc;
@@ -162,13 +164,15 @@ public:
 			} // end of if hasGravityEffect
 			  //std::cout << t << "  " << _localRhs << "\n";
         }//end of GP
-		for (int idx_ml = 0; idx_ml < local_M.cols(); idx_ml++)
-		{
-			double mass_lump_val;
-			mass_lump_val = local_M.col(idx_ml).sum();
-			local_M.col(idx_ml).setZero();
-			local_M(idx_ml, idx_ml) = mass_lump_val;
-		}
+		if (_process_data.has_mass_lumping) {
+			for (int idx_ml = 0; idx_ml < local_M.cols(); idx_ml++)
+			{
+				double mass_lump_val;
+				mass_lump_val = local_M.col(idx_ml).sum();
+				local_M.col(idx_ml).setZero();
+				local_M(idx_ml, idx_ml) = mass_lump_val;
+			}
+		}	
     }
 
     Eigen::Map<const Eigen::RowVectorXd>

@@ -71,12 +71,14 @@ std::unique_ptr<Process> createRichardsFlowProcess(
 
 	//has  gravity
 	auto grav = config.getConfigParameter<bool>("g");
+	auto mass_lump = config.getConfigParameter<bool>("mass_lumping");
 
 	RichardsFlowProcessData process_data{
 		intrinsic_permeability,
 		porosity,
 		viscosity,
 		grav,
+		mass_lump,
 		curves
 	};
     SecondaryVariableCollection secondary_variables;
