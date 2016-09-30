@@ -89,8 +89,8 @@ public:
         // This assertion is valid only if all nodal d.o.f. use the same shape matrices.
         assert(local_matrix_size == ShapeFunction::NPOINTS * NUM_NODAL_DOF);
 
-		double Sw(1.0);//water saturation
-		double Pc(0.0);//capillary pressure
+		
+		//double Pc(0.0);//capillary pressure
 		double k_rel = 0.0;  // relative permeability
 		double drhow_dp(0.0);
 		double dSwdPc(0.0);
@@ -120,25 +120,26 @@ public:
 			auto const& sm = _shape_matrices[ip];
 			auto const& wp = _integration_method.getWeightedPoint(ip);
 
-			//NumLib::shapeFunctionInterpolate(local_x, sm.N, int_pt_array);
 			NumLib::shapeFunctionInterpolate(local_x, sm.N, P_int_pt);
 			
-			auto const K = _process_data.intrinsic_permeability(t, pos)[0];//permeability
-			auto const poro = _process_data.porosity(t, pos)[0];//porosity
+			auto const K = _process_data.intrinsic_permeability(t, pos)[0];
+			auto const poro = _process_data.porosity(t, pos)[0];
 			auto const mu = _process_data.viscosity(t, pos)[0];
+			auto const storage = _process_data.storage(t, pos)[0];
+			auto const rho_w=_process_data.water_density(t, pos)[0];
 
-			Pc = -P_int_pt;
-			//Sw = getSwbyPc_van(Pc);
+			double Pc = -P_int_pt;
+			double Sw(1.0);
+			double dSwdPc(0.0);
+			
 			if (Pc > 0) {
-                Sw = interP_Pc.getValue(Pc);//read from Pc-S curve
-										//dSwdPc = getdSwdPc_van(Pc);
+                Sw = interP_Pc.getValue(Pc);
 				dSwdPc = interP_Pc.PressureSaturationDependency(Pc, true);
 			}
 			
 			_saturation[ip] = Sw;
-			//dSwdPc = interP_Pc.getSlope(Pc);//read from slope of Pc-S curve
-			//k_rel = getKrelbySw_van(Sw,0);
-			k_rel = interP_Kr.getValue(Sw);//read from S-Kr curve
+			
+			double k_rel = interP_Kr.getValue(Sw);
 
 			mass_mat_coeff(0, 0) = storage * Sw + poro * Sw * drhow_dp - poro * dSwdPc;
 			K_mat_coeff(0, 0) = K*k_rel / mu;
@@ -150,13 +151,12 @@ public:
 			//std::cout << t << "  " << _localA << "\n";
 			local_M.noalias() += sm.N.transpose() *
 				mass_mat_coeff(0, 0) * sm.N *
-				sm.detJ * wp.getWeight();//Eigen::Map<Eigen::VectorXd>
-										 //std::cout << t << "  " << _localM << "\n";
+				sm.detJ * wp.getWeight();
+			//std::cout << t << "  " << _localM << "\n";
 			if (_process_data.has_gravity) {
 				typename ShapeMatricesType::GlobalDimVectorType vec_g;
 				vec_g.resize(dim);
 				vec_g(dim - 1) = -9.81;
-				//const double vec_g(-9.81);//1D
 				// since no primary vairable involved
 				// directly assemble to the Right-Hand-Side
 				// F += dNp^T * K * gz
@@ -167,12 +167,11 @@ public:
 		if (_process_data.has_mass_lumping) {
 			for (int idx_ml = 0; idx_ml < local_M.cols(); idx_ml++)
 			{
-				double mass_lump_val;
-				mass_lump_val = local_M.col(idx_ml).sum();
+				double const mass_lump_val = local_M.col(idx_ml).sum();
 				local_M.col(idx_ml).setZero();
 				local_M(idx_ml, idx_ml) = mass_lump_val;
 			}
-		}	
+		}//end of mass lumping	
     }
 
     Eigen::Map<const Eigen::RowVectorXd>
@@ -201,11 +200,6 @@ private:
 	unsigned dim;
 
 	std::vector<double> _saturation;
-        //= std::vector<std::vector<double>>(
-            //GlobalDim, std::vector<double>(_integration_method.getNumberOfPoints()));
-
-	const double rho_w = 1000.;//water density
-	const double storage = 0.0;
 };
 
 

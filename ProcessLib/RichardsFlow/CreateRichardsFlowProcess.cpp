@@ -42,7 +42,7 @@ std::unique_ptr<Process> createRichardsFlowProcess(
     // Hydraulic conductivity parameter.
     auto& intrinsic_permeability = findParameter<double>(
         config,
-        //! \ogs_file_param_special{process__RICHARDS_FLOW__hydraulic_conductivity}
+        //! \ogs_file_param_special{process__RICHARDS_FLOW__intrinsic_permeability}
         "intrinsic_permeability",
         parameters, 1);
 
@@ -52,7 +52,7 @@ std::unique_ptr<Process> createRichardsFlowProcess(
 	// Porosity parameter.
 	auto& porosity = findParameter<double>(
 		config,
-		//! \ogs_file_param_special{process__RICHARDS_FLOW__hydraulic_conductivity}
+		//! \ogs_file_param_special{process__RICHARDS_FLOW__porosity}
 		"porosity",
 		parameters, 1);
 
@@ -62,22 +62,44 @@ std::unique_ptr<Process> createRichardsFlowProcess(
 	// Viscosity parameter.
 	auto& viscosity = findParameter<double>(
 		config,
-		//! \ogs_file_param_special{process__RICHARDS_FLOW__hydraulic_conductivity}
+		//! \ogs_file_param_special{process__RICHARDS_FLOW__viscosity}
 		"viscosity",
 		parameters, 1);
 
 	DBUG("Use \'%s\' as porosity parameter.",
 		viscosity.name.c_str());
 
+	// storage parameter.
+	auto& storage = findParameter<double>(
+		config,
+		//! \ogs_file_param_special{process__RICHARDS_FLOW__storage}
+		"storage",
+		parameters, 1);
+
+	DBUG("Use \'%s\' as storage parameter.",
+		storage.name.c_str());
+
+	// water_density parameter.
+	auto& water_density = findParameter<double>(
+		config,
+		//! \ogs_file_param_special{process__RICHARDS_FLOW__water_density}
+		"water_density",
+		parameters, 1);
+
+	DBUG("Use \'%s\' as storage parameter.",
+		water_density.name.c_str());
+
 	//has  gravity
-	auto grav = config.getConfigParameter<bool>("g");
+	auto has_gravity = config.getConfigParameter<bool>("g");
 	auto mass_lump = config.getConfigParameter<bool>("mass_lumping");
 
 	RichardsFlowProcessData process_data{
 		intrinsic_permeability,
 		porosity,
 		viscosity,
-		grav,
+		storage,
+		water_density,
+		has_gravity,
 		mass_lump,
 		curves
 	};
