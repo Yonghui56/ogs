@@ -65,7 +65,7 @@ bool NonlinearSolver<NonlinearSolverTag::Picard>::solve(
         sys.getA(A);
         sys.getRhs(rhs);
         INFO("[time] Assembly took %g s.", time_assembly.elapsed());
-
+		//rhs.write("rhs_pre.txt");
         BaseLib::RunTime time_dirichlet;
         time_dirichlet.start();
         // Here _x_new has to be used and it has to be equal to x!
@@ -82,6 +82,9 @@ bool NonlinearSolver<NonlinearSolverTag::Picard>::solve(
         BaseLib::RunTime time_linear_solver;
         time_linear_solver.start();
         bool iteration_succeeded = _linear_solver.solve(A, rhs, x_new);
+		//A.write("A.txt");
+		//rhs.write("rhs.txt");
+		
         INFO("[time] Linear solver took %g s.", time_linear_solver.elapsed());
 
         if (!iteration_succeeded)
