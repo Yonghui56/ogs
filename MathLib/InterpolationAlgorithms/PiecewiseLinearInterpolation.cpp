@@ -87,11 +87,11 @@ namespace MathLib
         double sw = getValue(pnt_to_interpolate);
         if (sw < _values_at_supp_pnts[interval_max - 1]) {
             sw = _values_at_supp_pnts[interval_max - 1];
-            interval_idx = interval_max - 1;
+            //interval_idx = interval_max - 2;
         }
         else if (sw > _values_at_supp_pnts[0]) {
             sw = _values_at_supp_pnts[0];
-            interval_idx = 1;
+            //interval_idx = 0;
         }
         
         if (interval_idx > 1 && interval_idx < interval_max - 2) {
@@ -124,31 +124,25 @@ namespace MathLib
 
     }
 	*/
+	
 	double PiecewiseLinearInterpolation::GetCurveDerivative(double pnt_to_interpolate, bool invert) const
 	{
 		std::size_t interval_max(std::numeric_limits<std::size_t>::max());
 		std::size_t interval_idx(std::numeric_limits<std::size_t>::max());
 		interval_max = _supp_pnts.size();
 		if (pnt_to_interpolate <= _supp_pnts.front()) {
+			pnt_to_interpolate=_supp_pnts.front();
 			interval_idx = 0;
 		}
 		else {
 			if (_supp_pnts.back() <= pnt_to_interpolate) {
+				pnt_to_interpolate=_supp_pnts.back();
 				interval_idx = _supp_pnts.size() - 2;
 			}
 			else {
 				auto const& it(std::lower_bound(_supp_pnts.begin(), _supp_pnts.end(), pnt_to_interpolate));
 				interval_idx = std::distance(_supp_pnts.begin(), it) - 1;
 			}
-		}
-		
-		if (pnt_to_interpolate > _supp_pnts[interval_max - 1]) {
-			pnt_to_interpolate = _supp_pnts[interval_max - 1];
-			interval_idx = interval_max - 1;
-		}
-		else if (pnt_to_interpolate < _supp_pnts[0]) {
-			pnt_to_interpolate = _supp_pnts[0];
-			interval_idx = 1;
 		}
 
 		//interval_idx = interval_max - 1 - interval_idx;

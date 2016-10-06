@@ -104,7 +104,22 @@ public:
 
         unsigned const n_integration_points =
             _integration_method.getNumberOfPoints();
-
+		const std::size_t size(1000);
+		std::vector<double> supp_pnts, values;
+		for (std::size_t k(0); k<size; ++k) {
+			supp_pnts.push_back(static_cast<double>(k));
+			values.push_back(k*k);
+		}
+		MathLib::PiecewiseLinearInterpolation interpolation{ std::move(supp_pnts),
+			std::move(values) };
+		std::vector<double> test;
+		//test.resize(size);
+		// Interpolation
+		for (std::size_t k(0); k<size - 1; ++k) {
+			
+			test.push_back(interpolation.GetCurveDerivative(k, true));
+		}
+		double test1 = interpolation.GetCurveDerivative(1001, true);
         SpatialPosition pos;
         pos.setElementID(_element.getID());
         double P_int_pt = 0.0;
@@ -125,7 +140,6 @@ public:
             double Pc = -P_int_pt;
             double Sw(1.0);
             double dSwdPc(0.0);
-            
             if (Pc > 0) {
                 Sw = interP_Pc.getValue(Pc);
                 dSwdPc = interP_Pc.GetCurveDerivative(Pc, true);
