@@ -55,6 +55,33 @@ TEST(MathLibInterpolationAlgorithms, PiecewiseLinearInterpolation)
     ASSERT_NEAR(1.5, interpolation.getValue(size-0.5), std::numeric_limits<double>::epsilon());
 }
 
+TEST(MathLibInterpolationAlgorithms, PiecewiseLinearInterpolationDerivative)
+{
+	const std::size_t size(1000);
+	std::vector<double> supp_pnts, values;
+	for (std::size_t k(0); k<size; ++k) {
+		supp_pnts.push_back(static_cast<double>(k));
+		if (k % 2 == 0) {
+			values.push_back(0.0);
+		}
+		else {
+			values.push_back(1.0);
+		}
+	}
+
+	MathLib::PiecewiseLinearInterpolation interpolation{ std::move(supp_pnts),
+		std::move(values) };
+	// Interpolation
+	for (std::size_t k(0); k<size - 1; ++k) {
+		ASSERT_NEAR(1.0, interpolation.getSlope(k + 0.5), std::numeric_limits<double>::epsilon());
+	}
+
+	// Extrapolation
+	ASSERT_NEAR(1.0, interpolation.getSlope(-0.5), std::numeric_limits<double>::epsilon());
+	// Extrapolation
+	ASSERT_NEAR(1.0, interpolation.getSlope(size - 0.5), std::numeric_limits<double>::epsilon());
+}
+
 TEST(MathLibInterpolationAlgorithms, PiecewiseLinearInterpolationSupportPntsInReverseOrder)
 {
     const std::size_t size(1000);

@@ -128,7 +128,8 @@ public:
             
             if (Pc > 0) {
                 Sw = interP_Pc.getValue(Pc);
-                dSwdPc = interP_Pc.PressureSaturationDependency(Pc, true);
+                dSwdPc = interP_Pc.GetCurveDerivative(Pc, true);
+				
             }
             
             _saturation[ip] = Sw;
