@@ -21,16 +21,16 @@ namespace TwoPhaseComponential
 {
 class TwoPhaseComponentialProcess final : public Process
 {
-
 public:
-	TwoPhaseComponentialProcess(
+    TwoPhaseComponentialProcess(
         MeshLib::Mesh& mesh,
         std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&&
             jacobian_assembler,
         std::vector<std::unique_ptr<ParameterBase>> const& parameters,
+        unsigned const integration_order,
         std::vector<std::reference_wrapper<ProcessVariable>>&&
             process_variables,
-		TwoPhaseComponentialProcessData&& process_data,
+        TwoPhaseComponentialProcessData&& process_data,
         SecondaryVariableCollection&& secondary_variables,
         NumLib::NamedFunctionCaller&& named_function_caller);
 
@@ -55,7 +55,7 @@ private:
         const double dxdot_dx, const double dx_dx, GlobalMatrix& M,
         GlobalMatrix& K, GlobalVector& b, GlobalMatrix& Jac) override;
 
-	TwoPhaseComponentialProcessData _process_data;
+    TwoPhaseComponentialProcessData _process_data;
 
     std::vector<std::unique_ptr<TwoPhaseComponentialLocalAssemblerInterface>>
         _local_assemblers;

@@ -182,8 +182,6 @@ public:
         /*Loop for each gauss point*/
         for (unsigned ip = 0; ip < n_integration_points; ip++)
         {
-            if (ele_id == 5758)
-                double test = 1e-15;
             F_vec_coeff.setZero();
             pos.setIntegrationPoint(ip);
             auto const& sm = _shape_matrices[ip];

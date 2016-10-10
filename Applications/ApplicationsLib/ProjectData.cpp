@@ -331,7 +331,7 @@ void ProjectData::parseProcesses(BaseLib::ConfigTree const& processes_config,
 		{
 			process = ProcessLib::TwoPhaseComponential::createTwoPhaseComponentialProcess(
 				*_mesh_vec[0], std::move(jacobian_assembler),
-				_process_variables, _parameters, process_config,_curves);
+				_process_variables, _parameters, integration_order, process_config,_curves);
 		}
         else
         {

@@ -23,6 +23,7 @@ std::unique_ptr<Process> createTwoPhaseComponentialProcess(
     std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
     std::vector<ProcessVariable> const& variables,
     std::vector<std::unique_ptr<ParameterBase>> const& parameters,
+	unsigned const integration_order,
     BaseLib::ConfigTree const& config,
 	std::map<std::string,
 	std::unique_ptr<MathLib::PiecewiseLinearInterpolation >> const&
@@ -109,7 +110,7 @@ std::unique_ptr<Process> createTwoPhaseComponentialProcess(
                                         named_function_caller);
 
     return std::unique_ptr<Process>{new TwoPhaseComponentialProcess{
-        mesh, std::move(jacobian_assembler), parameters,
+        mesh, std::move(jacobian_assembler), parameters, integration_order,
         std::move(process_variables), std::move(process_data),
         std::move(secondary_variables), std::move(named_function_caller)}};
 }
