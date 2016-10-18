@@ -37,6 +37,7 @@
 #include "ProcessLib/RichardsFlow/CreateRichardsFlowProcess.h"
 #include "ProcessLib/SmallDeformation/CreateSmallDeformationProcess.h"
 #include "ProcessLib/TES/CreateTESProcess.h"
+#include "ProcessLib/TwoPhaseFlowWithPP/createTwoPhaseFlowWithPPProcess.h"
 
 namespace detail
 {
@@ -337,6 +338,12 @@ void ProjectData::parseProcesses(BaseLib::ConfigTree const& processes_config,
                 _process_variables, _parameters, integration_order,
                 process_config, _curves);
         }
+		else if (type == "TWOPHASE_FLOW_PP")
+		{
+			process = ProcessLib::TwoPhaseFlowWithPP::createTwoPhaseFlowWithPPProcess(
+				*_mesh_vec[0], std::move(jacobian_assembler), _process_variables,
+				_parameters, integration_order, process_config);
+		}
         else
         {
             OGS_FATAL("Unknown process type: %s", type.c_str());
