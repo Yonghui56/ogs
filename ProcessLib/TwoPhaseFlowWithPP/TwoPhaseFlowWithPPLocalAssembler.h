@@ -128,13 +128,13 @@ private:
 
     const int _gravitational_axis_id;
     const double _gravitational_acceleration;
-    LiquidFlowMaterialProperties& _material_properties;
+    TwoPhaseFlowWithPPMaterialProperties& _material_properties;
     double _temperature;
 };
 
 }  // end of namespace
 }  // end of namespace
 
-#include "LiquidFlowLocalAssembler-impl.h"
+#include "TwoPhaseFlowWithPPLocalAssembler-impl.h"
 
-#endif /* LIQUIDFLOWLOCALASSEMBLER_H */
+#endif /* TWOPHASEFLOWWITHPPLOCALASSEMBLER_H */
