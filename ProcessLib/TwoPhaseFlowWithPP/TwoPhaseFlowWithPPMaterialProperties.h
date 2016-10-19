@@ -76,12 +76,16 @@ public:
                                            const int dim) const;
 
     double getLiquidDensity(const double p, const double T) const;
+	double getGasDensity(const double p, const double T) const;
+	double getGasViscosity(const double p, const double T) const;
 
     double getViscosity(const double p, const double T) const;
 
 private:
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _liquid_density;
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _viscosity;
+	std::unique_ptr<MaterialLib::Fluid::FluidProperty> _gas_density;
+	std::unique_ptr<MaterialLib::Fluid::FluidProperty> _gas_viscosity;
 
     /** Use porous medium models for different material zones.
      *  Material IDs must be given as mesh element properties.

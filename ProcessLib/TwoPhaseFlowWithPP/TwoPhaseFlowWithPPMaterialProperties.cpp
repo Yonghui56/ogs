@@ -14,7 +14,7 @@
 
 #include <logog/include/logog.hpp>
 
-#include "BaseLib/reorderVector.h"
+//#include "BaseLib/reorderVector.h"
 
 #include "MeshLib/Mesh.h"
 #include "MeshLib/PropertyVector.h"
@@ -44,10 +44,14 @@ TwoPhaseFlowWithPPMaterialProperties::TwoPhaseFlowWithPPMaterialProperties(
     //! \ogs_file_param{prj__material_property__fluid__density}
     auto const& rho_conf = fluid_config.getConfigSubtree("density");
     _liquid_density = MaterialLib::Fluid::createFluidDensityModel(rho_conf);
+	auto const& rho_gas_conf = fluid_config.getConfigSubtree("gasdensity");
+	_gas_density = MaterialLib::Fluid::createFluidDensityModel(rho_gas_conf);
     //! \ogs_file_param{prj__material_property__fluid__viscosity}
     auto const& mu_conf = fluid_config.getConfigSubtree("viscosity");
     _viscosity = MaterialLib::Fluid::createViscosityModel(mu_conf);
-
+	//! \ogs_file_param{prj__material_property__fluid__gas__viscosity}
+	auto const& mu_gas_conf = fluid_config.getConfigSubtree("gasviscosity");
+	_gas_viscosity = MaterialLib::Fluid::createViscosityModel(mu_gas_conf);
     // Get porous properties
     std::vector<int> mat_ids;
     //! \ogs_file_param{prj__material_property__porous_medium}
@@ -75,9 +79,9 @@ TwoPhaseFlowWithPPMaterialProperties::TwoPhaseFlowWithPPMaterialProperties(
         _storage_models.emplace_back(std::move(beta));
     }
 
-    BaseLib::reorderVector(_intrinsic_permeability_models, mat_ids);
-    BaseLib::reorderVector(_porosity_models, mat_ids);
-    BaseLib::reorderVector(_storage_models, mat_ids);
+    //BaseLib::reorderVector(_intrinsic_permeability_models, mat_ids);
+    //BaseLib::reorderVector(_porosity_models, mat_ids);
+    //BaseLib::reorderVector(_storage_models, mat_ids);
 }
 
 void TwoPhaseFlowWithPPMaterialProperties::setMaterialID(const SpatialPosition& pos)
@@ -98,6 +102,14 @@ double TwoPhaseFlowWithPPMaterialProperties::getLiquidDensity(const double p,
     return _liquid_density->getValue(vars);
 }
 
+double TwoPhaseFlowWithPPMaterialProperties::getGasDensity(const double p,
+	const double T) const
+{
+	ArrayType vars;
+	vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::T)] = T;
+	vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::pl)] = p;
+	return _gas_density->getValue(vars);
+}
 double TwoPhaseFlowWithPPMaterialProperties::getViscosity(const double p,
                                                   const double T) const
 {
@@ -105,6 +117,15 @@ double TwoPhaseFlowWithPPMaterialProperties::getViscosity(const double p,
     vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::T)] = T;
     vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::pl)] = p;
     return _viscosity->getValue(vars);
+}
+
+double TwoPhaseFlowWithPPMaterialProperties::getGasViscosity(const double p,
+	const double T) const
+{
+	ArrayType vars;
+	vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::T)] = T;
+	vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::pl)] = p;
+	return _viscosity->getValue(vars);
 }
 
 double TwoPhaseFlowWithPPMaterialProperties::getMassCoefficient(

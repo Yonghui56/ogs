@@ -54,14 +54,14 @@ void TwoPhaseFlowWithPPLocalAssembler<ShapeFunction, IntegrationMethod, GlobalDi
     //  the assert must be changed to perm.rows() == _element->getDimension()
     assert(perm.rows() == GlobalDim || perm.rows() == 1);
 
-	Eigen::MatrixXd mass_mat_coeff = Eigen::MatrixXd::Zero(N_size, N_size);
+	/*Eigen::MatrixXd mass_mat_coeff = Eigen::MatrixXd::Zero(N_size, N_size);
 	Eigen::MatrixXd K_mat_coeff = Eigen::MatrixXd::Zero(N_size, N_size);
 	Eigen::VectorXd H_vec_coeff = Eigen::VectorXd::Zero(N_size);
 	Eigen::MatrixXd localMass_tmp = Eigen::MatrixXd::Zero(n_nodes, n_nodes);
 	Eigen::MatrixXd localDispersion_tmp = Eigen::MatrixXd::Zero(n_nodes, n_nodes);
-	Eigen::VectorXd localGravity_tmp = Eigen::VectorXd::Zero(n_nodes);
-	MathLib::PiecewiseLinearInterpolation const&  interpolated_Pc = *_process_data.curves.at("curveA");
-	MathLib::PiecewiseLinearInterpolation const&  interpolated_Kr_L = *_process_data.curves.at("curveB");
+	Eigen::VectorXd localGravity_tmp = Eigen::VectorXd::Zero(n_nodes);*/
+	//MathLib::PiecewiseLinearInterpolation const&  interpolated_Pc = *_process_data.curves.at("curveA");
+	//MathLib::PiecewiseLinearInterpolation const&  interpolated_Kr_L = *_process_data.curves.at("curveB");
     // TODO: The following two variables should be calculated inside the
     //       the integration loop for non-constant porosity and storage models.
     double porosity_variable = 0.;
@@ -77,7 +77,9 @@ void TwoPhaseFlowWithPPLocalAssembler<ShapeFunction, IntegrationMethod, GlobalDi
 
         const double integration_factor =
             sm.integralMeasure * sm.detJ * wp.getWeight();
-
+		double const rho_gas = _material_properties.getGasDensity(p, _temperature);
+		double const gas_viscosity = _material_properties.getGasViscosity(p, _temperature);
+		
         // Assemble mass matrix, M
         local_M.noalias() +=
             _material_properties.getMassCoefficient(

@@ -43,18 +43,18 @@ std::unique_ptr<Process> createTwoPhaseFlowWithPPProcess(
 
     SecondaryVariableCollection secondary_variables;
 
-    NumLib::NamedFunctionCaller named_function_caller({"LiquidFlow_pressure"});
+    NumLib::NamedFunctionCaller named_function_caller({"TwoPhaseFlow_pressure"});
 
     ProcessLib::parseSecondaryVariables(config, secondary_variables,
                                         named_function_caller);
 
     auto const gravity_param = config.getConfigParameter("gravitational_term");
     auto const axis =
-        //! \ogs_file_attr{process__LIQUID_FLOW__gravitational_term__axis}
+        //! \ogs_file_attr{process__TWOPHASE_FLOW__gravitational_term__axis}
         gravity_param.getConfigAttributeOptional<std::string>("axis");
     // Gravitational acceleration
     auto const g =
-        //! \ogs_file_attr{process__LIQUID_FLOW__gravitational_term__g}
+        //! \ogs_file_attr{process__TWOPHASE_FLOW__gravitational_term__g}
         gravity_param.getConfigAttributeOptional<double>("g");
 
     int gravity_axis_id = -1;
@@ -65,14 +65,14 @@ std::unique_ptr<Process> createTwoPhaseFlowWithPPProcess(
     else if (*axis == "z")
         gravity_axis_id = 2;
 
-    //! \ogs_file_param{process__LIQUID_FLOW__material_property}
+    //! \ogs_file_param{process__TWOPHASE_FLOW__material_property}
     auto const& mat_config = config.getConfigSubtree("material_property");
 
     auto const& mat_ids =
         mesh.getProperties().getPropertyVector<int>("MaterialIDs");
     if (mat_ids)
     {
-        INFO("The liquid flow is in heterogeneous porous media.");
+        INFO("The twophase flow is in heterogeneous porous media.");
         return std::unique_ptr<Process>{new TwoPhaseFlowWithPPProcess{
             mesh, std::move(jacobian_assembler), parameters, integration_order,
             std::move(process_variables), std::move(secondary_variables),
@@ -81,7 +81,7 @@ std::unique_ptr<Process> createTwoPhaseFlowWithPPProcess(
     }
     else
     {
-        INFO("The liquid flow is in homogeneous porous media.");
+        INFO("The twophase flow is in homogeneous porous media.");
 
         MeshLib::Properties dummy_property;
         auto const& dummy_property_vector =
