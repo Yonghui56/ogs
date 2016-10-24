@@ -5,7 +5,7 @@
  *              See accompanying file LICENSE.txt or
  *              http://www.opengeosys.org/project/license
  *
- * \file   LiquidFlowLocalAssembler.h
+ * \file   TwoPhaseFlowWithPPLocalAssembler.h
  *
  * Created on August 19, 2016, 2:28 PM
  */
@@ -25,12 +25,13 @@
 #include "ProcessLib/Utils/InitShapeMatrices.h"
 
 #include "TwoPhaseFlowWithPPMaterialProperties.h"
+#include "TwoPhaseFlowWithPPProcessData.h"
 
 namespace ProcessLib
 {
 namespace TwoPhaseFlowWithPP
 {
-const unsigned NUM_NODAL_DOF = 1;
+const unsigned NUM_NODAL_DOF = 2;
 
 class TwoPhaseFlowWithPPLocalAssemblerInterface
     : public ProcessLib::LocalAssemblerInterface,
@@ -45,6 +46,9 @@ public:
 
     virtual std::vector<double> const& getIntPtDarcyVelocityZ(
         std::vector<double>& /*cache*/) const = 0;
+
+	virtual std::vector<double> const& getIntPtSaturation(
+		std::vector<double>& /*cache*/) const = 0;
 };
 
 template <typename ShapeFunction, typename IntegrationMethod,
@@ -66,17 +70,21 @@ public:
                              std::size_t const /*local_matrix_size*/,
                              bool const is_axially_symmetric,
                              unsigned const integration_order,
+		                     TwoPhaseFlowWithPPProcessData const& process_data,
                              int const gravitational_axis_id,
                              double const gravitational_acceleration,
                              TwoPhaseFlowWithPPMaterialProperties& material_propertries)
         : _element(element),
+		  _process_data(process_data),
           _integration_method(integration_order),
           _shape_matrices(initShapeMatrices<ShapeFunction, ShapeMatricesType,
                                             IntegrationMethod, GlobalDim>(
               element, is_axially_symmetric, _integration_method)),
           _gravitational_axis_id(gravitational_axis_id),
           _gravitational_acceleration(gravitational_acceleration),
-          _material_properties(material_propertries)
+          _material_properties(material_propertries),
+		  _saturation(
+			std::vector<double>(_integration_method.getNumberOfPoints()))
     {
     }
 
@@ -115,11 +123,20 @@ public:
         return _darcy_velocities[2];
     }
 
+	std::vector<double> const& getIntPtSaturation(
+		std::vector<double>& /*cache*/) const override
+	{
+		assert(_saturation.size() > 0);
+		return _saturation;
+	}
+
 private:
     MeshLib::Element const& _element;
 
     IntegrationMethod const _integration_method;
     std::vector<ShapeMatrices> _shape_matrices;
+
+	TwoPhaseFlowWithPPProcessData const& _process_data;
 
     std::vector<std::vector<double>> _darcy_velocities =
         std::vector<std::vector<double>>(
@@ -130,6 +147,7 @@ private:
     const double _gravitational_acceleration;
     TwoPhaseFlowWithPPMaterialProperties& _material_properties;
     double _temperature;
+	std::vector<double> _saturation;
 };
 
 }  // end of namespace

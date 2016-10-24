@@ -14,7 +14,9 @@
 
 #include <logog/include/logog.hpp>
 
-//#include "BaseLib/reorderVector.h"
+#include "BaseLib/reorderVector.h"
+
+#include "MathLib/InterpolationAlgorithms/PiecewiseLinearInterpolation.h"
 
 #include "MeshLib/Mesh.h"
 #include "MeshLib/PropertyVector.h"
@@ -32,10 +34,14 @@ namespace TwoPhaseFlowWithPP
 {
 TwoPhaseFlowWithPPMaterialProperties::TwoPhaseFlowWithPPMaterialProperties(
     BaseLib::ConfigTree const& config,
-    MeshLib::PropertyVector<int> const& material_ids)
-    : _material_ids(material_ids)
+    MeshLib::PropertyVector<int> const& material_ids,
+	std::map<std::string,
+	std::unique_ptr<MathLib::PiecewiseLinearInterpolation>> const&
+	curves_)
+    : _material_ids(material_ids),
+	curves(curves_)
 {
-    DBUG("Reading material properties of liquid flow process.");
+    DBUG("Reading material properties of two-phase flow process.");
 
     //! \ogs_file_param{prj__material_property__fluid}
     auto const& fluid_config = config.getConfigSubtree("fluid");
@@ -79,9 +85,9 @@ TwoPhaseFlowWithPPMaterialProperties::TwoPhaseFlowWithPPMaterialProperties(
         _storage_models.emplace_back(std::move(beta));
     }
 
-    //BaseLib::reorderVector(_intrinsic_permeability_models, mat_ids);
-    //BaseLib::reorderVector(_porosity_models, mat_ids);
-    //BaseLib::reorderVector(_storage_models, mat_ids);
+    BaseLib::reorderVector(_intrinsic_permeability_models, mat_ids);
+    BaseLib::reorderVector(_porosity_models, mat_ids);
+    BaseLib::reorderVector(_storage_models, mat_ids);
 }
 
 void TwoPhaseFlowWithPPMaterialProperties::setMaterialID(const SpatialPosition& pos)
@@ -107,10 +113,22 @@ double TwoPhaseFlowWithPPMaterialProperties::getGasDensity(const double p,
 {
 	ArrayType vars;
 	vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::T)] = T;
-	vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::pl)] = p;
+	vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::pg)] = p;
 	return _gas_density->getValue(vars);
+
 }
-double TwoPhaseFlowWithPPMaterialProperties::getViscosity(const double p,
+
+double TwoPhaseFlowWithPPMaterialProperties::getDerivGasDensity(const double p,
+	const double T) const
+{
+	ArrayType vars;
+	vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::T)] = T;
+	vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::pg)] = p;
+	
+	return _gas_density->getdValue(vars, MaterialLib::Fluid::PropertyVariableType::pg);
+
+}
+double TwoPhaseFlowWithPPMaterialProperties::getLiquidViscosity(const double p,
                                                   const double T) const
 {
     ArrayType vars;
@@ -124,34 +142,91 @@ double TwoPhaseFlowWithPPMaterialProperties::getGasViscosity(const double p,
 {
 	ArrayType vars;
 	vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::T)] = T;
-	vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::pl)] = p;
-	return _viscosity->getValue(vars);
+	vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::pg)] = p;
+	return _gas_viscosity->getValue(vars);
 }
 
-double TwoPhaseFlowWithPPMaterialProperties::getMassCoefficient(
-    const double /*t*/, const SpatialPosition& /*pos*/, const double p,
-    const double T, const double porosity_variable,
-    const double storage_variable) const
+double TwoPhaseFlowWithPPMaterialProperties::getSaturation(double const pc) const
 {
-    ArrayType vars;
-    vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::T)] = T;
-    vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::pl)] = p;
-    const double drho_dp = _liquid_density->getdValue(
-        vars, MaterialLib::Fluid::PropertyVariableType::pl);
-    const double rho = _liquid_density->getValue(vars);
-
-    const double porosity =
-        _porosity_models[_current_material_id]->getValue(porosity_variable, T);
-    const double storage =
-        _storage_models[_current_material_id]->getValue(storage_variable);
-    return porosity * drho_dp / rho + storage;
+	/*
+	MathLib::PiecewiseLinearInterpolation const& interpolated_Pc =
+		*curves.at("curveA");
+	return interpolated_Pc.getValue(pc);
+	*/
+	if (pc<0)
+		return 1 - (1.9722e-11)*pow(0.0, 2.4279);
+	return 1 - (1.9722e-11)*pow(pc, 2.4279);
 }
+
+double TwoPhaseFlowWithPPMaterialProperties::getrelativePermeability_liquid(double const sw) const
+{
+	MathLib::PiecewiseLinearInterpolation const& interpolated_Kr =
+		*curves.at("curveB");
+	return interpolated_Kr.getValue(sw);
+}
+
+double TwoPhaseFlowWithPPMaterialProperties::getDerivSaturation(double const pc) const
+{
+	/*
+	MathLib::PiecewiseLinearInterpolation const& interpolated_Pc =
+		*curves.at("curveA");
+	double dSwdPc = interpolated_Pc.getDerivative(pc);
+	if (pc > interpolated_Pc.getSupportMax())
+		dSwdPc = interpolated_Pc.getDerivative(
+			interpolated_Pc.getSupportMax());
+	else if (pc < interpolated_Pc.getSupportMin())
+		dSwdPc = interpolated_Pc.getDerivative(
+			interpolated_Pc.getSupportMin());
+	return dSwdPc;
+	*/
+	if (pc < 0)
+		return -(1.9722e-11)*2.4279*pow(0.0, 1.4279);
+	return -(1.9722e-11)*2.4279*pow(pc, 1.4279);
+}
+
+double TwoPhaseFlowWithPPMaterialProperties::getrelativePermeability_gas(double sw) const
+{
+	double k_rG = 0.0;
+	double k_min = 1e-5;
+	double Lambda_Brook = 3.;
+	double S_gr = 0.;
+	double S_lr = 0.2;
+	double S_le = (sw - S_lr) / (1 - S_lr - S_gr);
+	k_rG = pow(1.0 - S_le, 2)*(1.0 - pow(S_le, 1.0 + 2.0 / Lambda_Brook));
+	if (k_rG < k_min)
+		return k_min;
+	return k_rG;
+}
+
 
 Eigen::MatrixXd const& TwoPhaseFlowWithPPMaterialProperties::getPermeability(
     const double /*t*/, const SpatialPosition& /*pos*/, const int /*dim*/) const
 {
     return _intrinsic_permeability_models[_current_material_id];
 }
+
+double TwoPhaseFlowWithPPMaterialProperties::getPorosity(
+	const double /*t*/, const SpatialPosition& /*pos*/, const double p,
+	const double T, const double porosity_variable) const
+{
+
+	const double porosity =
+		_porosity_models[_current_material_id]->getValue(porosity_variable, T);
+	
+	return porosity;
+}
+
+double TwoPhaseFlowWithPPMaterialProperties::getDissolvedGas(double const pg) const
+{
+	double const hen = 2e-6;//
+	double const M_air = 0.029;//unit kg/mol
+	return pg*hen*M_air;
+}
+
+
+
+
+
 
 }  // end of namespace
 }  // end of namespace

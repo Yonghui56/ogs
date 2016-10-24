@@ -28,7 +28,9 @@ APPEND_SOURCE_FILES(SOURCES HeatConduction)
 
 APPEND_SOURCE_FILES(SOURCES RichardsFlow)
 
-APPEND_SOURCE_FILES(SOURCES TwoPhaseFlowWithPP)add_subdirectory(CalculateSurfaceFlux)
+APPEND_SOURCE_FILES(SOURCES TwoPhaseFlowWithPP)
+
+add_subdirectory(CalculateSurfaceFlux)
 APPEND_SOURCE_FILES(SOURCES CalculateSurfaceFlux)
 
 APPEND_SOURCE_FILES(SOURCES Utils)

@@ -15,7 +15,7 @@
 
 #include "NumLib/DOF/LocalToGlobalIndexMap.h"
 #include "ProcessLib/Process.h"
-
+#include "MathLib/InterpolationAlgorithms/PiecewiseLinearInterpolation.h"
 #include "TwoPhaseFlowWithPPMaterialProperties.h"
 #include "TwoPhaseFlowWithPPLocalAssembler.h"
 
@@ -61,14 +61,19 @@ public:
         unsigned const integration_order,
         std::vector<std::reference_wrapper<ProcessVariable>>&&
             process_variables,
+		TwoPhaseFlowWithPPProcessData&& process_data,
         SecondaryVariableCollection&& secondary_variables,
         NumLib::NamedFunctionCaller&& named_function_caller,
         MeshLib::PropertyVector<int> const& material_ids,
         int const gravitational_axis_id,
         double const gravitational_acceleration,
-        BaseLib::ConfigTree const& config);
+        BaseLib::ConfigTree const& config,
+		std::map<std::string,
+		std::unique_ptr<MathLib::PiecewiseLinearInterpolation>> const&
+		curves);
 
-    bool isLinear() const override { return true; }
+
+    bool isLinear() const override { return false; }
 private:
     void initializeConcreteProcess(
         NumLib::LocalToGlobalIndexMap const& dof_table,
@@ -86,6 +91,7 @@ private:
     const int _gravitational_axis_id;
     const double _gravitational_acceleration;
 	TwoPhaseFlowWithPPMaterialProperties _material_properties;
+	TwoPhaseFlowWithPPProcessData _process_data;
 
     std::vector<std::unique_ptr<TwoPhaseFlowWithPPLocalAssemblerInterface>>
         _local_assemblers;

@@ -5,7 +5,7 @@
  *              See accompanying file LICENSE.txt or
  *              http://www.opengeosys.org/project/license
  *
- * \file   createLiquidFlowProcess.h
+ * \file   createTwoPhaseFlowWithPPProcess.h
  *
  * Created on August 19, 2016, 1:30 PM
  */
@@ -26,8 +26,11 @@ std::unique_ptr<Process> createTwoPhaseFlowWithPPProcess(
     std::vector<ProcessVariable> const& variables,
     std::vector<std::unique_ptr<ParameterBase>> const& parameters,
     unsigned const integration_order,
-    BaseLib::ConfigTree const& config);
+    BaseLib::ConfigTree const& config,
+	std::map<std::string,
+	std::unique_ptr<MathLib::PiecewiseLinearInterpolation>> const&
+	curves);
 }  // end of namespace
 }  // end of namespace
 
-#endif /* CREATELIQUIDFLOWPROCESS_H */
+#endif /* CREATETWOPHASEFLOWWITHPPPROCESS_H */

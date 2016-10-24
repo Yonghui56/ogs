@@ -5,7 +5,7 @@
  *              See accompanying file LICENSE.txt or
  *              http://www.opengeosys.org/project/license
  *
- * \file   LiquidFlowProcess.cpp
+ * \file   TwoPhaseFlowWithPPProcess.cpp
  *
  * Created on August 19, 2016, 1:38 PM
  */
@@ -13,7 +13,7 @@
 #include "TwoPhaseFlowWithPPProcess.h"
 
 #include <cassert>
-
+#include "MathLib/InterpolationAlgorithms/PiecewiseLinearInterpolation.h"
 #include "MeshLib/PropertyVector.h"
 
 #include "ProcessLib/Utils/CreateLocalAssemblers.h"
@@ -32,20 +32,25 @@ TwoPhaseFlowWithPPProcess::TwoPhaseFlowWithPPProcess(
     std::vector<std::unique_ptr<ParameterBase>> const& parameters,
     unsigned const integration_order,
     std::vector<std::reference_wrapper<ProcessVariable>>&& process_variables,
+	TwoPhaseFlowWithPPProcessData&& process_data,
     SecondaryVariableCollection&& secondary_variables,
     NumLib::NamedFunctionCaller&& named_function_caller,
     MeshLib::PropertyVector<int> const& material_ids,
     int const gravitational_axis_id,
     double const gravitational_acceleration,
-    BaseLib::ConfigTree const& config)
+    BaseLib::ConfigTree const& config,
+	std::map<std::string,
+	std::unique_ptr<MathLib::PiecewiseLinearInterpolation>> const&
+	curves)
     : Process(mesh, std::move(jacobian_assembler), parameters,
               integration_order, std::move(process_variables),
               std::move(secondary_variables), std::move(named_function_caller)),
+	  _process_data(std::move(process_data)),
       _gravitational_axis_id(gravitational_axis_id),
       _gravitational_acceleration(gravitational_acceleration),
-      _material_properties(TwoPhaseFlowWithPPMaterialProperties(config, material_ids))
+      _material_properties(TwoPhaseFlowWithPPMaterialProperties(config, material_ids,curves))
 {
-    DBUG("Create Liquid flow process.");
+    DBUG("Create Two-Phase flow process.");
 }
 
 void TwoPhaseFlowWithPPProcess::initializeConcreteProcess(
@@ -55,7 +60,7 @@ void TwoPhaseFlowWithPPProcess::initializeConcreteProcess(
 {
     ProcessLib::createLocalAssemblers<TwoPhaseFlowWithPPLocalAssembler>(
         mesh.getDimension(), mesh.getElements(), dof_table, _local_assemblers,
-        mesh.isAxiallySymmetric(), integration_order, _gravitational_axis_id,
+        mesh.isAxiallySymmetric(), integration_order, _process_data, _gravitational_axis_id,
         _gravitational_acceleration, _material_properties);
 
     _secondary_variables.addSecondaryVariable(
@@ -80,6 +85,12 @@ void TwoPhaseFlowWithPPProcess::initializeConcreteProcess(
                 getExtrapolator(), _local_assemblers,
                 &TwoPhaseFlowWithPPLocalAssemblerInterface::getIntPtDarcyVelocityZ));
     }
+
+	_secondary_variables.addSecondaryVariable(
+		"saturation", 1,
+		makeExtrapolator(
+			getExtrapolator(), _local_assemblers,
+			&TwoPhaseFlowWithPPLocalAssemblerInterface::getIntPtSaturation));
 }
 
 void TwoPhaseFlowWithPPProcess::assembleConcreteProcess(const double t,
@@ -88,7 +99,7 @@ void TwoPhaseFlowWithPPProcess::assembleConcreteProcess(const double t,
                                                 GlobalMatrix& K,
                                                 GlobalVector& b)
 {
-    DBUG("Assemble LiquidFlowProcess.");
+    DBUG("Assemble TwoPhaseFlowWithPPProcess.");
     // Call global assembler for each local assembly item.
     GlobalExecutor::executeMemberDereferenced(
         _global_assembler, &VectorMatrixAssembler::assemble, _local_assemblers,
