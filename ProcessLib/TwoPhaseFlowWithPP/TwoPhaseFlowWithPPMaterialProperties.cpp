@@ -296,6 +296,15 @@ double TwoPhaseFlowWithPPMaterialProperties::getDeriv_dissolvegasdp(double const
 
 	return _dissolve_gas_rho->getdValue(vars, MaterialLib::Fluid::PropertyVariableType::pg);
 }
+double TwoPhaseFlowWithPPMaterialProperties::getDeriv_dissolvegasdT(double const pg, double const T, double const molg) const
+{
+	ArrayType vars;
+	vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::T)] = T;
+	vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::pg)] = pg;
+	vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::molarg)] = molg;
+
+	return _dissolve_gas_rho->getdValue(vars, MaterialLib::Fluid::PropertyVariableType::T);
+}
 
 
 

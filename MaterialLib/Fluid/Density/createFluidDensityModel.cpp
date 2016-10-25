@@ -93,7 +93,7 @@ std::unique_ptr<FluidProperty> createFluidDensityModel(
 		return std::unique_ptr<FluidProperty>(
 			//! \ogs_file_param{material__fluid__density__IdealGasLaw__molar_mass}
 			new HenryLaw(config.getConfigParameter<double>("molar_mass"), 
-				config.getConfigParameter<double>("henry_const")));
+				config.getConfigParameter<std::string>("component")));
 	}
     else
     {
