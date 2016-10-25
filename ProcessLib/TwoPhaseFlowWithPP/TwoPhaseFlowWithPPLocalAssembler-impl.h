@@ -114,8 +114,10 @@ void TwoPhaseFlowWithPPLocalAssembler<ShapeFunction, IntegrationMethod, GlobalDi
 		double const k_rel_G = _material_properties.getrelativePermeability_gas(Sw);//Sw
 		double const drhogas_dpg = _material_properties.getDerivGasDensity(pg_int_pt, _temperature);
 		double const poro = _material_properties.getPorosity(t, pos, pg_int_pt, _temperature, porosity_variable);
-		double const rho_L_air = _material_properties.getDissolvedGas(1e+5, _temperature, 0.5);
+		/*double const rho_L_air = _material_properties.getDissolvedGas(1e+5, _temperature, 0.5);
+		double const test = 1e+5*0.5*8.e-6*0.029;
 		double const drhoLairdp = _material_properties.getDeriv_dissolvegasdp(1e+5, _temperature, 0.5);
+		double const drhoLairdT = _material_properties.getDeriv_dissolvegasdT(1e+5, _temperature, 0.5);*/
         // Assemble mass matrix, M
 		_saturation[ip] = Sw;
 		//air
