@@ -88,7 +88,7 @@ public:
     double getLiquidViscosity(const double p, const double T) const;
 	double getDerivGasDensity(double const p, double const T) const;
 	double getDerivSaturation(double pc) const;
-	double getDissolvedGas(double const pg) const;
+	double getDissolvedGas(double const pg, double const T, double const mol) const;
 	double MRange(double a, double b, double c) const
 	{
 		if (b < a)
@@ -103,6 +103,7 @@ private:
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _viscosity;
 	std::unique_ptr<MaterialLib::Fluid::FluidProperty> _gas_density;
 	std::unique_ptr<MaterialLib::Fluid::FluidProperty> _gas_viscosity;
+	std::unique_ptr<MaterialLib::Fluid::FluidProperty> _dissolve_gas_rho;
 
     /** Use porous medium models for different material zones.
      *  Material IDs must be given as mesh element properties.

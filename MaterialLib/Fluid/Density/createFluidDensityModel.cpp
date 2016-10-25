@@ -16,6 +16,7 @@
 #include "BaseLib/Error.h"
 
 #include "IdealGasLaw.h"
+#include "HenryLaw.h"
 #include "LinearTemperatureDependentDensity.h"
 #include "LiquidDensity.h"
 #include "MaterialLib/Fluid/ConstantFluidProperty.h"
@@ -87,12 +88,20 @@ std::unique_ptr<FluidProperty> createFluidDensityModel(
             //! \ogs_file_param{material__fluid__density__IdealGasLaw__molar_mass}
             new IdealGasLaw(config.getConfigParameter<double>("molar_mass")));
     }
+	else if (type == "HenryLaw")
+	{
+		return std::unique_ptr<FluidProperty>(
+			//! \ogs_file_param{material__fluid__density__IdealGasLaw__molar_mass}
+			new HenryLaw(config.getConfigParameter<double>("molar_mass"), 
+				config.getConfigParameter<double>("henry_const")));
+	}
     else
     {
         OGS_FATAL(
             "The density type %s is unavailable.\n"
             "The available types are: \n\tConstant, \n\tLiquidDensity, "
-            "\n\tTemperatureDependent, \n\tIdealGasLaw.\n",
+            "\n\tTemperatureDependent, \n\tIdealGasLaw.\n"
+			"\n\tHenryLaw.\n",
             type.data());
     }
 }

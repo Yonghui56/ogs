@@ -52,6 +52,8 @@ TwoPhaseFlowWithPPMaterialProperties::TwoPhaseFlowWithPPMaterialProperties(
     _liquid_density = MaterialLib::Fluid::createFluidDensityModel(rho_conf);
 	auto const& rho_gas_conf = fluid_config.getConfigSubtree("gasdensity");
 	_gas_density = MaterialLib::Fluid::createFluidDensityModel(rho_gas_conf);
+	auto const& rho_dissolve_gas_conf = fluid_config.getConfigSubtree("dissolvegasdensity");
+	_dissolve_gas_rho = MaterialLib::Fluid::createFluidDensityModel(rho_dissolve_gas_conf);
     //! \ogs_file_param{prj__material_property__fluid__viscosity}
     auto const& mu_conf = fluid_config.getConfigSubtree("viscosity");
     _viscosity = MaterialLib::Fluid::createViscosityModel(mu_conf);
@@ -277,11 +279,13 @@ double TwoPhaseFlowWithPPMaterialProperties::getPorosity(
 	return porosity;
 }
 
-double TwoPhaseFlowWithPPMaterialProperties::getDissolvedGas(double const pg) const
+double TwoPhaseFlowWithPPMaterialProperties::getDissolvedGas(double const pg, double const T, double const molg) const
 {
-	double const hen = 2e-6;//
-	double const M_air = 0.029;//unit kg/mol
-	return pg*hen*M_air;
+	ArrayType vars;
+	vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::T)] = T;
+	vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::pg)] = pg;
+	vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::molarg)] = molg;
+	return _dissolve_gas_rho->getValue(vars);
 }
 
 

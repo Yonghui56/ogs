@@ -26,6 +26,7 @@ enum class PropertyVariableType
     T = 0,   ///< temperature.
     pl = 1,  ///< pressure of the liquid phase (1st phase for some cases).
     pg = 2,  ///< pressure of the gas phase (2nd phase for some cases).
+	molarg=pl,
     number_of_variables = 3  ///< Number of property variables.
 };
 
