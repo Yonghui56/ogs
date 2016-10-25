@@ -53,6 +53,12 @@ void TwoPhaseFlowWithPPLocalAssembler<ShapeFunction, IntegrationMethod, GlobalDi
 	auto local_b = MathLib::createZeroedVector<NodalVectorType>(
 		local_b_data, local_matrix_size);
 
+	typedef Matrix<double, n_nodes, n_nodes> MatrixNN;
+	MatrixNN _Mgp;
+	MatrixNN _Mgpc;
+	MatrixNN _Mlp;
+	MatrixNN _Mlpc;
+
     unsigned const n_integration_points =
         _integration_method.getNumberOfPoints();
 
@@ -113,12 +119,13 @@ void TwoPhaseFlowWithPPLocalAssembler<ShapeFunction, IntegrationMethod, GlobalDi
 		//air
 		mass_mat_coeff(0, 0) = -poro*rho_gas*dSwdPc+ poro*rho_L_air*dSwdPc;
 		mass_mat_coeff(0, 1) = poro* (1 - Sw)*drhogas_dpg+poro*Sw*drhoLairdPG;
+		// water
 		mass_mat_coeff(1, 0) = poro*rho_w*dSwdPc;
 		mass_mat_coeff(1, 1) = 0.0;
 
 		//std::cout << mass_mat_coeff << std::endl;
 		//assembly the mass matrix
-		for (int ii = 0; ii < NUM_NODAL_DOF; ii++) {
+		/*for (int ii = 0; ii < NUM_NODAL_DOF; ii++) {
 			for (int jj = 0; jj < NUM_NODAL_DOF; jj++) {
 				localMass_tmp.setZero();
 				localMass_tmp.noalias() = sm.N.transpose() *
@@ -126,7 +133,19 @@ void TwoPhaseFlowWithPPLocalAssembler<ShapeFunction, IntegrationMethod, GlobalDi
 					sm.detJ * sm.integralMeasure * wp.getWeight();
 				local_M.block(n_nodes*ii, n_nodes*jj, n_nodes, n_nodes).noalias() += localMass_tmp;
 			}
-		}
+		}*/
+		_Mgpc.noalias() += mass_mat_coeff(0, 0)*
+			sm.N.transpose()  *  sm.N *
+			integration_factor;
+		_Mgp.noalias() += mass_mat_coeff(0, 1)*
+			sm.N.transpose()  *  sm.N *
+			integration_factor;
+		_Mlpc.noalias() += mass_mat_coeff(1, 0)*
+			sm.N.transpose()  *  sm.N *
+			integration_factor;
+		_Mlp.noalias() += mass_mat_coeff(1, 1)*
+			sm.N.transpose()  *  sm.N *
+			integration_factor;
 		//std::cout << local_M << std::endl;
 		/*
 		*construct the K matrix
@@ -174,7 +193,7 @@ void TwoPhaseFlowWithPPLocalAssembler<ShapeFunction, IntegrationMethod, GlobalDi
 		}// end of has gravity
 		//std::cout << local_b << std::endl;
     }// end of GP
-	if (_process_data.has_mass_lumping)
+	/*if (_process_data.has_mass_lumping)
 	{
 		for (int idx_ml = 0; idx_ml < local_M.cols(); idx_ml++)
 		{
@@ -182,7 +201,32 @@ void TwoPhaseFlowWithPPLocalAssembler<ShapeFunction, IntegrationMethod, GlobalDi
 			local_M.col(idx_ml).setZero();
 			local_M(idx_ml, idx_ml) = mass_lump_val;
 		}
-	}  // end of mass lumping
+	} */ // end of mass lumping
+	if (_process_data.has_mass_lumping)
+	{
+		for (unsigned row = 0; row<_Mgpc.cols(); row++)
+		{
+			for (unsigned column = 0; column<_Mgpc.cols(); column++)
+			{
+				if (row != column)
+				{
+					_Mgpc(row, row) += _Mgpc(row, column);
+					_Mgpc(row, column) = 0.0;
+					_Mgp(row, row) += _Mgp(row, column);
+					_Mgp(row, column) = 0.0;
+					_Mlpc(row, row) += _Mlpc(row, column);
+					_Mlpc(row, column) = 0.0;
+					_Mlp(row, row) += _Mlp(row, column);
+					_Mlp(row, column) = 0.0;
+				}
+			}
+		}
+	}
+	//assembler fully coupled mass matrix
+	local_M.block<n_nodes, n_nodes>(0, 0).noalias() += _Mgpc;
+	local_M.block<n_nodes, n_nodes>(0, n_nodes).noalias() += _Mgp;
+	local_M.block<n_nodes, n_nodes>(n_nodes, 0).noalias() += _Mlpc;
+	local_M.block<n_nodes, n_nodes>(n_nodes, n_nodes).noalias() += _Mlp;
 }
 
 }  // end of namespace
