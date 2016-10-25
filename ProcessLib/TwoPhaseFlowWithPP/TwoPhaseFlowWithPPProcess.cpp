@@ -91,6 +91,11 @@ void TwoPhaseFlowWithPPProcess::initializeConcreteProcess(
 		makeExtrapolator(
 			getExtrapolator(), _local_assemblers,
 			&TwoPhaseFlowWithPPLocalAssemblerInterface::getIntPtSaturation));
+	_secondary_variables.addSecondaryVariable(
+		"pressure_wetting", 1,
+		makeExtrapolator(
+			getExtrapolator(), _local_assemblers,
+			&TwoPhaseFlowWithPPLocalAssemblerInterface::getIntPtLiquidPressure));
 }
 
 void TwoPhaseFlowWithPPProcess::assembleConcreteProcess(const double t,

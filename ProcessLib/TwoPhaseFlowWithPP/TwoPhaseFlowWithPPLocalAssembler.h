@@ -49,6 +49,8 @@ public:
 
 	virtual std::vector<double> const& getIntPtSaturation(
 		std::vector<double>& /*cache*/) const = 0;
+	virtual std::vector<double> const& getIntPtLiquidPressure(
+		std::vector<double>& /*cache*/) const = 0;
 };
 
 template <typename ShapeFunction, typename IntegrationMethod,
@@ -84,6 +86,8 @@ public:
           _gravitational_acceleration(gravitational_acceleration),
           _material_properties(material_propertries),
 		  _saturation(
+			std::vector<double>(_integration_method.getNumberOfPoints())),
+		  _pw(
 			std::vector<double>(_integration_method.getNumberOfPoints()))
     {
     }
@@ -130,6 +134,13 @@ public:
 		return _saturation;
 	}
 
+	std::vector<double> const& getIntPtLiquidPressure(
+		std::vector<double>& /*cache*/) const override
+	{
+		assert(_pw.size() > 0);
+		return _pw;
+	}
+
 private:
     MeshLib::Element const& _element;
 
@@ -148,6 +159,7 @@ private:
     TwoPhaseFlowWithPPMaterialProperties& _material_properties;
     double _temperature;
 	std::vector<double> _saturation;
+	std::vector<double> _pw;
 };
 
 }  // end of namespace

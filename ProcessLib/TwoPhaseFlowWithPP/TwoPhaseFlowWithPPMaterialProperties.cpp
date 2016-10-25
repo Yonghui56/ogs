@@ -146,28 +146,60 @@ double TwoPhaseFlowWithPPMaterialProperties::getGasViscosity(const double p,
 	return _gas_viscosity->getValue(vars);
 }
 
-double TwoPhaseFlowWithPPMaterialProperties::getSaturation(double const pc) const
+double TwoPhaseFlowWithPPMaterialProperties::getSaturation(double pc) const
 {
-	/*
+	/*// read from curve
 	MathLib::PiecewiseLinearInterpolation const& interpolated_Pc =
 		*curves.at("curveA");
 	return interpolated_Pc.getValue(pc);
 	*/
+	/* for liakopoulos test
 	if (pc<0)
 		return 1 - (1.9722e-11)*pow(0.0, 2.4279);
 	return 1 - (1.9722e-11)*pow(pc, 2.4279);
+	*/
+	/*
+	 * Brooks Corey model
+	 */
+	double const pb = 5000;
+	double const slr = 0.0;
+	double const slm = 1.0;
+	double const m = 2.0; // always >= 1.0
+	if (pc < pb)
+		pc = pb;
+	double const se = pow(pc / pb, -m);
+	double sl = se * (slm - slr) + slr;
+	sl =MRange(slr + DBL_EPSILON, sl, slm - DBL_EPSILON);
+	return sl;
 }
 
 double TwoPhaseFlowWithPPMaterialProperties::getrelativePermeability_liquid(double const sw) const
-{
-	MathLib::PiecewiseLinearInterpolation const& interpolated_Kr =
+{   
+	/*
+	 * read from curve
+	 */
+	/*MathLib::PiecewiseLinearInterpolation const& interpolated_Kr =
 		*curves.at("curveB");
-	return interpolated_Kr.getValue(sw);
+	return interpolated_Kr.getValue(sw);*/
+	/*
+	* Brooks Corey model
+	*/
+	double const slr = 0.0;
+	double const slm = 1.0;
+	double const m = 2.0;
+	double sl = sw;
+	sl= this->MRange(slr, sl, slm);
+	double const se = (sl - slr) / (slm - slr);
+	//
+	double kr = pow(se, 3.0 + 2.0 / m);
+	if (kr < 1e-9)
+		kr = 1e-9;
+	return kr;
 }
 
-double TwoPhaseFlowWithPPMaterialProperties::getDerivSaturation(double const pc) const
+double TwoPhaseFlowWithPPMaterialProperties::getDerivSaturation(double pc) const
 {
-	/*
+	/*// read from curve
 	MathLib::PiecewiseLinearInterpolation const& interpolated_Pc =
 		*curves.at("curveA");
 	double dSwdPc = interpolated_Pc.getDerivative(pc);
@@ -179,13 +211,30 @@ double TwoPhaseFlowWithPPMaterialProperties::getDerivSaturation(double const pc)
 			interpolated_Pc.getSupportMin());
 	return dSwdPc;
 	*/
+	/* // for Liakopoulos
 	if (pc < 0)
 		return -(1.9722e-11)*2.4279*pow(0.0, 1.4279);
 	return -(1.9722e-11)*2.4279*pow(pc, 1.4279);
+	*/
+	// for Brooks Corey
+	double const pb = 5000;
+	double const slr = 0.0;
+	double const slm = 1.0;
+	double const m = 2.0; // always >= 1.0
+	if (pc < pb)
+		pc = pb;
+	double const se = pow(pc / pb, -m);
+	double sl = se * (slm - slr) + slr;
+	sl = MRange(slr + DBL_EPSILON, sl, slm - DBL_EPSILON);
+	
+	double v1 = pow(((sl - slr) / (slm - slr)), (-1.0 / m));
+	double const dpds = (pb * v1) / (m * (slr - sl));
+	return 1/dpds;
 }
 
 double TwoPhaseFlowWithPPMaterialProperties::getrelativePermeability_gas(double sw) const
 {
+	/*for liakopoulos
 	double k_rG = 0.0;
 	double k_min = 1e-5;
 	double Lambda_Brook = 3.;
@@ -196,6 +245,18 @@ double TwoPhaseFlowWithPPMaterialProperties::getrelativePermeability_gas(double 
 	if (k_rG < k_min)
 		return k_min;
 	return k_rG;
+	*/
+	double const slr = 0.0; // slr = 1.0 - sgm
+	double const slm = 1.0; // slm = 1.0 - sgr
+	double const m = 2;
+	double sl = sw;
+	sl = MRange(slr, sl, slm);
+	double se = (sl - slr) / (slm - slr);
+	//
+	double kr = pow(1.0 - se, 2) * (1.0 - pow(se, 1.0 + 2.0 / m));
+	if (kr < 1e-9)
+		kr = 1e-9;
+	return kr;
 }
 
 
@@ -222,6 +283,7 @@ double TwoPhaseFlowWithPPMaterialProperties::getDissolvedGas(double const pg) co
 	double const M_air = 0.029;//unit kg/mol
 	return pg*hen*M_air;
 }
+
 
 
 

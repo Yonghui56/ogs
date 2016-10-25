@@ -14,12 +14,13 @@
 #define OGS_TWOPHASEFLOWWITHPPLOCALASSEMBLER_IMPL_H
 
 #include <iostream>
+#include <Eigen/Dense>
 #include "TwoPhaseFlowWithPPLocalAssembler.h"
-
+#include "NumLib/Fem/ShapeMatrixPolicy.h"
 #include "NumLib/Function/Interpolation.h"
 #include "MathLib/InterpolationAlgorithms/PiecewiseLinearInterpolation.h"
 #include "TwoPhaseFlowWithPPProcessData.h"
-
+using namespace Eigen;
 namespace ProcessLib
 {
 namespace TwoPhaseFlowWithPP
@@ -53,12 +54,18 @@ void TwoPhaseFlowWithPPLocalAssembler<ShapeFunction, IntegrationMethod, GlobalDi
 	auto local_b = MathLib::createZeroedVector<NodalVectorType>(
 		local_b_data, local_matrix_size);
 
+	typedef Matrix<double, n_nodes, n_nodes> MatrixNN;
+	MatrixNN _Mgp;
+	MatrixNN _Mgpc;
+	MatrixNN _Mlp;
+	MatrixNN _Mlpc;
+
     unsigned const n_integration_points =
         _integration_method.getNumberOfPoints();
 
     SpatialPosition pos;
     pos.setElementID(_element.getID());
-    _material_properties.setMaterialID(pos);
+    //_material_properties.setMaterialID(pos);
 
     const Eigen::MatrixXd& perm =
         _material_properties.getPermeability(t, pos, _element.getDimension());
@@ -91,6 +98,7 @@ void TwoPhaseFlowWithPPLocalAssembler<ShapeFunction, IntegrationMethod, GlobalDi
 
         // TODO : compute _temperature from the heat transport pcs
 		double const pl = pg_int_pt - pc_int_pt;
+		_pw[ip] = pl;
         const double integration_factor =
             sm.integralMeasure * sm.detJ * wp.getWeight();
 		double const rho_gas = _material_properties.getGasDensity(pg_int_pt, _temperature);
@@ -111,28 +119,40 @@ void TwoPhaseFlowWithPPLocalAssembler<ShapeFunction, IntegrationMethod, GlobalDi
         // Assemble mass matrix, M
 		_saturation[ip] = Sw;
 		//air
-		mass_mat_coeff(0, 0) = -poro*rho_gas*dSwdPc+ poro*rho_L_air*dSwdPc;
-		mass_mat_coeff(0, 1) = poro* (1 - Sw)*drhogas_dpg+poro*Sw*drhoLairdPG;
+		mass_mat_coeff(0, 0) = -poro*rho_gas*dSwdPc;// +poro*rho_L_air*dSwdPc;
+		mass_mat_coeff(0, 1) = poro* (1 - Sw)*drhogas_dpg;// +poro*Sw*drhoLairdPG;
 		mass_mat_coeff(1, 0) = poro*rho_w*dSwdPc;
 		mass_mat_coeff(1, 1) = 0.0;
 
 		//std::cout << mass_mat_coeff << std::endl;
 		//assembly the mass matrix
-		for (int ii = 0; ii < NUM_NODAL_DOF; ii++) {
+		/*for (int ii = 0; ii < NUM_NODAL_DOF; ii++) {
 			for (int jj = 0; jj < NUM_NODAL_DOF; jj++) {
 				localMass_tmp.setZero();
-				localMass_tmp.noalias() = sm.N.transpose() *
-					mass_mat_coeff(ii, jj) *  sm.N *
-					sm.detJ * sm.integralMeasure * wp.getWeight();
+				localMass_tmp.noalias() = mass_mat_coeff(ii, jj) *
+					sm.N.transpose()  *  sm.N *
+					integration_factor;
 				local_M.block(n_nodes*ii, n_nodes*jj, n_nodes, n_nodes).noalias() += localMass_tmp;
 			}
-		}
+		}*/
+		_Mgpc.noalias()+= mass_mat_coeff(0, 0)*
+			sm.N.transpose()  *  sm.N *
+			integration_factor;
+		_Mgp.noalias() += mass_mat_coeff(0, 1)*
+			sm.N.transpose()  *  sm.N *
+			integration_factor;
+		_Mlpc.noalias() += mass_mat_coeff(1, 0)*
+			sm.N.transpose()  *  sm.N *
+			integration_factor;
+		_Mlp.noalias() += mass_mat_coeff(1, 1)*
+			sm.N.transpose()  *  sm.N *
+			integration_factor;
 		//std::cout << local_M << std::endl;
 		/*
 		*construct the K matrix
 		*/
-		K_mat_coeff(0, 0) = -rho_L_air*perm(0, 0)*k_rel_L / mu_liquid;// _process_data.intrinsic_permeability(_element)*k_rel / _process_data.viscosity(_element);
-		K_mat_coeff(0, 1) = rho_gas*perm(0, 0)*k_rel_G / mu_gas + rho_L_air*perm(0, 0)*k_rel_L / mu_liquid;
+		K_mat_coeff(0, 0) = 0.0;
+		K_mat_coeff(0, 1) = rho_gas*perm(0, 0)*k_rel_G / mu_gas;// +rho_L_air*perm(0, 0)*k_rel_L / mu_liquid;
 		K_mat_coeff(1, 0) = -rho_w*perm(0, 0)*k_rel_L / mu_liquid;
 		K_mat_coeff(1, 1) = rho_w*perm(0, 0)*k_rel_L / mu_liquid;
 		//std::cout << K_mat_coeff << std::endl;
@@ -140,16 +160,16 @@ void TwoPhaseFlowWithPPLocalAssembler<ShapeFunction, IntegrationMethod, GlobalDi
 		for (int ii = 0; ii < NUM_NODAL_DOF; ii++) {
 			for (int jj = 0; jj < NUM_NODAL_DOF; jj++) {
 				localDispersion_tmp.setZero();
-				localDispersion_tmp.noalias() = sm.dNdx.transpose() *
-					K_mat_coeff(ii, jj) * sm.dNdx *
-					sm.detJ * sm.integralMeasure * wp.getWeight();
+				localDispersion_tmp.noalias() = K_mat_coeff(ii, jj) *
+					sm.dNdx.transpose() * sm.dNdx *
+					integration_factor;
 				local_K.block(n_nodes*ii, n_nodes*jj, n_nodes, n_nodes).noalias() += localDispersion_tmp;
 
 			}
 		}
 		//std::cout << local_K << std::endl;
-		H_vec_coeff(0) = rho_gas*rho_gas*perm(0, 0)*k_rel_G / mu_gas
-			+ rho_L_air *rho_w*perm(0, 0)*k_rel_L / mu_liquid;
+		H_vec_coeff(0) = rho_gas*rho_gas*perm(0, 0)*k_rel_G / mu_gas;
+			
 		H_vec_coeff(1) = rho_w*rho_w*perm(0, 0)*k_rel_L / mu_liquid;
 		//std::cout << H_vec_coeff << std::endl;
 		if (_process_data.has_gravity)
@@ -174,7 +194,7 @@ void TwoPhaseFlowWithPPLocalAssembler<ShapeFunction, IntegrationMethod, GlobalDi
 		}// end of has gravity
 		//std::cout << local_b << std::endl;
     }// end of GP
-	if (_process_data.has_mass_lumping)
+	/*if (_process_data.has_mass_lumping)
 	{
 		for (int idx_ml = 0; idx_ml < local_M.cols(); idx_ml++)
 		{
@@ -182,7 +202,32 @@ void TwoPhaseFlowWithPPLocalAssembler<ShapeFunction, IntegrationMethod, GlobalDi
 			local_M.col(idx_ml).setZero();
 			local_M(idx_ml, idx_ml) = mass_lump_val;
 		}
-	}  // end of mass lumping
+	} */ // end of mass lumping
+	if (_process_data.has_mass_lumping)
+	{
+		for (unsigned row = 0; row<_Mgpc.cols(); row++)
+		{
+			for (unsigned column = 0; column<_Mgpc.cols(); column++)
+			{
+				if (row != column)
+				{
+					_Mgpc(row, row) += _Mgpc(row, column);
+					_Mgpc(row, column) = 0.0;
+					_Mgp(row, row) += _Mgp(row, column);
+					_Mgp(row, column) = 0.0;
+					_Mlpc(row, row) += _Mlpc(row, column);
+					_Mlpc(row, column) = 0.0;
+					_Mlp(row, row) += _Mlp(row, column);
+					_Mlp(row, column) = 0.0;
+				}
+			}
+		}
+	}
+	//assembler fully coupled mass matrix
+	local_M.block<n_nodes, n_nodes>(0, 0).noalias() += _Mgpc;
+	local_M.block<n_nodes, n_nodes>(0, n_nodes).noalias() += _Mgp;
+	local_M.block<n_nodes, n_nodes>(n_nodes, 0).noalias() += _Mlpc;
+	local_M.block<n_nodes, n_nodes>(n_nodes, n_nodes).noalias() += _Mlp;
 }
 
 }  // end of namespace

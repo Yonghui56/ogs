@@ -82,13 +82,22 @@ public:
     double getLiquidDensity(const double p, const double T) const;
 	double getGasDensity(const double p, const double T) const;
 	double getGasViscosity(const double p, const double T) const;
-	double getSaturation(double const pc) const;
+	double getSaturation(double pc) const;
 	double getrelativePermeability_liquid(double const sw) const;
 	double getrelativePermeability_gas(double const sw) const;
     double getLiquidViscosity(const double p, const double T) const;
 	double getDerivGasDensity(double const p, double const T) const;
-	double getDerivSaturation(double const pc) const;
+	double getDerivSaturation(double pc) const;
 	double getDissolvedGas(double const pg) const;
+	double MRange(double a, double b, double c) const
+	{
+		if (b < a)
+			return a;
+		if (b > c)
+			return c;
+
+		return b;
+	}
 private:
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _liquid_density;
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _viscosity;
@@ -110,7 +119,6 @@ private:
         _porosity_models;
     std::vector<std::unique_ptr<MaterialLib::PorousMedium::Storage>>
         _storage_models;
-
     // Note: For the statistical data of porous media, they could be read from
     // vtu files directly. This can be done by using property vectors directly.
     // Such property vectors will be added here if they are needed.
