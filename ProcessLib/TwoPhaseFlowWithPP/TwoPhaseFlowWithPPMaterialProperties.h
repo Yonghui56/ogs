@@ -89,6 +89,7 @@ public:
 	double getDerivGasDensity(double const p, double const T) const;
 	double getDerivSaturation(double pc) const;
 	double getDissolvedGas(double const pg, double const T, double const mol) const;
+	double getDeriv_dissolvegasdp(double const pg, double const T, double const mol) const;
 	double MRange(double a, double b, double c) const
 	{
 		if (b < a)
