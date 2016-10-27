@@ -19,7 +19,7 @@
 #include "NumLib/Function/Interpolation.h"
 #include "MathLib/InterpolationAlgorithms/PiecewiseLinearInterpolation.h"
 #include "TwoPhaseFlowWithPPProcessData.h"
-
+using namespace Eigen;
 namespace ProcessLib
 {
 namespace TwoPhaseFlowWithPP
@@ -64,7 +64,7 @@ void TwoPhaseFlowWithPPLocalAssembler<ShapeFunction, IntegrationMethod, GlobalDi
 
     SpatialPosition pos;
     pos.setElementID(_element.getID());
-    _material_properties.setMaterialID(pos);
+    //_material_properties.setMaterialID(pos);
 
     const Eigen::MatrixXd& perm =
         _material_properties.getPermeability(t, pos, _element.getDimension());
@@ -93,7 +93,7 @@ void TwoPhaseFlowWithPPLocalAssembler<ShapeFunction, IntegrationMethod, GlobalDi
 
         double pc_int_pt = 0.;
 		double pg_int_pt = 0.;
-        NumLib::shapeFunctionInterpolate(local_x, sm.N, pc_int_pt, pg_int_pt);
+        NumLib::shapeFunctionInterpolate(local_x, sm.N, pg_int_pt, pc_int_pt);
 
         // TODO : compute _temperature from the heat transport pcs
 		double const pl = pg_int_pt - pc_int_pt;
@@ -106,54 +106,51 @@ void TwoPhaseFlowWithPPLocalAssembler<ShapeFunction, IntegrationMethod, GlobalDi
 		double const mu_liquid = _material_properties.getLiquidViscosity(pl, _temperature);
 
 		double Sw = _material_properties.getSaturation(pc_int_pt);//pc
-		double const dSwdPc = _material_properties.getDerivSaturation(pc_int_pt);
+		/*if (pc_int_pt < 1000)
+			Sw = -3.7901e-7*pc_int_pt + 1;// pm->getSat_byPC(0.0);*/
+		if (pc_int_pt < 0)
+			Sw = 1.0;
+		double dSwdPc = _material_properties.getDerivSaturation(pc_int_pt);
+		/*if (pc_int_pt < 1000)
+			dSwdPc = -3.7901e-7;*/
 		double const k_rel_L = _material_properties.getrelativePermeability_liquid(Sw);
 		
 		double const k_rel_G = _material_properties.getrelativePermeability_gas(Sw);//Sw
 		double const drhogas_dpg = _material_properties.getDerivGasDensity(pg_int_pt, _temperature);
 		double const poro = _material_properties.getPorosity(t, pos, pg_int_pt, _temperature, porosity_variable);
-		double const rho_L_air = _material_properties.getDissolvedGas(pg_int_pt);
-		double const drhoLairdPG = 0.029*2e-6;
+		
         // Assemble mass matrix, M
 		_saturation[ip] = Sw;
 		//air
-		mass_mat_coeff(0, 0) = -poro*rho_gas*dSwdPc+ poro*rho_L_air*dSwdPc;
-		mass_mat_coeff(0, 1) = poro* (1 - Sw)*drhogas_dpg+poro*Sw*drhoLairdPG;
-		// water
-		mass_mat_coeff(1, 0) = poro*rho_w*dSwdPc;
-		mass_mat_coeff(1, 1) = 0.0;
-
+		mass_mat_coeff(0, 0) = poro*(1 - Sw)*drhogas_dpg; //dPG
+		mass_mat_coeff(0, 1) = -poro*rho_gas*dSwdPc; //dPC
+        //water
+		mass_mat_coeff(1, 0) = 0.0;//dPG
+		mass_mat_coeff(1, 1) = poro*dSwdPc*rho_w;//dPC
+		
 		//std::cout << mass_mat_coeff << std::endl;
-		//assembly the mass matrix
-		/*for (int ii = 0; ii < NUM_NODAL_DOF; ii++) {
-			for (int jj = 0; jj < NUM_NODAL_DOF; jj++) {
-				localMass_tmp.setZero();
-				localMass_tmp.noalias() = sm.N.transpose() *
-					mass_mat_coeff(ii, jj) *  sm.N *
-					sm.detJ * sm.integralMeasure * wp.getWeight();
-				local_M.block(n_nodes*ii, n_nodes*jj, n_nodes, n_nodes).noalias() += localMass_tmp;
-			}
-		}*/
-		_Mgpc.noalias() += mass_mat_coeff(0, 0)*
+
+		_Mgp.noalias() += mass_mat_coeff(0, 0)*
 			sm.N.transpose()  *  sm.N *
 			integration_factor;
-		_Mgp.noalias() += mass_mat_coeff(0, 1)*
+		_Mgpc.noalias() += mass_mat_coeff(0, 1)*
 			sm.N.transpose()  *  sm.N *
 			integration_factor;
-		_Mlpc.noalias() += mass_mat_coeff(1, 0)*
+		_Mlp.noalias() += mass_mat_coeff(1, 0)*
 			sm.N.transpose()  *  sm.N *
 			integration_factor;
-		_Mlp.noalias() += mass_mat_coeff(1, 1)*
+		_Mlpc.noalias() += mass_mat_coeff(1, 1)*
 			sm.N.transpose()  *  sm.N *
 			integration_factor;
-		//std::cout << local_M << std::endl;
 		/*
 		*construct the K matrix
 		*/
-		K_mat_coeff(0, 0) = -rho_L_air*perm(0, 0)*k_rel_L / mu_liquid;// _process_data.intrinsic_permeability(_element)*k_rel / _process_data.viscosity(_element);
-		K_mat_coeff(0, 1) = rho_gas*perm(0, 0)*k_rel_G / mu_gas + rho_L_air*perm(0, 0)*k_rel_L / mu_liquid;
-		K_mat_coeff(1, 0) = -rho_w*perm(0, 0)*k_rel_L / mu_liquid;
-		K_mat_coeff(1, 1) = rho_w*perm(0, 0)*k_rel_L / mu_liquid;
+		K_mat_coeff(0, 0) = rho_gas*perm(0, 0)*k_rel_G / mu_gas;
+		K_mat_coeff(0, 1) = 0.0;
+
+		//water
+		K_mat_coeff(1, 0) = rho_w*perm(0, 0)*k_rel_L / mu_liquid;
+		K_mat_coeff(1, 1) = -rho_w*perm(0, 0)*k_rel_L / mu_liquid;
 		//std::cout << K_mat_coeff << std::endl;
 		//assembly the mass matrix
 		for (int ii = 0; ii < NUM_NODAL_DOF; ii++) {
@@ -167,8 +164,8 @@ void TwoPhaseFlowWithPPLocalAssembler<ShapeFunction, IntegrationMethod, GlobalDi
 			}
 		}
 		//std::cout << local_K << std::endl;
-		H_vec_coeff(0) = rho_gas*rho_gas*perm(0, 0)*k_rel_G / mu_gas
-			+ rho_L_air *rho_w*perm(0, 0)*k_rel_L / mu_liquid;
+		H_vec_coeff(0) = rho_gas*rho_gas*perm(0, 0)*k_rel_G / mu_gas;
+
 		H_vec_coeff(1) = rho_w*rho_w*perm(0, 0)*k_rel_L / mu_liquid;
 		//std::cout << H_vec_coeff << std::endl;
 		if (_process_data.has_gravity)
@@ -178,30 +175,16 @@ void TwoPhaseFlowWithPPLocalAssembler<ShapeFunction, IntegrationMethod, GlobalDi
 			assert(body_force.size() == GlobalDim);
 			auto const b = MathLib::toVector<GlobalDimVectorType>(
 				body_force, GlobalDim);
-			localGravity_tmp.noalias() = sm.dNdx.transpose() * H_vec_coeff(0)*
+			for (int idx = 0; idx < NUM_NODAL_DOF; idx++) {
+				localGravity_tmp.setZero();
+				localGravity_tmp.noalias() = sm.dNdx.transpose() * H_vec_coeff(idx)*
 					b * sm.detJ * sm.integralMeasure *
 					wp.getWeight();
-			
-			local_b.block<n_nodes, 1>(0, 0).noalias() += localGravity_tmp;
-			localGravity_tmp.setZero();
-			localGravity_tmp.noalias() = sm.dNdx.transpose() * H_vec_coeff(1)*
-				b * sm.detJ * sm.integralMeasure *
-				wp.getWeight();
-			
-			local_b.block<n_nodes, 1>(n_nodes, 0).noalias() += localGravity_tmp;
-			
+				local_b.block(n_nodes * idx, 0, n_nodes, 1) += localGravity_tmp;
+			}
 		}// end of has gravity
 		//std::cout << local_b << std::endl;
     }// end of GP
-	/*if (_process_data.has_mass_lumping)
-	{
-		for (int idx_ml = 0; idx_ml < local_M.cols(); idx_ml++)
-		{
-			double const mass_lump_val = local_M.col(idx_ml).sum();
-			local_M.col(idx_ml).setZero();
-			local_M(idx_ml, idx_ml) = mass_lump_val;
-		}
-	} */ // end of mass lumping
 	if (_process_data.has_mass_lumping)
 	{
 		for (unsigned row = 0; row<_Mgpc.cols(); row++)
@@ -223,10 +206,10 @@ void TwoPhaseFlowWithPPLocalAssembler<ShapeFunction, IntegrationMethod, GlobalDi
 		}
 	}
 	//assembler fully coupled mass matrix
-	local_M.block<n_nodes, n_nodes>(0, 0).noalias() += _Mgpc;
-	local_M.block<n_nodes, n_nodes>(0, n_nodes).noalias() += _Mgp;
-	local_M.block<n_nodes, n_nodes>(n_nodes, 0).noalias() += _Mlpc;
-	local_M.block<n_nodes, n_nodes>(n_nodes, n_nodes).noalias() += _Mlp;
+	local_M.block<n_nodes, n_nodes>(0, 0).noalias() += _Mgp;
+	local_M.block<n_nodes, n_nodes>(0, n_nodes).noalias() += _Mgpc;
+	local_M.block<n_nodes, n_nodes>(n_nodes, 0).noalias() += _Mlp;
+	local_M.block<n_nodes, n_nodes>(n_nodes, n_nodes).noalias() += _Mlpc;
 }
 
 }  // end of namespace

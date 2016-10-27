@@ -148,27 +148,35 @@ double TwoPhaseFlowWithPPMaterialProperties::getGasViscosity(const double p,
 
 double TwoPhaseFlowWithPPMaterialProperties::getSaturation(double const pc) const
 {
+	/// TODO waiting for a better way to implemente the PC-S curve
 	/*
 	MathLib::PiecewiseLinearInterpolation const& interpolated_Pc =
 		*curves.at("curveA");
 	return interpolated_Pc.getValue(pc);
 	*/
-	if (pc<0)
-		return 1 - (1.9722e-11)*pow(0.0, 2.4279);
+	if (pc < 0)
+		//return 1 - (1.9722e-11)*pow(0.0, 2.4279);
+		//extend
+		return 1 + pc*getDerivSaturation(0.0);
 	return 1 - (1.9722e-11)*pow(pc, 2.4279);
+	
 }
 
 double TwoPhaseFlowWithPPMaterialProperties::getrelativePermeability_liquid(double const sw) const
 {
+	/// TODO waiting for a better way to implemente the Kr-S curve
+	/*
 	MathLib::PiecewiseLinearInterpolation const& interpolated_Kr =
 		*curves.at("curveB");
 	return interpolated_Kr.getValue(sw);
+	*/
+	return 1 - 2.207 * pow((1 - sw), 1.0121);//
 }
 
 double TwoPhaseFlowWithPPMaterialProperties::getDerivSaturation(double const pc) const
 {
-	/*
-	MathLib::PiecewiseLinearInterpolation const& interpolated_Pc =
+	
+	/*MathLib::PiecewiseLinearInterpolation const& interpolated_Pc =
 		*curves.at("curveA");
 	double dSwdPc = interpolated_Pc.getDerivative(pc);
 	if (pc > interpolated_Pc.getSupportMax())
@@ -179,15 +187,16 @@ double TwoPhaseFlowWithPPMaterialProperties::getDerivSaturation(double const pc)
 			interpolated_Pc.getSupportMin());
 	return dSwdPc;
 	*/
-	if (pc < 0)
-		return -(1.9722e-11)*2.4279*pow(0.0, 1.4279);
+	if (pc <= 0)
+		return -3.7901e-7;// -(1.9722e-11)*2.4279*pow(0.0, 1.4279);
 	return -(1.9722e-11)*2.4279*pow(pc, 1.4279);
+	
 }
 
 double TwoPhaseFlowWithPPMaterialProperties::getrelativePermeability_gas(double sw) const
 {
 	double k_rG = 0.0;
-	double k_min = 1e-5;
+	double k_min = 1e-4;
 	double Lambda_Brook = 3.;
 	double S_gr = 0.;
 	double S_lr = 0.2;
