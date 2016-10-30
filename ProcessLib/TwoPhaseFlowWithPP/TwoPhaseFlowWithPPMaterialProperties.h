@@ -14,7 +14,8 @@
 #define OGS_TWOPHASEFLOWWITHPPMATERIALPROPERTIES_H
 
 #include <memory>
-
+#include <iostream>
+#include <vector>
 #include "MaterialLib/Fluid/FluidPropertyHeaders.h"
 #include "MaterialLib/PorousMedium/PorousPropertyHeaders.h"
 #include "MathLib/InterpolationAlgorithms/PiecewiseLinearInterpolation.h"
@@ -82,7 +83,7 @@ public:
     double getLiquidDensity(const double p, const double T) const;
 	double getGasDensity(const double p, const double T) const;
 	double getGasViscosity(const double p, const double T) const;
-	double getSaturation(double const pc) const;
+	double getSaturation(double pc) const;
 	double getrelativePermeability_liquid(double const sw) const;
 	double getrelativePermeability_gas(double const sw) const;
     double getLiquidViscosity(const double p, const double T) const;
@@ -95,6 +96,14 @@ private:
 	std::unique_ptr<MaterialLib::Fluid::FluidProperty> _gas_density;
 	std::unique_ptr<MaterialLib::Fluid::FluidProperty> _gas_viscosity;
 
+	int cap_pressure_model;
+	std::vector<double> cap_pressure_value= std::vector<double>(4);
+
+	int rel_wet_perm_model;
+	std::vector<double> rel_wet_perm_value = std::vector<double>(4);
+
+	int rel_nonwet_perm_model;
+	std::vector<double> rel_nonwet_perm_value = std::vector<double>(4);
     /** Use porous medium models for different material zones.
      *  Material IDs must be given as mesh element properties.
      */

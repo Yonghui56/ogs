@@ -83,6 +83,46 @@ TwoPhaseFlowWithPPMaterialProperties::TwoPhaseFlowWithPPMaterialProperties(
         auto const& stora_conf = conf.getConfigSubtree("storage");
         auto beta = MaterialLib::PorousMedium::createStorageModel(stora_conf);
         _storage_models.emplace_back(std::move(beta));
+
+		//! \ogs_file_param{prj__material_property__porous_medium__porous_medium__cap_pressure}
+		auto const& cap_pressure_conf = conf.getConfigSubtree("capillary_pressure");
+		auto const cap_pressure_type = cap_pressure_conf.getConfigParameter<std::string>("type");
+		if (cap_pressure_type == "Curve")
+			cap_pressure_model = 0;
+		else if (cap_pressure_type == "van_Genuchten")
+			cap_pressure_model = 1;
+		else if (cap_pressure_type == "Brooks_Corey")
+		{
+			cap_pressure_model = 2;
+			cap_pressure_value[0] = cap_pressure_conf.getConfigParameter<double>("entry_pressure");
+			cap_pressure_value[1] = cap_pressure_conf.getConfigParameter<double>("res_saturation_wet");
+			cap_pressure_value[2] = cap_pressure_conf.getConfigParameter<double>("res_saturation_nonwet");
+			cap_pressure_value[3] = cap_pressure_conf.getConfigParameter<double>("lambda");
+		}
+		else if (cap_pressure_type == "Liakopoulos")
+			cap_pressure_model = 10;
+		else
+			OGS_FATAL("This model has not been implemented yet");
+
+		//! \ogs_file_param{prj__material_property__porous_medium__porous_medium__rel_permeability_liquid}
+		auto const& rel_wet_perm_conf = conf.getConfigSubtree("relative_wet_permeability");
+		auto const rel_wet_perm_type = rel_wet_perm_conf.getConfigParameter<std::string>("type");
+		if (rel_wet_perm_type == "Curve")
+			rel_wet_perm_model = 0;
+		else if (rel_wet_perm_type == "van_Genuchten")
+			rel_wet_perm_model = 1;
+		else if (rel_wet_perm_type == "Brooks_Corey")
+		{
+			rel_wet_perm_model = 2;
+			rel_wet_perm_value[0] = rel_wet_perm_conf.getConfigParameter<double>("entry_pressure");
+			rel_wet_perm_value[1] = rel_wet_perm_conf.getConfigParameter<double>("res_saturation_wet");
+			rel_wet_perm_value[2] = rel_wet_perm_conf.getConfigParameter<double>("res_saturation_nonwet");
+			rel_wet_perm_value[3] = rel_wet_perm_conf.getConfigParameter<double>("lambda");
+		}
+		else if (rel_wet_perm_type == "Liakopoulos")
+			rel_wet_perm_model = 10;
+		else
+			OGS_FATAL("This model has not been implemented yet");
     }
 
     BaseLib::reorderVector(_intrinsic_permeability_models, mat_ids);
@@ -146,20 +186,60 @@ double TwoPhaseFlowWithPPMaterialProperties::getGasViscosity(const double p,
 	return _gas_viscosity->getValue(vars);
 }
 
-double TwoPhaseFlowWithPPMaterialProperties::getSaturation(double const pc) const
+double TwoPhaseFlowWithPPMaterialProperties::getSaturation(double pc) const
 {
+	double Sw;
 	/// TODO waiting for a better way to implemente the PC-S curve
-	/*
-	MathLib::PiecewiseLinearInterpolation const& interpolated_Pc =
-		*curves.at("curveA");
-	return interpolated_Pc.getValue(pc);
-	*/
-	if (pc < 0)
-		//return 1 - (1.9722e-11)*pow(0.0, 2.4279);
-		//extend
-		return 1 + pc*getDerivSaturation(0.0);
-	return 1 - (1.9722e-11)*pow(pc, 2.4279);
-	
+	switch (cap_pressure_model)
+	{
+	case 0:
+	{
+		MathLib::PiecewiseLinearInterpolation const& interpolated_Pc =
+			*curves.at("curveA");
+		Sw = interpolated_Pc.getValue(pc);
+		break;
+	}
+	///van Genuchten	
+	case 1:
+	{
+		const double pb = cap_pressure_value[0];
+		const double slr = cap_pressure_value[1];
+		const double slm = cap_pressure_value[2];
+		const double m = cap_pressure_value[3]; // always <= 1.0.  Input is exponent = 1 / (1-lambda)
+		assert(m<=1);							//
+		if (pc < 0.0)
+			pc = 0.0;
+		double effect_sw = pow(pc / pb, 1.0 / (1.0 - m)) + 1.0;
+		effect_sw = pow(effect_sw, -m);
+		Sw = effect_sw * (slm - slr) + slr;
+		//
+		break;
+	}
+	/// Brooks-Corey
+	case 2:
+	{
+		const double pb = cap_pressure_value[0];
+	    const double slr = cap_pressure_value[1];
+	    const double slm = cap_pressure_value[2];
+	    const double lambda = cap_pressure_value[3]; // always >= 1.0
+	    if (pc < pb)
+		    pc = pb;
+	    double const effect_sw = pow(pc / pb, -lambda);
+	    Sw = effect_sw * (slm - slr) + slr;
+	break; 
+	}
+	///Liakopoulos
+	case 10:
+		Sw=1 - (1.9722e-11)*pow(pc, 2.4279);
+		if (pc < 0)
+			//return 1 - (1.9722e-11)*pow(0.0, 2.4279);
+			//extend
+			Sw=1 + pc*getDerivSaturation(0.0);		
+		break;
+	default:
+		break;
+	}
+	return Sw;
 }
 
 double TwoPhaseFlowWithPPMaterialProperties::getrelativePermeability_liquid(double const sw) const
@@ -170,27 +250,80 @@ double TwoPhaseFlowWithPPMaterialProperties::getrelativePermeability_liquid(doub
 		*curves.at("curveB");
 	return interpolated_Kr.getValue(sw);
 	*/
-	return 1 - 2.207 * pow((1 - sw), 1.0121);//
+	double rel_wet_perm;
+	switch (rel_wet_perm_model)
+	{
+	case 0:
+	{
+		MathLib::PiecewiseLinearInterpolation const& interpolated_Kr =
+			*curves.at("curveB");
+		rel_wet_perm = interpolated_Kr.getValue(sw);
+		break;
+	}
+	case 1:
+	case 10:
+		rel_wet_perm= 1 - 2.207 * pow((1 - sw), 1.0121);//
+		break;
+	default:
+		break;
+	}
+	return rel_wet_perm;
 }
 
 double TwoPhaseFlowWithPPMaterialProperties::getDerivSaturation(double const pc) const
 {
-	
-	/*MathLib::PiecewiseLinearInterpolation const& interpolated_Pc =
-		*curves.at("curveA");
-	double dSwdPc = interpolated_Pc.getDerivative(pc);
-	if (pc > interpolated_Pc.getSupportMax())
-		dSwdPc = interpolated_Pc.getDerivative(
-			interpolated_Pc.getSupportMax());
-	else if (pc < interpolated_Pc.getSupportMin())
-		dSwdPc = interpolated_Pc.getDerivative(
-			interpolated_Pc.getSupportMin());
+	double dSwdPc;
+	switch (cap_pressure_model)
+	{
+	case 0:
+	{
+		MathLib::PiecewiseLinearInterpolation const& interpolated_Pc =
+			*curves.at("curveA");
+		double dSwdPc = interpolated_Pc.getDerivative(pc);
+		if (pc > interpolated_Pc.getSupportMax())
+			dSwdPc = interpolated_Pc.getDerivative(
+				interpolated_Pc.getSupportMax());
+		else if (pc < interpolated_Pc.getSupportMin())
+			dSwdPc = interpolated_Pc.getDerivative(
+				interpolated_Pc.getSupportMin());
+		break;
+	}
+
+	case 1:
+	{
+		double const pb = cap_pressure_value[0];
+		double const slr = cap_pressure_value[1];
+		double const slm = cap_pressure_value[2];
+		double const m = cap_pressure_value[3]; // always <= 1.0.  Input is exponent = 1 / (1-lambda)
+		assert(m <= 1);
+		//pc = MRange(FLT_EPSILON, pc, capillary_pressure_values[4]);
+		//
+		//
+		double const v1 = pow((pc / pb), (1.0 / (1.0 - m)));
+		double const v2 = pow((1.0 + v1), (-1.0 - m));
+		dSwdPc = (m*v1*v2*(slm - slr)) / ((m - 1.0)*pc);
+		break;
+	}
+	case 2:
+	{
+		double const pb = cap_pressure_value[0];
+		double const slr = cap_pressure_value[1];
+		double const slm = cap_pressure_value[2];
+		const double lambda = cap_pressure_value[3]; // always >= 1.0
+													 //
+		double const v1 = pow((pc / pb), -lambda);
+		dSwdPc = (lambda*v1*(slr - slm)) / pc;
+		break;
+	}
+	case 10:
+		dSwdPc = -(1.9722e-11)*2.4279*pow(pc, 1.4279);
+		if (pc <= 0)
+			dSwdPc= -3.7901e-7;// -(1.9722e-11)*2.4279*pow(0.0, 1.4279);
+		break;
+	default:
+		break;
+	}
 	return dSwdPc;
-	*/
-	if (pc <= 0)
-		return -3.7901e-7;// -(1.9722e-11)*2.4279*pow(0.0, 1.4279);
-	return -(1.9722e-11)*2.4279*pow(pc, 1.4279);
-	
 }
 
 double TwoPhaseFlowWithPPMaterialProperties::getrelativePermeability_gas(double sw) const

@@ -148,6 +148,14 @@ private:
     TwoPhaseFlowWithPPMaterialProperties& _material_properties;
     double _temperature;
 	std::vector<double> _saturation;
+	static const int nonwet_pressure_coeff_index = 0;
+	static const int cap_pressure_coeff_index = 1;
+
+	static const int nonwet_pressure_matrix_index = 0;
+	static const int cap_pressure_matrix_index = ShapeFunction::NPOINTS;
+	
+	static const int nonwet_pressure_size = ShapeFunction::NPOINTS;
+	static const int cap_pressure_size = ShapeFunction::NPOINTS;
 };
 
 }  // end of namespace
