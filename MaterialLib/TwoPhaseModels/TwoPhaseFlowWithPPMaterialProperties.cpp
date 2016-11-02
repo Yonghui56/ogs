@@ -189,11 +189,7 @@ double TwoPhaseFlowWithPPMaterialProperties::getSaturation(double pc) const
         }
         /// Liakopoulos
         case 10:
-            Sw = 1 - (1.9722e-11) * std::pow(pc, 2.4279);
-            if (pc < 0)
-                // return 1 - (1.9722e-11)*std::pow(0.0, 2.4279);
-                // extend
-                Sw = 1 + pc * getDerivSaturation(0.0);
+            OGS_FATAL("This model has been implemented elsewhere");
             break;
         default:
             OGS_FATAL("This model has not been implemented yet");
@@ -299,7 +295,7 @@ double TwoPhaseFlowWithPPMaterialProperties::getrelativePermeability_liquid(
             break;
         }
         case 10:
-            rel_wet_perm = 1 - 2.207 * std::pow((1 - sw), 1.0121);  //
+            OGS_FATAL("This model has been implemented elsewhere");
             break;
         default:
             OGS_FATAL("This model has not been implemented yet");
