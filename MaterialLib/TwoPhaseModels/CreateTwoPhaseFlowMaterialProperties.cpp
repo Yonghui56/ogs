@@ -27,6 +27,9 @@
 #include "ProcessLib/Parameter/SpatialPosition.h"
 #include "TwoPhaseFlowWithPPMaterialProperties.h"
 #include "Liakopoulos.h"
+#include "BrooksCorey.h"
+#include "TwoPhaseFlowCurve.h"
+#include "vanGenuchten.h"
 
 namespace MaterialLib
 {
@@ -198,6 +201,38 @@ CreateTwoPhaseFlowMaterialProperties(
                 cap_pressure_model, rel_wet_perm_model, rel_nonwet_perm_model,
                 cap_pressure_value, rel_wet_perm_value, rel_nonwet_perm_value,
                 curves_}};
+	if (cap_pressure_model == 2)   // Brooks-Corey
+		return std::unique_ptr<TwoPhaseFlowWithPPMaterialProperties>{
+		new BrooksCorey{
+			has_material_ids, material_ids, std::move(_liquid_density),
+			std::move(_viscosity), std::move(_gas_density),
+			std::move(_gas_viscosity), _intrinsic_permeability_models,
+			std::move(_porosity_models), std::move(_storage_models),
+			cap_pressure_model, rel_wet_perm_model, rel_nonwet_perm_model,
+			cap_pressure_value, rel_wet_perm_value, rel_nonwet_perm_value,
+			curves_ }};
+
+	if (cap_pressure_model == 0)    //Reading from curve
+		return std::unique_ptr<TwoPhaseFlowWithPPMaterialProperties>{
+		new TwoPhaseFlowCurve{
+			has_material_ids, material_ids, std::move(_liquid_density),
+			std::move(_viscosity), std::move(_gas_density),
+			std::move(_gas_viscosity), _intrinsic_permeability_models,
+			std::move(_porosity_models), std::move(_storage_models),
+			cap_pressure_model, rel_wet_perm_model, rel_nonwet_perm_model,
+			cap_pressure_value, rel_wet_perm_value, rel_nonwet_perm_value,
+			curves_ }};
+
+	if (cap_pressure_model == 1)    //van Genuchten
+		return std::unique_ptr<TwoPhaseFlowWithPPMaterialProperties>{
+		new vanGenuchten{
+			has_material_ids, material_ids, std::move(_liquid_density),
+			std::move(_viscosity), std::move(_gas_density),
+			std::move(_gas_viscosity), _intrinsic_permeability_models,
+			std::move(_porosity_models), std::move(_storage_models),
+			cap_pressure_model, rel_wet_perm_model, rel_nonwet_perm_model,
+			cap_pressure_value, rel_wet_perm_value, rel_nonwet_perm_value,
+			curves_ }};
 
     return std::unique_ptr<TwoPhaseFlowWithPPMaterialProperties>{
         new TwoPhaseFlowWithPPMaterialProperties{
