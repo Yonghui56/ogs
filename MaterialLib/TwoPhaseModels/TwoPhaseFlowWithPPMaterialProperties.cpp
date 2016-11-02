@@ -147,46 +147,16 @@ double TwoPhaseFlowWithPPMaterialProperties::getSaturation(double pc) const
     switch (_cap_pressure_model)
     {
         case 0:
-        {
-            MathLib::PiecewiseLinearInterpolation const& interpolated_Pc =
-                *curves.at("curve_PC_S");
-            Sw = interpolated_Pc.getValue(pc);
-            break;
-        }
+			OGS_FATAL("This model has been implemented elsewhere");
+			break;
         /// van Genuchten
         case 1:
-        {
-            const double pb = _cap_pressure_value[0];
-            const double slr = _cap_pressure_value[1];
-            const double slm = 1.0;
-            const double sgr = _cap_pressure_value[2];
-            const double m =
-                _cap_pressure_value[3];  // always <= 1.0.  Input is
-                                         // exponent = 1 /
-                                         // (1-lambda)
-            assert(m <= 1);              //
-            if (pc < 0.0)
-                pc = 0.0;
-            double effect_sw = std::pow(pc / pb, 1.0 / (1.0 - m)) + 1.0;
-            effect_sw = std::pow(effect_sw, -m);
-            Sw = effect_sw * (slm - slr) + slr;
-            //
-            break;
-        }
+			OGS_FATAL("This model has been implemented elsewhere");
+			break;
         /// Brooks-Corey
         case 2:
-        {
-            const double pb = _cap_pressure_value[0];
-            const double slr = _cap_pressure_value[1];
-            const double slm = 1.0;
-            const double sgr = _cap_pressure_value[2];
-            const double lambda = _cap_pressure_value[3];  // always >= 1.0
-            if (pc < pb)
-                pc = pb;
-            double const effect_sw = std::pow(pc / pb, -lambda);
-            Sw = effect_sw * (slm - sgr - slr) + slr;
-            break;
-        }
+			OGS_FATAL("This model has been implemented elsewhere");
+			break;
         /// Liakopoulos
         case 10:
             OGS_FATAL("This model has been implemented elsewhere");
@@ -205,52 +175,18 @@ double TwoPhaseFlowWithPPMaterialProperties::getDerivSaturation(
     switch (_cap_pressure_model)
     {
         case 0:
-        {
-            MathLib::PiecewiseLinearInterpolation const& interpolated_Pc =
-                *curves.at("curve_PC_S");
-            dSwdPc = interpolated_Pc.getDerivative(pc);
-            if (pc > interpolated_Pc.getSupportMax())
-                dSwdPc = interpolated_Pc.getDerivative(
-                    interpolated_Pc.getSupportMax());
-            else if (pc < interpolated_Pc.getSupportMin())
-                dSwdPc = interpolated_Pc.getDerivative(
-                    interpolated_Pc.getSupportMin());
-            break;
-        }
+			OGS_FATAL("This model has been implemented elsewhere");
+			break;
 
         case 1:
-        {
-            double const pb = _cap_pressure_value[0];
-            double const slr = _cap_pressure_value[1];
-            double const slm = 1.0;
-            double const sgr = _cap_pressure_value[2];
-            double const m = _cap_pressure_value[3];  // always <= 1.0.
-
-            assert(m <= 1);
-            // pc = MRange(FLT_EPSILON, pc, capillary_pressure_values[4]);
-
-            double const v1 = std::pow((pc / pb), (1.0 / (1.0 - m)));
-            double const v2 = std::pow((1.0 + v1), (-1.0 - m));
-            dSwdPc = (m * v1 * v2 * (slm - slr)) / ((m - 1.0) * pc);
-            break;
-        }
+			OGS_FATAL("This model has been implemented elsewhere");
+			break;
         case 2:
-        {
-            double const pb = _cap_pressure_value[0];
-            double const slr = _cap_pressure_value[1];
-            double const slm = 1.0;
-            double const sgr = _cap_pressure_value[2];
-            const double lambda = _cap_pressure_value[3];  // always >= 1.0
-                                                           //
-            double const v1 = std::pow((pc / pb), -lambda);
-            dSwdPc = (lambda * v1 * (slr - slm)) / pc;
-            break;
-        }
+			OGS_FATAL("This model has been implemented elsewhere");
+			break;
         case 10:
-            dSwdPc = -(1.9722e-11) * 2.4279 * std::pow(pc, 1.4279);
-            if (pc <= 0)
-                dSwdPc = -3.7901e-7;
-            break;
+			OGS_FATAL("This model has been implemented elsewhere");
+			break;
         default:
             OGS_FATAL("This model has not been implemented yet");
             break;
@@ -271,29 +207,13 @@ double TwoPhaseFlowWithPPMaterialProperties::getrelativePermeability_liquid(
     switch (_rel_wet_perm_model)
     {
         case 0:
-        {
-            MathLib::PiecewiseLinearInterpolation const& interpolated_Kr =
-                *curves.at("curve_S_Krel_wet");
-            rel_wet_perm = interpolated_Kr.getValue(sw);
-            break;
-        }
+			OGS_FATAL("This model has been implemented elsewhere");
+			break;
         case 1:
             break;
         case 2:
-        {
-            double const slr = _rel_wet_perm_value[0];
-            double const sgr = _rel_wet_perm_value[1];
-            double const slm = 1.0;
-            double const m = _rel_wet_perm_value[2];
-            double const kr_min = _rel_wet_perm_value[3];
-            double sl = sw;
-            double const se = (sl - slr) / (slm - slr - sgr);
-            //
-            rel_wet_perm = std::pow(se, 3.0 + 2.0 / m);
-            if (rel_wet_perm < kr_min)
-                rel_wet_perm = kr_min;
-            break;
-        }
+			OGS_FATAL("This model has been implemented elsewhere");
+			break;
         case 10:
             OGS_FATAL("This model has been implemented elsewhere");
             break;
@@ -311,29 +231,18 @@ double TwoPhaseFlowWithPPMaterialProperties::getrelativePermeability_gas(
     switch (_rel_nonwet_perm_model)
     {
         case 0:
-        {
-            MathLib::PiecewiseLinearInterpolation const& interpolated_Kr =
-                *curves.at("curve_S_Krel_nonwet");
-            rel_nonwet_perm = interpolated_Kr.getValue(sw);
-            break;
-        }
+			OGS_FATAL("This model has been implemented elsewhere");
+			break;
         case 1:
             break;
         case 2:
-        {
-            double const slr = _rel_nonwet_perm_value[0];
-            double const sgr = _rel_nonwet_perm_value[1];
-            double const slm = 1.0;
-            double const m = _rel_nonwet_perm_value[2];
-            double const kr_min = _rel_nonwet_perm_value[3];
-            double S_le = (sw - slr) / (slm - slr - sgr);
-            rel_nonwet_perm =
-                std::pow(1.0 - S_le, 2) * (1.0 - std::pow(S_le, 1.0 + 2.0 / m));
-            if (rel_nonwet_perm < kr_min)
-                rel_nonwet_perm = kr_min;
-            break;
-        }
+			OGS_FATAL("This model has been implemented elsewhere");
+			break;
+		case 10:
+			OGS_FATAL("This model has been implemented elsewhere");
+			break;
         default:
+			OGS_FATAL("This model has not been implemented yet");
             break;
     }
     return rel_nonwet_perm;

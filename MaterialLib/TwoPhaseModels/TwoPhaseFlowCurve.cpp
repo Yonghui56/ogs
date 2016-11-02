@@ -10,7 +10,7 @@
  * Created on August 18, 2016, 11:49 AM
  */
 
-#include "Liakopoulos.h"
+#include "TwoPhaseFlowCurve.h"
 
 #include <logog/include/logog.hpp>
 
@@ -32,7 +32,7 @@ namespace MaterialLib
 {
 namespace TwoPhaseFlowWithPP
 {
-Liakopoulos::Liakopoulos(
+TwoPhaseFlowCurve::TwoPhaseFlowCurve(
     bool const has_material_ids,
     MeshLib::PropertyVector<int> const& material_ids,
     std::unique_ptr<MaterialLib::Fluid::FluidProperty>
@@ -78,37 +78,46 @@ Liakopoulos::Liakopoulos(
                                            rel_nonwet_perm_value,
                                            curves_)
 {
-    DBUG("Liakopoulos.");
+    DBUG("TwoPhaseFlowCurve.");
 }
 
-double Liakopoulos::getSaturation(double pc) const
+double TwoPhaseFlowCurve::getSaturation(double pc) const
 {
     double Sw;
     /// TODO waiting for a better way to implemente the PC-S curve
-    assert(_cap_pressure_model == 10);
-    Sw = 1 - (1.9722e-11) * std::pow(pc, 2.4279);
-    if (pc < 0)
-        // return 1 - (1.9722e-11)*std::pow(0.0, 2.4279);
-        // extend
-        Sw = 1 + pc * getDerivSaturation(0.0);
-    return Sw;
+    assert(_cap_pressure_model == 0);
+	MathLib::PiecewiseLinearInterpolation const& interpolated_Pc =
+		*curves.at("curve_PC_S");
+	Sw = interpolated_Pc.getValue(pc);
+	return Sw;
 }
-double Liakopoulos::getDerivSaturation(double const pc) const
+
+double TwoPhaseFlowCurve::getDerivSaturation(double const pc) const
 {
 	double dSwdPc;
-	dSwdPc = -(1.9722e-11) * 2.4279 * std::pow(pc, 1.4279);
-	if (pc <= 0)
-		dSwdPc = -3.7901e-7;
+	MathLib::PiecewiseLinearInterpolation const& interpolated_Pc =
+		*curves.at("curve_PC_S");
+	dSwdPc = interpolated_Pc.getDerivative(pc);
+	if (pc > interpolated_Pc.getSupportMax())
+		dSwdPc = interpolated_Pc.getDerivative(
+			interpolated_Pc.getSupportMax());
+	else if (pc < interpolated_Pc.getSupportMin())
+		dSwdPc = interpolated_Pc.getDerivative(
+			interpolated_Pc.getSupportMin());
 	return dSwdPc;
 }
 
-double Liakopoulos::getrelativePermeability_liquid(
+double TwoPhaseFlowCurve::getrelativePermeability_liquid(
     double const sw) const
 {
-    return 1 - 2.207 * std::pow((1 - sw), 1.0121);
+	double rel_wet_perm;
+	MathLib::PiecewiseLinearInterpolation const& interpolated_Kr =
+		*curves.at("curve_S_Krel_wet");
+	rel_wet_perm = interpolated_Kr.getValue(sw);
+	return rel_wet_perm;
 }
 
-double Liakopoulos::getrelativePermeability_gas(double const sw) const
+double TwoPhaseFlowCurve::getrelativePermeability_gas(double const sw) const
 {
     double rel_nonwet_perm;
     double const slr = _rel_nonwet_perm_value[0];
