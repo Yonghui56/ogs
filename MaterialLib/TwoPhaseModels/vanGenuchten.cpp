@@ -10,7 +10,7 @@
  * Created on August 18, 2016, 11:49 AM
  */
 
-#include "Liakopoulos.h"
+#include "vanGenuchten.h"
 
 #include <logog/include/logog.hpp>
 
@@ -32,7 +32,7 @@ namespace MaterialLib
 {
 namespace TwoPhaseFlowWithPP
 {
-Liakopoulos::Liakopoulos(
+vanGenuchten::vanGenuchten(
     bool const has_material_ids,
     MeshLib::PropertyVector<int> const& material_ids,
     std::unique_ptr<MaterialLib::Fluid::FluidProperty>
@@ -78,37 +78,68 @@ Liakopoulos::Liakopoulos(
                                            rel_nonwet_perm_value,
                                            curves_)
 {
-    DBUG("Liakopoulos.");
+    DBUG("vanGenuchten.");
 }
 
-double Liakopoulos::getSaturation(double pc) const
+double vanGenuchten::getSaturation(double pc) const
 {
     double Sw;
     /// TODO waiting for a better way to implemente the PC-S curve
-    assert(_cap_pressure_model == 10);
-    Sw = 1 - (1.9722e-11) * std::pow(pc, 2.4279);
-    if (pc < 0)
-        // return 1 - (1.9722e-11)*std::pow(0.0, 2.4279);
-        // extend
-        Sw = 1 + pc * getDerivSaturation(0.0);
+    assert(_cap_pressure_model == 1);
+	const double pb = _cap_pressure_value[0];
+	const double slr = _cap_pressure_value[1];
+	const double slm = 1.0;
+	const double sgr = _cap_pressure_value[2];
+	const double m =
+		_cap_pressure_value[3];  // always <= 1.0.  Input is
+								 // exponent = 1 /
+								 // (1-lambda)
+	assert(m <= 1);              //
+	if (pc < 0.0)
+		pc = 0.0;
+	double effect_sw = std::pow(pc / pb, 1.0 / (1.0 - m)) + 1.0;
+	effect_sw = std::pow(effect_sw, -m);
+	Sw = effect_sw * (slm - slr) + slr;
     return Sw;
 }
-double Liakopoulos::getDerivSaturation(double const pc) const
+
+double vanGenuchten::getDerivSaturation(double const pc) const
 {
 	double dSwdPc;
-	dSwdPc = -(1.9722e-11) * 2.4279 * std::pow(pc, 1.4279);
-	if (pc <= 0)
-		dSwdPc = -3.7901e-7;
+	double const pb = _cap_pressure_value[0];
+	double const slr = _cap_pressure_value[1];
+	double const slm = 1.0;
+	double const sgr = _cap_pressure_value[2];
+	double const m = _cap_pressure_value[3];  // always <= 1.0.
+
+	assert(m <= 1);
+	// pc = MRange(FLT_EPSILON, pc, capillary_pressure_values[4]);
+
+	double const v1 = std::pow((pc / pb), (1.0 / (1.0 - m)));
+	double const v2 = std::pow((1.0 + v1), (-1.0 - m));
+	dSwdPc = (m * v1 * v2 * (slm - slr)) / ((m - 1.0) * pc);
 	return dSwdPc;
 }
 
-double Liakopoulos::getrelativePermeability_liquid(
+double vanGenuchten::getrelativePermeability_liquid(
     double const sw) const
 {
-    return 1 - 2.207 * std::pow((1 - sw), 1.0121);
+	double rel_wet_perm;
+	double const slr = _rel_wet_perm_value[0];
+	double const sgr = _rel_wet_perm_value[1];
+	double const slm = 1.0;
+	double const m = _rel_wet_perm_value[2];
+	double const kr_min = _rel_wet_perm_value[3];
+	double sl = sw;
+	double const se = (sl - slr) / (slm - slr - sgr);
+	//
+	rel_wet_perm = std::pow(se, 3.0 + 2.0 / m);
+	if (rel_wet_perm < kr_min)
+		rel_wet_perm = kr_min;
+	return rel_wet_perm;
 }
 
-double Liakopoulos::getrelativePermeability_gas(double const sw) const
+double vanGenuchten::getrelativePermeability_gas(double const sw) const
 {
     double rel_nonwet_perm;
     double const slr = _rel_nonwet_perm_value[0];
