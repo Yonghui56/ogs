@@ -10,8 +10,8 @@
  * Created on August 18, 2016, 11:03 AM
  */
 
-#ifndef OGS_TWOPHASEFLOWWITHPPMATERIALPROPERTIES_H_L
-#define OGS_TWOPHASEFLOWWITHPPMATERIALPROPERTIES_H_L
+#ifndef OGS_TWOPHASEFLOWWITHPPCURVE_H
+#define OGS_TWOPHASEFLOWWITHPPCURVE_H
 
 #include <iostream>
 #include <memory>
@@ -47,12 +47,12 @@ namespace MaterialLib
 {
 namespace TwoPhaseFlowWithPP
 {
-class Liakopoulos : public TwoPhaseFlowWithPPMaterialProperties
+class TwoPhaseFlowCurve : public TwoPhaseFlowWithPPMaterialProperties
 {
 public:
     typedef MaterialLib::Fluid::FluidProperty::ArrayType ArrayType;
 
-    Liakopoulos(
+	TwoPhaseFlowCurve(
         bool const has_material_ids,
         MeshLib::PropertyVector<int> const& material_ids,
         std::unique_ptr<MaterialLib::Fluid::FluidProperty>
@@ -90,4 +90,4 @@ public:
 
 }  // end of namespace
 }  // end of namespace
-#endif /* TWOPHASEFLOWWITHPPMATERIALPROPERTIES_H_L */
+#endif /* TWOPHASEFLOWWITHPPCURVE_H */
