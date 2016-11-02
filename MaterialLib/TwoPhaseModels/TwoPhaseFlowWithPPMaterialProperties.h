@@ -115,12 +115,12 @@ public:
     double getDerivGasDensity(double const p, double const T) const;
     double getDissolvedGas(double const pg) const;
 
-    double getSaturation(double pc) const;
-    double getrelativePermeability_liquid(double const sw) const;
-    double getrelativePermeability_gas(double const sw) const;
-    double getDerivSaturation(double const pc) const;
+    virtual double getSaturation(double pc) const;
+    virtual double getrelativePermeability_liquid(double const sw) const;
+    virtual double getrelativePermeability_gas(double const sw) const;
+    virtual double getDerivSaturation(double const pc) const;
 
-private:
+protected:
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _liquid_density;
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _viscosity;
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _gas_density;
