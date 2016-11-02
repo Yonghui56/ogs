@@ -41,7 +41,7 @@ public:
     virtual std::vector<double> const& getIntPtSaturation(
         std::vector<double>& /*cache*/) const = 0;
 
-    virtual std::vector<double> const& getIntPtLiquidPressure(
+    virtual std::vector<double> const& getIntPtWettingPressure(
         std::vector<double>& /*cache*/) const = 0;
 };
 
@@ -66,19 +66,17 @@ public:
         std::size_t const /*local_matrix_size*/,
         bool const is_axially_symmetric,
         unsigned const integration_order,
-        TwoPhaseFlowWithPPProcessData const& process_data,
-        MaterialLib::TwoPhaseFlowWithPP::TwoPhaseFlowWithPPMaterialProperties&
-            material_propertries)
+        TwoPhaseFlowWithPPProcessData const& process_data)
         : _element(element),
           _process_data(process_data),
           _integration_method(integration_order),
           _shape_matrices(initShapeMatrices<ShapeFunction, ShapeMatricesType,
                                             IntegrationMethod, GlobalDim>(
               element, is_axially_symmetric, _integration_method)),
-          _material_properties(material_propertries),
           _saturation(
               std::vector<double>(_integration_method.getNumberOfPoints())),
-          _pw(std::vector<double>(_integration_method.getNumberOfPoints()))
+          _pressure_wetting(
+              std::vector<double>(_integration_method.getNumberOfPoints()))
     {
     }
 
@@ -103,11 +101,11 @@ public:
         return _saturation;
     }
 
-    std::vector<double> const& getIntPtLiquidPressure(
+    std::vector<double> const& getIntPtWettingPressure(
         std::vector<double>& /*cache*/) const override
     {
-        assert(_pw.size() > 0);
-        return _pw;
+        assert(_pressure_wetting.size() > 0);
+        return _pressure_wetting;
     }
 
 private:
@@ -118,11 +116,9 @@ private:
 
     TwoPhaseFlowWithPPProcessData const& _process_data;
 
-    MaterialLib::TwoPhaseFlowWithPP::TwoPhaseFlowWithPPMaterialProperties&
-        _material_properties;
     double _temperature;
     std::vector<double> _saturation;
-    std::vector<double> _pw;
+    std::vector<double> _pressure_wetting;
     static const int nonwet_pressure_coeff_index = 0;
     static const int cap_pressure_coeff_index = 1;
 

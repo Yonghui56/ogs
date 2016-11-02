@@ -24,19 +24,24 @@ namespace TwoPhaseFlowWithPP
 {
 struct TwoPhaseFlowWithPPProcessData
 {
-    TwoPhaseFlowWithPPProcessData(Parameter<double> const& specific_body_force_,
-                                  bool const has_gravity_,
-                                  bool const has_mass_lumping_)
-        : specific_body_force(specific_body_force_),
-          has_gravity(has_gravity_),
-          has_mass_lumping(has_mass_lumping_)
+    TwoPhaseFlowWithPPProcessData(
+        Parameter<double> const& specific_body_force_,
+        bool const has_gravity_,
+        bool const has_mass_lumping_,
+        std::unique_ptr<MaterialLib::TwoPhaseFlowWithPP::
+                            TwoPhaseFlowWithPPMaterialProperties>&& material_)
+        : _specific_body_force(specific_body_force_),
+          _has_gravity(has_gravity_),
+          _has_mass_lumping(has_mass_lumping_),
+          _material(std::move(material_))
     {
     }
 
     TwoPhaseFlowWithPPProcessData(TwoPhaseFlowWithPPProcessData&& other)
-        : specific_body_force(other.specific_body_force),
-          has_gravity(other.has_gravity),
-          has_mass_lumping(other.has_mass_lumping)
+        : _specific_body_force(other._specific_body_force),
+          _has_gravity(other._has_gravity),
+          _has_mass_lumping(other._has_mass_lumping),
+          _material(std::move(other._material))
     {
     }
 
@@ -50,9 +55,13 @@ struct TwoPhaseFlowWithPPProcessData
     //! Assignments are not needed.
     void operator=(TwoPhaseFlowWithPPProcessData&&) = delete;
 
-    Parameter<double> const& specific_body_force;
-    bool const has_gravity;
-    bool const has_mass_lumping;
+    std::unique_ptr<
+        MaterialLib::TwoPhaseFlowWithPP::TwoPhaseFlowWithPPMaterialProperties>
+        _material;
+
+    Parameter<double> const& _specific_body_force;
+    bool const _has_gravity;
+    bool const _has_mass_lumping;
 };
 
 }  // namespace TwoPhaseFlowWithPP

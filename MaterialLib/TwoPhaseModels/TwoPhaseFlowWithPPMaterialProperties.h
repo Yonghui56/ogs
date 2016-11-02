@@ -17,7 +17,9 @@
 #include <memory>
 #include <vector>
 #include "MaterialLib/Fluid/FluidPropertyHeaders.h"
+#include "MaterialLib/PorousMedium/Porosity/Porosity.h"
 #include "MaterialLib/PorousMedium/PorousPropertyHeaders.h"
+#include "MaterialLib/PorousMedium/Storage/Storage.h"
 #include "MathLib/InterpolationAlgorithms/PiecewiseLinearInterpolation.h"
 
 namespace ProcessLib
@@ -49,9 +51,31 @@ public:
     typedef MaterialLib::Fluid::FluidProperty::ArrayType ArrayType;
 
     TwoPhaseFlowWithPPMaterialProperties(
-        BaseLib::ConfigTree const& config,
         bool const has_material_ids,
         MeshLib::PropertyVector<int> const& material_ids,
+        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+            liquid_density,
+        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+            viscosity,
+        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+            gas_density,
+        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+            gas_viscosity,
+        std::vector<Eigen::MatrixXd>
+            intrinsic_permeability_models,
+        std::vector<std::unique_ptr<MaterialLib::PorousMedium::Porosity>>&&
+            porosity_models,
+        std::vector<std::unique_ptr<MaterialLib::PorousMedium::Storage>>&&
+            storage_models,
+        int cap_pressure_model,
+        int rel_wet_perm_model,
+        int rel_nonwet_perm_model,
+        std::array<double, 4>
+            cap_pressure_value,
+        std::array<double, 4>
+            rel_wet_perm_value,
+        std::array<double, 4>
+            rel_nonwet_perm_value,
         std::map<std::string,
                  std::unique_ptr<MathLib::PiecewiseLinearInterpolation>> const&
             curves_);
@@ -101,14 +125,14 @@ private:
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _gas_density;
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _gas_viscosity;
 
-    int cap_pressure_model;
-    std::vector<double> cap_pressure_value = std::vector<double>(4);
+    int _cap_pressure_model;
+    std::array<double, 4> _cap_pressure_value;
 
-    int rel_wet_perm_model;
-    std::vector<double> rel_wet_perm_value = std::vector<double>(4);
+    int _rel_wet_perm_model;
+    std::array<double, 4> _rel_wet_perm_value;
 
-    int rel_nonwet_perm_model;
-    std::vector<double> rel_nonwet_perm_value = std::vector<double>(4);
+    int _rel_nonwet_perm_model;
+    std::array<double, 4> _rel_nonwet_perm_value;
 
     /// A flag to indicate whether the reference member, _material_ids,
     /// is not assigned.

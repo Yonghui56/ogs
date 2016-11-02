@@ -44,10 +44,7 @@ TwoPhaseFlowWithPPProcess::TwoPhaseFlowWithPPProcess(
     : Process(mesh, std::move(jacobian_assembler), parameters,
               integration_order, std::move(process_variables),
               std::move(secondary_variables), std::move(named_function_caller)),
-      _process_data(std::move(process_data)),
-      _material_properties(
-          MaterialLib::TwoPhaseFlowWithPP::TwoPhaseFlowWithPPMaterialProperties(
-              config, has_material_ids, material_ids, curves))
+      _process_data(std::move(process_data))
 {
     DBUG("Create Two-Phase flow process.");
 }
@@ -59,8 +56,7 @@ void TwoPhaseFlowWithPPProcess::initializeConcreteProcess(
 {
     ProcessLib::createLocalAssemblers<TwoPhaseFlowWithPPLocalAssembler>(
         mesh.getDimension(), mesh.getElements(), dof_table, _local_assemblers,
-        mesh.isAxiallySymmetric(), integration_order, _process_data,
-        _material_properties);
+        mesh.isAxiallySymmetric(), integration_order, _process_data);
 
     _secondary_variables.addSecondaryVariable(
         "saturation", 1,
@@ -72,7 +68,7 @@ void TwoPhaseFlowWithPPProcess::initializeConcreteProcess(
         "pressure_wetting", 1,
         makeExtrapolator(getExtrapolator(), _local_assemblers,
                          &TwoPhaseFlowWithPPLocalAssemblerInterface::
-                             getIntPtLiquidPressure));
+                             getIntPtWettingPressure));
 }
 
 void TwoPhaseFlowWithPPProcess::assembleConcreteProcess(const double t,
