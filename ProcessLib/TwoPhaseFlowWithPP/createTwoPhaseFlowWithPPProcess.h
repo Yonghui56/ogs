@@ -5,7 +5,7 @@
  *              See accompanying file LICENSE.txt or
  *              http://www.opengeosys.org/project/license
  *
- * \file   createTwoPhaseFlowWithPPProcess.h
+ * \file   CreateTwoPhaseFlowWithPPProcess.h
  *
  * Created on August 19, 2016, 1:30 PM
  */
@@ -20,7 +20,7 @@ namespace ProcessLib
 {
 namespace TwoPhaseFlowWithPP
 {
-std::unique_ptr<Process> createTwoPhaseFlowWithPPProcess(
+std::unique_ptr<Process> CreateTwoPhaseFlowWithPPProcess(
     MeshLib::Mesh& mesh,
     std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
     std::vector<ProcessVariable> const& variables,

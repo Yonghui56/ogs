@@ -19,7 +19,7 @@
 #include "MathLib/InterpolationAlgorithms/PiecewiseLinearInterpolation.h"
 #include "NumLib/Function/Interpolation.h"
 #include "TwoPhaseFlowWithPPProcessData.h"
-using namespace Eigen;
+// using namespace Eigen;
 namespace ProcessLib
 {
 namespace TwoPhaseFlowWithPP
@@ -42,13 +42,6 @@ void TwoPhaseFlowWithPPLocalAssembler<
     Eigen::MatrixXd K_mat_coeff =
         Eigen::MatrixXd::Zero(NUM_NODAL_DOF, NUM_NODAL_DOF);
     Eigen::VectorXd H_vec_coeff = Eigen::VectorXd::Zero(NUM_NODAL_DOF);
-    Eigen::VectorXd F_vec_coeff = Eigen::VectorXd::Zero(NUM_NODAL_DOF);
-    Eigen::MatrixXd localMass_tmp =
-        Eigen::MatrixXd::Zero(ShapeFunction::NPOINTS, ShapeFunction::NPOINTS);
-    Eigen::MatrixXd localDispersion_tmp =
-        Eigen::MatrixXd::Zero(ShapeFunction::NPOINTS, ShapeFunction::NPOINTS);
-    Eigen::VectorXd localGravity_tmp =
-        Eigen::VectorXd::Zero(ShapeFunction::NPOINTS);
 
     auto local_M = MathLib::createZeroedMatrix<NodalMatrixType>(
         local_M_data, local_matrix_size, local_matrix_size);
@@ -57,7 +50,7 @@ void TwoPhaseFlowWithPPLocalAssembler<
     auto local_b = MathLib::createZeroedVector<NodalVectorType>(
         local_b_data, local_matrix_size);
 
-    typedef Matrix<double, n_nodes, n_nodes> MatrixNN;
+    typedef Eigen::Matrix<double, n_nodes, n_nodes> MatrixNN;
     MatrixNN _Mgp;
     MatrixNN _Mgpc;
     MatrixNN _Mlp;
@@ -67,9 +60,9 @@ void TwoPhaseFlowWithPPLocalAssembler<
     MatrixNN _Klp;
     MatrixNN _Klpc;
 
-    typedef Matrix<double, n_nodes, 1> VecterNN;
-    VecterNN _Bg;
-    VecterNN _Bl;
+    typedef Eigen::Matrix<double, n_nodes, 1> VectorNN;
+    VectorNN _Bg;
+    VectorNN _Bl;
 
     unsigned const n_integration_points =
         _integration_method.getNumberOfPoints();
@@ -78,8 +71,8 @@ void TwoPhaseFlowWithPPLocalAssembler<
     pos.setElementID(_element.getID());
     //_material_properties.setMaterialID(pos);
 
-    const Eigen::MatrixXd& perm =
-        _material_properties.getPermeability(t, pos, _element.getDimension());
+    const Eigen::MatrixXd& perm = _process_data._material->getPermeability(
+        t, pos, _element.getDimension());
 
     // Note: For Inclined 1D in 2D/3D or 2D element in 3D, the first item in
     //  the assert must be changed to perm.rows() == _element->getDimension()
@@ -87,6 +80,9 @@ void TwoPhaseFlowWithPPLocalAssembler<
 
     double porosity_variable = 0.;
     double storage_variable = 0.;
+    // Note: currently only isothermal case is considered, so the temperature is
+    // assumed to be const
+    // the variation of temperatura will be taken into account in future
     _temperature = 293.15;
     for (unsigned ip = 0; ip < n_integration_points; ip++)
     {
@@ -99,51 +95,47 @@ void TwoPhaseFlowWithPPLocalAssembler<
 
         // TODO : compute _temperature from the heat transport pcs
         double const pl = pg_int_pt - pc_int_pt;
-        _pw[ip] = pl;
+        _pressure_wetting[ip] = pl;
         const double integration_factor =
             sm.integralMeasure * sm.detJ * wp.getWeight();
         double const rho_gas =
-            _material_properties.getGasDensity(pg_int_pt, _temperature);
+            _process_data._material->getGasDensity(pg_int_pt, _temperature);
         double const rho_w =
-            _material_properties.getLiquidDensity(pl, _temperature);
+            _process_data._material->getLiquidDensity(pl, _temperature);
         double const mu_gas =
-            _material_properties.getGasViscosity(pg_int_pt, _temperature);
+            _process_data._material->getGasViscosity(pg_int_pt, _temperature);
         double const mu_liquid =
-            _material_properties.getLiquidViscosity(pl, _temperature);
+            _process_data._material->getLiquidViscosity(pl, _temperature);
 
-        double Sw = _material_properties.getSaturation(pc_int_pt);  // pc
-        /*if (pc_int_pt < 1000)
-            Sw = -3.7901e-7*pc_int_pt + 1;// pm->getSat_byPC(0.0);*/
+        double Sw = _process_data._material->getSaturation(pc_int_pt);  // pc
+
         if (pc_int_pt < 0)
             Sw = 1.0;
-        double dSwdPc = _material_properties.getDerivSaturation(pc_int_pt);
-        /*if (pc_int_pt < 1000)
-            dSwdPc = -3.7901e-7;*/
+        double dSwdPc = _process_data._material->getDerivSaturation(pc_int_pt);
+
         double const k_rel_L =
-            _material_properties.getrelativePermeability_liquid(Sw);
+            _process_data._material->getrelativePermeability_liquid(Sw);
 
         double const k_rel_G =
-            _material_properties.getrelativePermeability_gas(Sw);  // Sw
-        double const drhogas_dpg =
-            _material_properties.getDerivGasDensity(pg_int_pt, _temperature);
-        double const poro = _material_properties.getPorosity(
+            _process_data._material->getrelativePermeability_gas(Sw);  // Sw
+        double const drhogas_dpg = _process_data._material->getDerivGasDensity(
+            pg_int_pt, _temperature);
+        double const poro = _process_data._material->getPorosity(
             t, pos, pg_int_pt, _temperature, porosity_variable);
 
         // Assemble mass matrix, M
         _saturation[ip] = Sw;
-        // air
+        // nonwetting
         mass_mat_coeff(nonwet_pressure_coeff_index,
                        nonwet_pressure_coeff_index) =
             poro * (1 - Sw) * drhogas_dpg;  // dPG
         mass_mat_coeff(nonwet_pressure_coeff_index, cap_pressure_coeff_index) =
             -poro * rho_gas * dSwdPc;  // dPC
-        // water
+        // wetting
         mass_mat_coeff(cap_pressure_coeff_index, nonwet_pressure_coeff_index) =
             0.0;  // dPG
         mass_mat_coeff(cap_pressure_coeff_index, cap_pressure_coeff_index) =
             poro * dSwdPc * rho_w;  // dPC
-
-        // std::cout << mass_mat_coeff << std::endl;
 
         _Mgp.noalias() += mass_mat_coeff(nonwet_pressure_coeff_index,
                                          nonwet_pressure_coeff_index) *
@@ -196,9 +188,9 @@ void TwoPhaseFlowWithPPLocalAssembler<
         H_vec_coeff(cap_pressure_coeff_index) =
             rho_w * rho_w * perm(0, 0) * lambda_L;
         // std::cout << H_vec_coeff << std::endl;
-        if (_process_data.has_gravity)
+        if (_process_data._has_gravity)
         {
-            auto const body_force = _process_data.specific_body_force(t, pos);
+            auto const body_force = _process_data._specific_body_force(t, pos);
             assert(body_force.size() == GlobalDim);
             auto const b =
                 MathLib::toVector<GlobalDimVectorType>(body_force, GlobalDim);
@@ -212,7 +204,7 @@ void TwoPhaseFlowWithPPLocalAssembler<
         }  // end of has gravity
            // std::cout << local_b << std::endl;
     }      // end of GP
-    if (_process_data.has_mass_lumping)
+    if (_process_data._has_mass_lumping)
     {
         for (unsigned row = 0; row < _Mgpc.cols(); row++)
         {

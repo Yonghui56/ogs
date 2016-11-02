@@ -5,13 +5,14 @@
  *              See accompanying file LICENSE.txt or
  *              http://www.opengeosys.org/project/license
  *
- * \file   createTwoPhaseFlowWithPPProcess.cpp
+ * \file   CreateTwoPhaseFlowWithPPProcess.cpp
  *
  * Created on August 19, 2016, 1:30 PM
  */
-#include "createTwoPhaseFlowWithPPProcess.h"
+#include "CreateTwoPhaseFlowWithPPProcess.h"
 #include <cassert>
 
+#include "MaterialLib/TwoPhaseModels/CreateTwoPhaseFlowMaterialProperties.h"
 #include "MeshLib/MeshGenerators/MeshGenerator.h"
 #include "ProcessLib/Parameter/ConstantParameter.h"
 #include "ProcessLib/Utils/ParseSecondaryVariables.h"
@@ -24,7 +25,7 @@ namespace ProcessLib
 {
 namespace TwoPhaseFlowWithPP
 {
-std::unique_ptr<Process> createTwoPhaseFlowWithPPProcess(
+std::unique_ptr<Process> CreateTwoPhaseFlowWithPPProcess(
     MeshLib::Mesh& mesh,
     std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
     std::vector<ProcessVariable> const& variables,
@@ -72,8 +73,6 @@ std::unique_ptr<Process> createTwoPhaseFlowWithPPProcess(
     // has mass lumping
     auto mass_lump = config.getConfigParameter<bool>("mass_lumping");
 
-    TwoPhaseFlowWithPPProcessData process_data{specific_body_force, has_gravity,
-                                               mass_lump};
     //! \ogs_file_param{process__TWOPHASE_FLOW__material_property}
 
     auto const& mat_config = config.getConfigSubtree("material_property");
@@ -81,10 +80,20 @@ std::unique_ptr<Process> createTwoPhaseFlowWithPPProcess(
     auto const& mat_ids =
         mesh.getProperties().getPropertyVector<int>("MaterialIDs");
     auto is_heterogeneous = config.getConfigParameter<bool>("heterogeneous");
+
+    std::unique_ptr<
+        MaterialLib::TwoPhaseFlowWithPP::TwoPhaseFlowWithPPMaterialProperties>
+        material = nullptr;
+
     if (is_heterogeneous)  // mat_ids
     {
         INFO("The twophase flow is in heterogeneous porous media.");
         const bool has_material_ids = true;
+        material = MaterialLib::TwoPhaseFlowWithPP::
+            CreateTwoPhaseFlowMaterialProperties(mat_config, has_material_ids,
+                                                 *mat_ids, curves);
+        TwoPhaseFlowWithPPProcessData process_data{
+            specific_body_force, has_gravity, mass_lump, std::move(material)};
         return std::unique_ptr<Process>{new TwoPhaseFlowWithPPProcess{
             mesh, std::move(jacobian_assembler), parameters, integration_order,
             std::move(process_variables), std::move(process_data),
@@ -105,6 +114,11 @@ std::unique_ptr<Process> createTwoPhaseFlowWithPPProcess(
         // the following constant, has_material_ids, is employed to indicate
         // that material_ids does not exist.
         const bool has_material_ids = false;
+        material = MaterialLib::TwoPhaseFlowWithPP::
+            CreateTwoPhaseFlowMaterialProperties(mat_config, has_material_ids,
+                                                 *mat_ids, curves);
+        TwoPhaseFlowWithPPProcessData process_data{
+            specific_body_force, has_gravity, mass_lump, std::move(material)};
         return std::unique_ptr<Process>{new TwoPhaseFlowWithPPProcess{
             mesh, std::move(jacobian_assembler), parameters, integration_order,
             std::move(process_variables), std::move(process_data),

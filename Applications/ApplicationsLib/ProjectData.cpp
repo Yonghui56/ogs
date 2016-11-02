@@ -39,7 +39,7 @@
 #include "ProcessLib/SmallDeformation/CreateSmallDeformationProcess.h"
 #include "ProcessLib/SmallDeformationWithLIE/CreateSmallDeformationProcess.h"
 #include "ProcessLib/TES/CreateTESProcess.h"
-#include "ProcessLib/TwoPhaseFlowWithPP/createTwoPhaseFlowWithPPProcess.h"
+#include "ProcessLib/TwoPhaseFlowWithPP/CreateTwoPhaseFlowWithPPProcess.h"
 
 namespace detail
 {
@@ -368,7 +368,7 @@ void ProjectData::parseProcesses(BaseLib::ConfigTree const& processes_config,
         else if (type == "TWOPHASE_FLOW_PP")
         {
             process =
-                ProcessLib::TwoPhaseFlowWithPP::createTwoPhaseFlowWithPPProcess(
+                ProcessLib::TwoPhaseFlowWithPP::CreateTwoPhaseFlowWithPPProcess(
                     *_mesh_vec[0], std::move(jacobian_assembler),
                     _process_variables, _parameters, integration_order,
                     process_config, _curves);
