@@ -26,6 +26,7 @@
 #include "ProcessLib/Parameter/Parameter.h"
 #include "ProcessLib/Parameter/SpatialPosition.h"
 #include "TwoPhaseFlowWithPPMaterialProperties.h"
+#include "Liakopoulos.h"
 
 namespace MaterialLib
 {
@@ -186,6 +187,17 @@ CreateTwoPhaseFlowMaterialProperties(
     BaseLib::reorderVector(_intrinsic_permeability_models, mat_ids);
     BaseLib::reorderVector(_porosity_models, mat_ids);
     BaseLib::reorderVector(_storage_models, mat_ids);
+
+    if (rel_wet_perm_model == 10)   // Liakopoulos
+        return std::unique_ptr<TwoPhaseFlowWithPPMaterialProperties>{
+            new Liakopoulos{
+                has_material_ids, material_ids, std::move(_liquid_density),
+                std::move(_viscosity), std::move(_gas_density),
+                std::move(_gas_viscosity), _intrinsic_permeability_models,
+                std::move(_porosity_models), std::move(_storage_models),
+                cap_pressure_model, rel_wet_perm_model, rel_nonwet_perm_model,
+                cap_pressure_value, rel_wet_perm_value, rel_nonwet_perm_value,
+                curves_}};
 
     return std::unique_ptr<TwoPhaseFlowWithPPMaterialProperties>{
         new TwoPhaseFlowWithPPMaterialProperties{
