@@ -371,6 +371,16 @@ if(NOT OGS_USE_MPI)
          DIFF_DATA
          h_us_quad_1000.vtu richards_pcs_0_ts_100_t_100.000000.vtu PRESSURE1 pressure
     )
+	 AddTest(
+        NAME LARGE_2D_TwoPhase_PP_Lia_quad
+         PATH Parabolic/TwoPhaseFlowPP/Liakopoulos
+         EXECUTABLE ogs
+         EXECUTABLE_ARGS Twophase_Lia_quad.prj
+         TESTER vtkdiff
+         ABSTOL 1e-1 RELTOL 1e-1
+         DIFF_DATA
+         Lia_20.vtu twophaseflow_pcs_0_ts_200_t_20.000000.vtu capillary_pressure capillary_pressure
+    )
     # Mechanics; Small deformations, linear (SDL)
     AddTest(
         NAME Mechanics_SDL_square_1e0_displacementBC
