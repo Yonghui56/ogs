@@ -48,35 +48,16 @@ TwoPhaseFlowWithPPMaterialProperties::TwoPhaseFlowWithPPMaterialProperties(
     std::vector<std::unique_ptr<MaterialLib::PorousMedium::Porosity>>&&
         porosity_models,
     std::vector<std::unique_ptr<MaterialLib::PorousMedium::Storage>>&&
-        storage_models,
-    int cap_pressure_model,
-    int rel_wet_perm_model,
-    int rel_nonwet_perm_model,
-    std::array<double, 4>
-        cap_pressure_value,
-    std::array<double, 4>
-        rel_wet_perm_value,
-    std::array<double, 4>
-        rel_nonwet_perm_value,
-    std::map<std::string,
-             std::unique_ptr<MathLib::PiecewiseLinearInterpolation>> const&
-        curves_)
+        storage_models)
     : _has_material_ids(has_material_ids),
       _material_ids(material_ids),
-      curves(curves_),
       _liquid_density(std::move(liquid_density)),
       _viscosity(std::move(viscosity)),
       _gas_density(std::move(gas_density)),
       _gas_viscosity(std::move(gas_viscosity)),
       _intrinsic_permeability_models(intrinsic_permeability_models),
       _porosity_models(std::move(porosity_models)),
-      _storage_models(std::move(storage_models)),
-      _cap_pressure_model(cap_pressure_model),
-      _rel_wet_perm_model(rel_wet_perm_model),
-      _rel_nonwet_perm_model(rel_nonwet_perm_model),
-      _cap_pressure_value(cap_pressure_value),
-      _rel_wet_perm_value(rel_wet_perm_value),
-      _rel_nonwet_perm_value(rel_nonwet_perm_value)
+      _storage_models(std::move(storage_models))
 {
     DBUG("Create material properties for Two-Phase flow with PP model.");
 }
@@ -140,114 +121,6 @@ double TwoPhaseFlowWithPPMaterialProperties::getGasViscosity(
     return _gas_viscosity->getValue(vars);
 }
 
-double TwoPhaseFlowWithPPMaterialProperties::getSaturation(double pc) const
-{
-    double Sw;
-    /// TODO waiting for a better way to implemente the PC-S curve
-    switch (_cap_pressure_model)
-    {
-        case 0:
-			OGS_FATAL("This model has been implemented elsewhere");
-			break;
-        /// van Genuchten
-        case 1:
-			OGS_FATAL("This model has been implemented elsewhere");
-			break;
-        /// Brooks-Corey
-        case 2:
-			OGS_FATAL("This model has been implemented elsewhere");
-			break;
-        /// Liakopoulos
-        case 10:
-            OGS_FATAL("This model has been implemented elsewhere");
-            break;
-        default:
-            OGS_FATAL("This model has not been implemented yet");
-            break;
-    }
-    return Sw;
-}
-
-double TwoPhaseFlowWithPPMaterialProperties::getDerivSaturation(
-    double const pc) const
-{
-    double dSwdPc;
-    switch (_cap_pressure_model)
-    {
-        case 0:
-			OGS_FATAL("This model has been implemented elsewhere");
-			break;
-
-        case 1:
-			OGS_FATAL("This model has been implemented elsewhere");
-			break;
-        case 2:
-			OGS_FATAL("This model has been implemented elsewhere");
-			break;
-        case 10:
-			OGS_FATAL("This model has been implemented elsewhere");
-			break;
-        default:
-            OGS_FATAL("This model has not been implemented yet");
-            break;
-    }
-    return dSwdPc;
-}
-
-double TwoPhaseFlowWithPPMaterialProperties::getrelativePermeability_liquid(
-    double const sw) const
-{
-    /// TODO waiting for a better way to implemente the Kr-S curve
-    /*
-    MathLib::PiecewiseLinearInterpolation const& interpolated_Kr =
-        *curves.at("curveB");
-    return interpolated_Kr.getValue(sw);
-    */
-    double rel_wet_perm;
-    switch (_rel_wet_perm_model)
-    {
-        case 0:
-			OGS_FATAL("This model has been implemented elsewhere");
-			break;
-        case 1:
-            break;
-        case 2:
-			OGS_FATAL("This model has been implemented elsewhere");
-			break;
-        case 10:
-            OGS_FATAL("This model has been implemented elsewhere");
-            break;
-        default:
-            OGS_FATAL("This model has not been implemented yet");
-            break;
-    }
-    return rel_wet_perm;
-}
-
-double TwoPhaseFlowWithPPMaterialProperties::getrelativePermeability_gas(
-    double sw) const
-{
-    double rel_nonwet_perm;
-    switch (_rel_nonwet_perm_model)
-    {
-        case 0:
-			OGS_FATAL("This model has been implemented elsewhere");
-			break;
-        case 1:
-            break;
-        case 2:
-			OGS_FATAL("This model has been implemented elsewhere");
-			break;
-		case 10:
-			OGS_FATAL("This model has been implemented elsewhere");
-			break;
-        default:
-			OGS_FATAL("This model has not been implemented yet");
-            break;
-    }
-    return rel_nonwet_perm;
-}
-
 Eigen::MatrixXd const& TwoPhaseFlowWithPPMaterialProperties::getPermeability(
     const double /*t*/, const ProcessLib::SpatialPosition& /*pos*/,
     const int /*dim*/) const
@@ -263,14 +136,6 @@ double TwoPhaseFlowWithPPMaterialProperties::getPorosity(
         _porosity_models[_current_material_id]->getValue(porosity_variable, T);
 
     return porosity;
-}
-
-double TwoPhaseFlowWithPPMaterialProperties::getDissolvedGas(
-    double const pg) const
-{
-    double const hen = 2e-6;     //
-    double const M_air = 0.029;  // unit kg/mol
-    return pg * hen * M_air;
 }
 
 }  // end of namespace

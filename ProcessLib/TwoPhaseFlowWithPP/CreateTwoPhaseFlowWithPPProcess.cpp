@@ -79,26 +79,27 @@ std::unique_ptr<Process> CreateTwoPhaseFlowWithPPProcess(
 
     auto const& mat_ids =
         mesh.getProperties().getPropertyVector<int>("MaterialIDs");
-    auto is_heterogeneous = config.getConfigParameter<bool>("heterogeneous");
+    //auto is_heterogeneous = config.getConfigParameter<bool>("heterogeneous");
 
     std::unique_ptr<
         MaterialLib::TwoPhaseFlowWithPP::TwoPhaseFlowWithPPMaterialProperties>
         material = nullptr;
 
-    if (is_heterogeneous)  // mat_ids
+    if (mat_ids)  //
     {
         INFO("The twophase flow is in heterogeneous porous media.");
         const bool has_material_ids = true;
         material = MaterialLib::TwoPhaseFlowWithPP::
             CreateTwoPhaseFlowMaterialProperties(mat_config, has_material_ids,
-                                                 *mat_ids, curves);
-        TwoPhaseFlowWithPPProcessData process_data{
-            specific_body_force, has_gravity, mass_lump, std::move(material)};
+                                                 *mat_ids);
+        TwoPhaseFlowWithPPProcessData process_data{specific_body_force,
+                                                   has_gravity, mass_lump,
+                                                   std::move(material), curves};
         return std::unique_ptr<Process>{new TwoPhaseFlowWithPPProcess{
             mesh, std::move(jacobian_assembler), parameters, integration_order,
             std::move(process_variables), std::move(process_data),
             std::move(secondary_variables), std::move(named_function_caller),
-            *mat_ids, has_material_ids, mat_config, curves}};
+            mat_config, curves}};
     }
     else
     {
@@ -116,14 +117,15 @@ std::unique_ptr<Process> CreateTwoPhaseFlowWithPPProcess(
         const bool has_material_ids = false;
         material = MaterialLib::TwoPhaseFlowWithPP::
             CreateTwoPhaseFlowMaterialProperties(mat_config, has_material_ids,
-                                                 *mat_ids, curves);
-        TwoPhaseFlowWithPPProcessData process_data{
-            specific_body_force, has_gravity, mass_lump, std::move(material)};
+                                                 *dummy_property_vector);
+        TwoPhaseFlowWithPPProcessData process_data{specific_body_force,
+                                                   has_gravity, mass_lump,
+                                                   std::move(material), curves};
         return std::unique_ptr<Process>{new TwoPhaseFlowWithPPProcess{
             mesh, std::move(jacobian_assembler), parameters, integration_order,
             std::move(process_variables), std::move(process_data),
             std::move(secondary_variables), std::move(named_function_caller),
-            *dummy_property_vector, has_material_ids, mat_config, curves}};
+            mat_config, curves}};
     }
 }
 

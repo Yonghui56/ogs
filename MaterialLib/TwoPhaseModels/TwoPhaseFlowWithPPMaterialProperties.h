@@ -66,19 +66,7 @@ public:
         std::vector<std::unique_ptr<MaterialLib::PorousMedium::Porosity>>&&
             porosity_models,
         std::vector<std::unique_ptr<MaterialLib::PorousMedium::Storage>>&&
-            storage_models,
-        int cap_pressure_model,
-        int rel_wet_perm_model,
-        int rel_nonwet_perm_model,
-        std::array<double, 4>
-            cap_pressure_value,
-        std::array<double, 4>
-            rel_wet_perm_value,
-        std::array<double, 4>
-            rel_nonwet_perm_value,
-        std::map<std::string,
-                 std::unique_ptr<MathLib::PiecewiseLinearInterpolation>> const&
-            curves_);
+            storage_models);
 
     void setMaterialID(const ProcessLib::SpatialPosition& pos);
 
@@ -113,27 +101,12 @@ public:
     double getGasViscosity(const double p, const double T) const;
     double getLiquidViscosity(const double p, const double T) const;
     double getDerivGasDensity(double const p, double const T) const;
-    double getDissolvedGas(double const pg) const;
-
-    virtual double getSaturation(double pc) const;
-    virtual double getrelativePermeability_liquid(double const sw) const;
-    virtual double getrelativePermeability_gas(double const sw) const;
-    virtual double getDerivSaturation(double const pc) const;
 
 protected:
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _liquid_density;
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _viscosity;
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _gas_density;
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _gas_viscosity;
-
-    int _cap_pressure_model;
-    std::array<double, 4> _cap_pressure_value;
-
-    int _rel_wet_perm_model;
-    std::array<double, 4> _rel_wet_perm_value;
-
-    int _rel_nonwet_perm_model;
-    std::array<double, 4> _rel_nonwet_perm_value;
 
     /// A flag to indicate whether the reference member, _material_ids,
     /// is not assigned.
@@ -143,10 +116,6 @@ protected:
      *  Material IDs must be given as mesh element properties.
      */
     MeshLib::PropertyVector<int> const& _material_ids;
-
-    std::map<std::string,
-             std::unique_ptr<MathLib::PiecewiseLinearInterpolation>> const&
-        curves;
 
     int _current_material_id = 0;
     std::vector<Eigen::MatrixXd> _intrinsic_permeability_models;

@@ -35,10 +35,7 @@ std::unique_ptr<TwoPhaseFlowWithPPMaterialProperties>
 CreateTwoPhaseFlowMaterialProperties(
     BaseLib::ConfigTree const& config,
     bool const has_material_ids,
-    MeshLib::PropertyVector<int> const& material_ids,
-    std::map<std::string,
-             std::unique_ptr<MathLib::PiecewiseLinearInterpolation>> const&
-        curves_);
+    MeshLib::PropertyVector<int> const& material_ids);
 
 }  // end namespace
 }  // end namespace

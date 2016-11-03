@@ -26,10 +26,6 @@
 #include "ProcessLib/Parameter/Parameter.h"
 #include "ProcessLib/Parameter/SpatialPosition.h"
 #include "TwoPhaseFlowWithPPMaterialProperties.h"
-#include "Liakopoulos.h"
-#include "BrooksCorey.h"
-#include "TwoPhaseFlowCurve.h"
-#include "vanGenuchten.h"
 
 namespace MaterialLib
 {
@@ -39,10 +35,7 @@ std::unique_ptr<TwoPhaseFlowWithPPMaterialProperties>
 CreateTwoPhaseFlowMaterialProperties(
     BaseLib::ConfigTree const& config,
     bool const has_material_ids,
-    MeshLib::PropertyVector<int> const& material_ids,
-    std::map<std::string,
-             std::unique_ptr<MathLib::PiecewiseLinearInterpolation>> const&
-        curves_)
+    MeshLib::PropertyVector<int> const& material_ids)
 {
     DBUG("Reading material properties of two-phase flow process.");
 
@@ -64,18 +57,13 @@ CreateTwoPhaseFlowMaterialProperties(
     auto const& mu_gas_conf = fluid_config.getConfigSubtree("gasviscosity");
     auto _gas_viscosity = MaterialLib::Fluid::createViscosityModel(mu_gas_conf);
     // Get porous properties
-    int cap_pressure_model;
-    int rel_wet_perm_model;
-    int rel_nonwet_perm_model;
+
     std::vector<int> mat_ids;
     std::vector<Eigen::MatrixXd> _intrinsic_permeability_models;
     std::vector<std::unique_ptr<MaterialLib::PorousMedium::Porosity>>
         _porosity_models;
     std::vector<std::unique_ptr<MaterialLib::PorousMedium::Storage>>
         _storage_models;
-    std::array<double, 4> cap_pressure_value;
-    std::array<double, 4> rel_wet_perm_value;
-    std::array<double, 4> rel_nonwet_perm_value;
     //! \ogs_file_param{prj__material_property__porous_medium}
     auto const& poro_config = config.getConfigSubtree("porous_medium");
     //! \ogs_file_param{prj__material_property__porous_medium__porous_medium}
@@ -99,150 +87,18 @@ CreateTwoPhaseFlowMaterialProperties(
         auto const& stora_conf = conf.getConfigSubtree("storage");
         auto beta = MaterialLib::PorousMedium::createStorageModel(stora_conf);
         _storage_models.emplace_back(std::move(beta));
-
-        //! \ogs_file_param{prj__material_property__porous_medium__porous_medium__cap_pressure}
-        auto const& cap_pressure_conf =
-            conf.getConfigSubtree("capillary_pressure");
-        auto const cap_pressure_type =
-            cap_pressure_conf.getConfigParameter<std::string>("type");
-        if (cap_pressure_type == "Curve")
-            cap_pressure_model = 0;
-        else if (cap_pressure_type == "van_Genuchten")
-            cap_pressure_model = 1;
-        else if (cap_pressure_type == "Brooks_Corey")
-        {
-            cap_pressure_model = 2;
-            cap_pressure_value = {
-                {//! \ogs_file_param{material__fluid__density__linear_temperature__rho0}
-                 cap_pressure_conf.getConfigParameter<double>("entry_pressure"),
-                 //! \ogs_file_param{material__fluid__density__linear_temperature__temperature0}
-                 cap_pressure_conf.getConfigParameter<double>(
-                     "res_saturation_wet"),
-                 //! \ogs_file_param{material__fluid__density__linear_temperature__beta}
-                 cap_pressure_conf.getConfigParameter<double>(
-                     "res_saturation_nonwet"),
-                 //! \ogs_file_param{material__fluid__density__linear_temperature__beta}
-                 cap_pressure_conf.getConfigParameter<double>("lambda")}};
-        }
-        else if (cap_pressure_type == "Liakopoulos")
-            cap_pressure_model = 10;
-        else
-            OGS_FATAL("This model has not been implemented yet");
-        //! \ogs_file_param{prj__material_property__porous_medium__porous_medium__rel_permeability_liquid}
-        auto const& rel_wet_perm_conf =
-            conf.getConfigSubtree("relative_wet_permeability");
-        auto const rel_wet_perm_type =
-            rel_wet_perm_conf.getConfigParameter<std::string>("type");
-        if (rel_wet_perm_type == "Curve")
-            rel_wet_perm_model = 0;
-        else if (rel_wet_perm_type == "van_Genuchten")
-            rel_wet_perm_model = 1;
-        else if (rel_wet_perm_type == "Brooks_Corey")
-        {
-            rel_wet_perm_model = 2;
-            rel_wet_perm_value = {
-                {//! \ogs_file_param{material__fluid__density__linear_temperature__rho0}
-                 rel_wet_perm_conf.getConfigParameter<double>(
-                     "res_saturation_wet"),
-                 //! \ogs_file_param{material__fluid__density__linear_temperature__temperature0}
-                 rel_wet_perm_conf.getConfigParameter<double>(
-                     "res_saturation_nonwet"),
-                 //! \ogs_file_param{material__fluid__density__linear_temperature__beta}
-                 rel_wet_perm_conf.getConfigParameter<double>("lambda"),
-                 //! \ogs_file_param{material__fluid__density__linear_temperature__beta}
-                 rel_wet_perm_conf.getConfigParameter<double>(
-                     "minimum_value")}};
-        }
-        else if (rel_wet_perm_type == "Liakopoulos")
-            rel_wet_perm_model = 10;
-        else
-            OGS_FATAL("This model has not been implemented yet");
-
-        //! \ogs_file_param{prj__material_property__porous_medium__porous_medium__rel_permeability_gas}
-        auto const& rel_nonwet_perm_conf =
-            conf.getConfigSubtree("relative_nonwet_permeability");
-        auto const rel_nonwet_perm_type =
-            rel_nonwet_perm_conf.getConfigParameter<std::string>("type");
-        if (rel_nonwet_perm_type == "Curve")
-            rel_nonwet_perm_model = 0;
-        else if (rel_nonwet_perm_type == "van_Genuchten")
-            rel_nonwet_perm_model = 1;
-        else if (rel_nonwet_perm_type == "Brooks_Corey")
-        {
-            rel_nonwet_perm_model = 2;
-            rel_nonwet_perm_value = {
-                {//! \ogs_file_param{material__fluid__density__linear_temperature__rho0}
-                 rel_nonwet_perm_conf.getConfigParameter<double>(
-                     "res_saturation_wet"),
-                 //! \ogs_file_param{material__fluid__density__linear_temperature__temperature0}
-                 rel_nonwet_perm_conf.getConfigParameter<double>(
-                     "res_saturation_nonwet"),
-                 //! \ogs_file_param{material__fluid__density__linear_temperature__beta}
-                 rel_nonwet_perm_conf.getConfigParameter<double>("lambda"),
-                 //! \ogs_file_param{material__fluid__density__linear_temperature__beta}
-                 rel_nonwet_perm_conf.getConfigParameter<double>(
-                     "minimum_value")}};
-        }
-        else
-            OGS_FATAL("This model has not been implemented yet");
     }
 
     BaseLib::reorderVector(_intrinsic_permeability_models, mat_ids);
     BaseLib::reorderVector(_porosity_models, mat_ids);
     BaseLib::reorderVector(_storage_models, mat_ids);
 
-    if (rel_wet_perm_model == 10)   // Liakopoulos
-        return std::unique_ptr<TwoPhaseFlowWithPPMaterialProperties>{
-            new Liakopoulos{
-                has_material_ids, material_ids, std::move(_liquid_density),
-                std::move(_viscosity), std::move(_gas_density),
-                std::move(_gas_viscosity), _intrinsic_permeability_models,
-                std::move(_porosity_models), std::move(_storage_models),
-                cap_pressure_model, rel_wet_perm_model, rel_nonwet_perm_model,
-                cap_pressure_value, rel_wet_perm_value, rel_nonwet_perm_value,
-                curves_}};
-	if (cap_pressure_model == 2)   // Brooks-Corey
-		return std::unique_ptr<TwoPhaseFlowWithPPMaterialProperties>{
-		new BrooksCorey{
-			has_material_ids, material_ids, std::move(_liquid_density),
-			std::move(_viscosity), std::move(_gas_density),
-			std::move(_gas_viscosity), _intrinsic_permeability_models,
-			std::move(_porosity_models), std::move(_storage_models),
-			cap_pressure_model, rel_wet_perm_model, rel_nonwet_perm_model,
-			cap_pressure_value, rel_wet_perm_value, rel_nonwet_perm_value,
-			curves_ }};
-
-	if (cap_pressure_model == 0)    //Reading from curve
-		return std::unique_ptr<TwoPhaseFlowWithPPMaterialProperties>{
-		new TwoPhaseFlowCurve{
-			has_material_ids, material_ids, std::move(_liquid_density),
-			std::move(_viscosity), std::move(_gas_density),
-			std::move(_gas_viscosity), _intrinsic_permeability_models,
-			std::move(_porosity_models), std::move(_storage_models),
-			cap_pressure_model, rel_wet_perm_model, rel_nonwet_perm_model,
-			cap_pressure_value, rel_wet_perm_value, rel_nonwet_perm_value,
-			curves_ }};
-
-	if (cap_pressure_model == 1)    //van Genuchten
-		return std::unique_ptr<TwoPhaseFlowWithPPMaterialProperties>{
-		new vanGenuchten{
-			has_material_ids, material_ids, std::move(_liquid_density),
-			std::move(_viscosity), std::move(_gas_density),
-			std::move(_gas_viscosity), _intrinsic_permeability_models,
-			std::move(_porosity_models), std::move(_storage_models),
-			cap_pressure_model, rel_wet_perm_model, rel_nonwet_perm_model,
-			cap_pressure_value, rel_wet_perm_value, rel_nonwet_perm_value,
-			curves_ }};
-
     return std::unique_ptr<TwoPhaseFlowWithPPMaterialProperties>{
         new TwoPhaseFlowWithPPMaterialProperties{
             has_material_ids, material_ids, std::move(_liquid_density),
             std::move(_viscosity), std::move(_gas_density),
             std::move(_gas_viscosity), _intrinsic_permeability_models,
-            std::move(_porosity_models), std::move(_storage_models),
-            cap_pressure_model, rel_wet_perm_model, rel_nonwet_perm_model,
-            cap_pressure_value, rel_wet_perm_value, rel_nonwet_perm_value,
-            curves_}};
+            std::move(_porosity_models), std::move(_storage_models)}};
 }
 
 }  // end namespace

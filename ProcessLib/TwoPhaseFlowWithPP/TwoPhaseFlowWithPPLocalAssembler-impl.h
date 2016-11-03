@@ -69,13 +69,18 @@ void TwoPhaseFlowWithPPLocalAssembler<
 
     SpatialPosition pos;
     pos.setElementID(_element.getID());
-    //_material_properties.setMaterialID(pos);
+    _process_data._material->setMaterialID(pos);
 
     const Eigen::MatrixXd& perm = _process_data._material->getPermeability(
         t, pos, _element.getDimension());
 
-    // Note: For Inclined 1D in 2D/3D or 2D element in 3D, the first item in
-    //  the assert must be changed to perm.rows() == _element->getDimension()
+    MathLib::PiecewiseLinearInterpolation const& interpolated_Pc =
+        *_process_data._curves.at("curve_PC_S");
+    MathLib::PiecewiseLinearInterpolation const& interpolated_Kr_wet =
+        *_process_data._curves.at("curve_S_Krel_wet");
+    MathLib::PiecewiseLinearInterpolation const& interpolated_Kr_nonwet =
+        *_process_data._curves.at("curve_S_Krel_nonwet");
+
     assert(perm.rows() == GlobalDim || perm.rows() == 1);
 
     double porosity_variable = 0.;
@@ -93,9 +98,9 @@ void TwoPhaseFlowWithPPLocalAssembler<
         double pg_int_pt = 0.;
         NumLib::shapeFunctionInterpolate(local_x, sm.N, pg_int_pt, pc_int_pt);
 
-        // TODO : compute _temperature from the heat transport pcs
         double const pl = pg_int_pt - pc_int_pt;
         _pressure_wetting[ip] = pl;
+
         const double integration_factor =
             sm.integralMeasure * sm.detJ * wp.getWeight();
         double const rho_gas =
@@ -107,35 +112,40 @@ void TwoPhaseFlowWithPPLocalAssembler<
         double const mu_liquid =
             _process_data._material->getLiquidViscosity(pl, _temperature);
 
-        double Sw = _process_data._material->getSaturation(pc_int_pt);  // pc
+        double Sw = interpolated_Pc.getValue(pc_int_pt);
 
         if (pc_int_pt < 0)
             Sw = 1.0;
-        double dSwdPc = _process_data._material->getDerivSaturation(pc_int_pt);
+        _saturation[ip] = Sw;
+        double dSwdPc = interpolated_Pc.getDerivative(pc_int_pt);
+        if (pc_int_pt > interpolated_Pc.getSupportMax())
+            dSwdPc =
+                interpolated_Pc.getDerivative(interpolated_Pc.getSupportMax());
+        else if (pc_int_pt < interpolated_Pc.getSupportMin())
+            dSwdPc =
+                interpolated_Pc.getDerivative(interpolated_Pc.getSupportMin());
 
-        double const k_rel_L =
-            _process_data._material->getrelativePermeability_liquid(Sw);
+        double const k_rel_L = interpolated_Kr_wet.getValue(Sw);
 
-        double const k_rel_G =
-            _process_data._material->getrelativePermeability_gas(Sw);  // Sw
+        double const k_rel_G = interpolated_Kr_nonwet.getValue(Sw);
+
         double const drhogas_dpg = _process_data._material->getDerivGasDensity(
             pg_int_pt, _temperature);
         double const poro = _process_data._material->getPorosity(
             t, pos, pg_int_pt, _temperature, porosity_variable);
 
-        // Assemble mass matrix, M
-        _saturation[ip] = Sw;
+        // Assemble M matrix
         // nonwetting
         mass_mat_coeff(nonwet_pressure_coeff_index,
                        nonwet_pressure_coeff_index) =
-            poro * (1 - Sw) * drhogas_dpg;  // dPG
+            poro * (1 - Sw) * drhogas_dpg;
         mass_mat_coeff(nonwet_pressure_coeff_index, cap_pressure_coeff_index) =
-            -poro * rho_gas * dSwdPc;  // dPC
+            -poro * rho_gas * dSwdPc;
         // wetting
         mass_mat_coeff(cap_pressure_coeff_index, nonwet_pressure_coeff_index) =
-            0.0;  // dPG
+            0.0;
         mass_mat_coeff(cap_pressure_coeff_index, cap_pressure_coeff_index) =
-            poro * dSwdPc * rho_w;  // dPC
+            poro * dSwdPc * rho_w;
 
         _Mgp.noalias() += mass_mat_coeff(nonwet_pressure_coeff_index,
                                          nonwet_pressure_coeff_index) *
@@ -152,21 +162,18 @@ void TwoPhaseFlowWithPPLocalAssembler<
 
         double const lambda_G = k_rel_G / mu_gas;
         double const lambda_L = k_rel_L / mu_liquid;
-        /*
-        *construct the K matrix
-        */
+		// Assemble M matrix
+		//nonwet
         K_mat_coeff(nonwet_pressure_coeff_index, nonwet_pressure_coeff_index) =
             rho_gas * perm(0, 0) * lambda_G;
         K_mat_coeff(nonwet_pressure_coeff_index, cap_pressure_coeff_index) =
             0.0;
 
-        // water
+        // wet
         K_mat_coeff(cap_pressure_coeff_index, nonwet_pressure_coeff_index) =
             rho_w * perm(0, 0) * lambda_L;
         K_mat_coeff(cap_pressure_coeff_index, cap_pressure_coeff_index) =
             -rho_w * perm(0, 0) * lambda_L;
-        // std::cout << K_mat_coeff << std::endl;
-        // assembly the mass matrix
 
         _Kgp.noalias() += K_mat_coeff(nonwet_pressure_coeff_index,
                                       nonwet_pressure_coeff_index) *
@@ -181,13 +188,12 @@ void TwoPhaseFlowWithPPLocalAssembler<
             K_mat_coeff(cap_pressure_coeff_index, cap_pressure_coeff_index) *
             sm.dNdx.transpose() * sm.dNdx * integration_factor;
 
-        // std::cout << local_K << std::endl;
         H_vec_coeff(nonwet_pressure_coeff_index) =
             rho_gas * rho_gas * perm(0, 0) * lambda_G;
 
         H_vec_coeff(cap_pressure_coeff_index) =
             rho_w * rho_w * perm(0, 0) * lambda_L;
-        // std::cout << H_vec_coeff << std::endl;
+
         if (_process_data._has_gravity)
         {
             auto const body_force = _process_data._specific_body_force(t, pos);
@@ -202,7 +208,6 @@ void TwoPhaseFlowWithPPLocalAssembler<
                              integration_factor;
 
         }  // end of has gravity
-           // std::cout << local_b << std::endl;
     }      // end of GP
     if (_process_data._has_mass_lumping)
     {

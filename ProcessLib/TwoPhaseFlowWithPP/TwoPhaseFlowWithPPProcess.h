@@ -33,24 +33,7 @@ namespace TwoPhaseFlowWithPP
 {
 /**
  * \brief A class to simulate the two-phase flow process with P-P model in
- * porous media described
- * by
- *
- * \f[
- *     \frac{\partial n \rho_l}{\partial T} \frac{\partial T}{\partial t}/\rho_l
- *       + (\frac{\partial n \rho_l}{\partial p}/\rho_l + \beta_s)
- *          \frac{\partial p}{\partial t}
- *       -\nabla (\frac{K}{\mu}(\nabla p + \rho_l g \nabla z) ) = Q
- * \f]
- * where
- *    \f{eqnarray*}{
- *       &p:&        \mbox{pore pressure,}\\
- *       &T: &       \mbox{Temperature,}\\
- *       &\rho_l:&   \mbox{liquid density,}\\
- *       &\beta_s:&  \mbox{specific storage,}\\
- *       &K:&        \mbox{permeability,}\\
- *       &\mu:&      \mbox{viscosity,}\\
- *    \f}
+ * porous media
  */
 class TwoPhaseFlowWithPPProcess final : public Process
 {
@@ -65,8 +48,6 @@ public:
         TwoPhaseFlowWithPPProcessData&& process_data,
         SecondaryVariableCollection&& secondary_variables,
         NumLib::NamedFunctionCaller&& named_function_caller,
-        MeshLib::PropertyVector<int> const& material_ids,
-        bool const has_material_ids,
         BaseLib::ConfigTree const& config,
         std::map<std::string,
                  std::unique_ptr<MathLib::PiecewiseLinearInterpolation>> const&
