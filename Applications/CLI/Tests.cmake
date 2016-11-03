@@ -375,7 +375,7 @@ if(NOT OGS_USE_MPI)
         NAME LARGE_2D_TwoPhase_PP_Lia_quad
          PATH Parabolic/TwoPhaseFlowPP/Liakopoulos
          EXECUTABLE ogs
-         EXECUTABLE_ARGS Twophase_Lia_quad.prj
+         EXECUTABLE_ARGS Twophase_Lia_quad2.prj
          TESTER vtkdiff
          ABSTOL 1e-1 RELTOL 1e-1
          DIFF_DATA
