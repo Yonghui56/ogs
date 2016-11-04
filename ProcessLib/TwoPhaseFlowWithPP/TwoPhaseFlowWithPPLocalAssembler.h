@@ -116,7 +116,7 @@ private:
 
     TwoPhaseFlowWithPPProcessData const& _process_data;
 
-    double _temperature;
+    double _temperature = 293.15;
     std::vector<double> _saturation;
     std::vector<double> _pressure_wetting;
     static const int nonwet_pressure_coeff_index = 0;
