@@ -63,7 +63,7 @@ class TwoPhaseFlowWithPPLocalAssembler
 public:
     TwoPhaseFlowWithPPLocalAssembler(
         MeshLib::Element const& element,
-        std::size_t const /*local_matrix_size*/,
+        std::size_t const local_matrix_size,
         bool const is_axially_symmetric,
         unsigned const integration_order,
         TwoPhaseFlowWithPPProcessData const& process_data)

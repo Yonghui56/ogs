@@ -19,7 +19,8 @@
 #include "MathLib/InterpolationAlgorithms/PiecewiseLinearInterpolation.h"
 #include "NumLib/Function/Interpolation.h"
 #include "TwoPhaseFlowWithPPProcessData.h"
-// using namespace Eigen;
+#include "MaterialLib/PhysicalConstant.h"
+
 namespace ProcessLib
 {
 namespace TwoPhaseFlowWithPP
@@ -111,8 +112,11 @@ void TwoPhaseFlowWithPPLocalAssembler<
 
         if (pc_int_pt < 0)
             Sw = 1.0;
+		_saturation[ip] = Sw;
         double dSwdPc = _process_data._material->getDerivSaturation(pc_int_pt);
 
+		double const rho_mass_wet = rho_w + pg_int_pt*x_nonwet_b*_process_data._henry_const*MaterialLib::PhysicalConstant::MolarMass::H2;
+		
         double const k_rel_L =
             _process_data._material->getrelativePermeability_liquid(Sw);
 
@@ -122,20 +126,30 @@ void TwoPhaseFlowWithPPLocalAssembler<
             pg_int_pt, _temperature);
         double const poro = _process_data._material->getPorosity(
             t, pos, pg_int_pt, _temperature, porosity_variable);
-
+		double const molar_mass_a = MaterialLib::PhysicalConstant::MolarMass::Water;
+		double const molar_mass_b= MaterialLib::PhysicalConstant::MolarMass::H2;
+		double const rho_mol_wet_b = pg_int_pt*x_nonwet_b*_process_data._henry_const;
+		double const rho_mol_nonwet= rho_gas/ MaterialLib::PhysicalConstant::MolarMass::H2;
+		double const rho_mol_wet = (1 / molar_mass_a)*rho_w + rho_mol_wet_b;
+		double const x_mol_wet_b = rho_mol_wet_b / rho_mol_wet;
+		double const X_mass_wet_b = x_mol_wet_b*molar_mass_b / (x_mol_wet_b*molar_mass_b + (1 - x_mol_wet_b)*molar_mass_a);
         // Assemble mass matrix, M
-        _saturation[ip] = Sw;
+		// wet -- wetting phase
+		// component a -- (water component)
+		// component b -- (non-wet component)
+		//TODO here we assume no vaporation of water into nonwet phase
+		double const x_nonwet_b = 1.0;
+		//double const x_wet_b = pg_int_pt*x_nonwet_b*_process_data._henry_const / rho_mol_wet;
         // nonwetting
-        mass_mat_coeff(nonwet_pressure_coeff_index,
-                       nonwet_pressure_coeff_index) =
-            poro * (1 - Sw) * drhogas_dpg;  // dPG
-        mass_mat_coeff(nonwet_pressure_coeff_index, cap_pressure_coeff_index) =
-            -poro * rho_gas * dSwdPc;  // dPC
+		mass_mat_coeff(nonwet_pressure_coeff_index,
+			nonwet_pressure_coeff_index) =
+			poro*Sw *_process_data._henry_const + poro*(1 - Sw)/ MaterialLib::PhysicalConstant::IdealGasConstant/_temperature;  // dPG
+		mass_mat_coeff(nonwet_pressure_coeff_index, cap_pressure_coeff_index) = poro*dSwdPc*(pg_int_pt*x_nonwet_b*_process_data._henry_const
+			- rho_mol_nonwet);
         // wetting
         mass_mat_coeff(cap_pressure_coeff_index, nonwet_pressure_coeff_index) =
             0.0;  // dPG
-        mass_mat_coeff(cap_pressure_coeff_index, cap_pressure_coeff_index) =
-            poro * dSwdPc * rho_w;  // dPC
+		mass_mat_coeff(cap_pressure_coeff_index, cap_pressure_coeff_index) = poro*rho_w*dSwdPc / molar_mass_a;
 
         _Mgp.noalias() += mass_mat_coeff(nonwet_pressure_coeff_index,
                                          nonwet_pressure_coeff_index) *
@@ -152,19 +166,23 @@ void TwoPhaseFlowWithPPLocalAssembler<
 
         double const lambda_G = k_rel_G / mu_gas;
         double const lambda_L = k_rel_L / mu_liquid;
+		double const X_mass = X_mass_wet_b / molar_mass_b + (1 - X_mass_wet_b) / molar_mass_a;
         /*
         *construct the K matrix
         */
-        K_mat_coeff(nonwet_pressure_coeff_index, nonwet_pressure_coeff_index) =
-            rho_gas * perm(0, 0) * lambda_G;
+		K_mat_coeff(nonwet_pressure_coeff_index, nonwet_pressure_coeff_index) =
+			rho_mol_nonwet*x_nonwet_b*perm(0, 0)*lambda_G
+			+ rho_mol_wet_b * perm(0, 0) * lambda_L
+			+ poro*Sw*X_mass*_process_data._diffusion_coeff_componentb*_process_data._henry_const;
         K_mat_coeff(nonwet_pressure_coeff_index, cap_pressure_coeff_index) =
-            0.0;
+			-rho_mol_wet_b * perm(0, 0) * lambda_L;
 
         // water
-        K_mat_coeff(cap_pressure_coeff_index, nonwet_pressure_coeff_index) =
-            rho_w * perm(0, 0) * lambda_L;
+		K_mat_coeff(cap_pressure_coeff_index, nonwet_pressure_coeff_index) =
+			rho_w*perm(0, 0)*lambda_L / molar_mass_a
+			- poro*Sw*X_mass*_process_data._diffusion_coeff_componentb*_process_data._henry_const;
         K_mat_coeff(cap_pressure_coeff_index, cap_pressure_coeff_index) =
-            -rho_w * perm(0, 0) * lambda_L;
+            -rho_w * perm(0, 0) * lambda_L/molar_mass_a;
         // std::cout << K_mat_coeff << std::endl;
         // assembly the mass matrix
 
@@ -182,11 +200,11 @@ void TwoPhaseFlowWithPPLocalAssembler<
             sm.dNdx.transpose() * sm.dNdx * integration_factor;
 
         // std::cout << local_K << std::endl;
-        H_vec_coeff(nonwet_pressure_coeff_index) =
-            rho_gas * rho_gas * perm(0, 0) * lambda_G;
+		H_vec_coeff(nonwet_pressure_coeff_index) =
+			rho_mol_wet_b* rho_gas * perm(0, 0) * lambda_G;
 
-        H_vec_coeff(cap_pressure_coeff_index) =
-            rho_w * rho_w * perm(0, 0) * lambda_L;
+		H_vec_coeff(cap_pressure_coeff_index) =
+			rho_w * rho_mass_wet * perm(0, 0) * lambda_L / molar_mass_a;
         // std::cout << H_vec_coeff << std::endl;
         if (_process_data._has_gravity)
         {
