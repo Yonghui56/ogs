@@ -103,14 +103,14 @@ public:
     double getDerivGasDensity(double const p, double const T) const;
 
 protected:
+    /// A flag to indicate whether the reference member, _material_ids,
+    /// is not assigned.
+    const bool _has_material_ids;
+
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _liquid_density;
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _viscosity;
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _gas_density;
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _gas_viscosity;
-
-    /// A flag to indicate whether the reference member, _material_ids,
-    /// is not assigned.
-    const bool _has_material_ids;
 
     /** Use porous medium models for different material zones.
      *  Material IDs must be given as mesh element properties.

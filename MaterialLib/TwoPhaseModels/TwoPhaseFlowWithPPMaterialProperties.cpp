@@ -50,11 +50,11 @@ TwoPhaseFlowWithPPMaterialProperties::TwoPhaseFlowWithPPMaterialProperties(
     std::vector<std::unique_ptr<MaterialLib::PorousMedium::Storage>>&&
         storage_models)
     : _has_material_ids(has_material_ids),
-      _material_ids(material_ids),
       _liquid_density(std::move(liquid_density)),
       _viscosity(std::move(viscosity)),
       _gas_density(std::move(gas_density)),
       _gas_viscosity(std::move(gas_viscosity)),
+      _material_ids(material_ids),
       _intrinsic_permeability_models(intrinsic_permeability_models),
       _porosity_models(std::move(porosity_models)),
       _storage_models(std::move(storage_models))
