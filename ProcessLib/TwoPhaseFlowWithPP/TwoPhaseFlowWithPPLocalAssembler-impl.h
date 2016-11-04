@@ -36,7 +36,6 @@ void TwoPhaseFlowWithPPLocalAssembler<
     auto const local_matrix_size = local_x.size();
 
     assert(local_matrix_size == ShapeFunction::NPOINTS * NUM_NODAL_DOF);
-    int const n_nodes = ShapeFunction::NPOINTS;
     Eigen::MatrixXd mass_mat_coeff =
         Eigen::MatrixXd::Zero(NUM_NODAL_DOF, NUM_NODAL_DOF);
     Eigen::MatrixXd K_mat_coeff =
@@ -50,19 +49,17 @@ void TwoPhaseFlowWithPPLocalAssembler<
     auto local_b = MathLib::createZeroedVector<NodalVectorType>(
         local_b_data, local_matrix_size);
 
-    typedef Eigen::Matrix<double, n_nodes, n_nodes> MatrixNN;
-    MatrixNN _Mgp;
-    MatrixNN _Mgpc;
-    MatrixNN _Mlp;
-    MatrixNN _Mlpc;
-    MatrixNN _Kgp;
-    MatrixNN _Kgpc;
-    MatrixNN _Klp;
-    MatrixNN _Klpc;
+    NodalMatrixType _Mgp;
+    NodalMatrixType _Mgpc;
+    NodalMatrixType _Mlp;
+    NodalMatrixType _Mlpc;
+    NodalMatrixType _Kgp;
+    NodalMatrixType _Kgpc;
+    NodalMatrixType _Klp;
+    NodalMatrixType _Klpc;
 
-    typedef Eigen::Matrix<double, n_nodes, 1> VectorNN;
-    VectorNN _Bg;
-    VectorNN _Bl;
+    NodalVectorType _Bg;
+    NodalVectorType _Bl;
 
     unsigned const n_integration_points =
         _integration_method.getNumberOfPoints();
