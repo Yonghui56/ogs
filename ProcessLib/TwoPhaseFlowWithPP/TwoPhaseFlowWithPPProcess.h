@@ -65,8 +65,6 @@ public:
         TwoPhaseFlowWithPPProcessData&& process_data,
         SecondaryVariableCollection&& secondary_variables,
         NumLib::NamedFunctionCaller&& named_function_caller,
-        MeshLib::PropertyVector<int> const& material_ids,
-        bool const has_material_ids,
         BaseLib::ConfigTree const& config,
         std::map<std::string,
                  std::unique_ptr<MathLib::PiecewiseLinearInterpolation>> const&

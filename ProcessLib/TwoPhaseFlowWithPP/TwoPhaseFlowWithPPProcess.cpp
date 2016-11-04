@@ -35,8 +35,6 @@ TwoPhaseFlowWithPPProcess::TwoPhaseFlowWithPPProcess(
     TwoPhaseFlowWithPPProcessData&& process_data,
     SecondaryVariableCollection&& secondary_variables,
     NumLib::NamedFunctionCaller&& named_function_caller,
-    MeshLib::PropertyVector<int> const& material_ids,
-    bool const has_material_ids,
     BaseLib::ConfigTree const& config,
     std::map<std::string,
              std::unique_ptr<MathLib::PiecewiseLinearInterpolation>> const&
@@ -55,8 +53,8 @@ void TwoPhaseFlowWithPPProcess::initializeConcreteProcess(
     unsigned const integration_order)
 {
     ProcessLib::createLocalAssemblers<TwoPhaseFlowWithPPLocalAssembler>(
-        mesh.getDimension(), mesh.getElements(), dof_table, _local_assemblers,
-        mesh.isAxiallySymmetric(), integration_order, _process_data);
+		mesh.getDimension(), mesh.getElements(), dof_table,
+		_local_assemblers, mesh.isAxiallySymmetric(), integration_order,_process_data);
 
     _secondary_variables.addSecondaryVariable(
         "saturation", 1,

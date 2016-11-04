@@ -83,77 +83,71 @@ vanGenuchten::vanGenuchten(
 
 double vanGenuchten::getSaturation(double pc) const
 {
-    double Sw;
-    /// TODO waiting for a better way to implemente the PC-S curve
-    assert(_cap_pressure_model == 1);
-	const double pb = _cap_pressure_value[0];
-	const double slr = _cap_pressure_value[1];
-	const double slm = 1.0;
-	const double sgr = _cap_pressure_value[2];
-	const double m =
-		_cap_pressure_value[3];  // always <= 1.0.  Input is
-								 // exponent = 1 /
-								 // (1-lambda)
-	assert(m <= 1);              //
-	if (pc < 0.0)
-		pc = 0.0;
-	double effect_sw = std::pow(pc / pb, 1.0 / (1.0 - m)) + 1.0;
-	effect_sw = std::pow(effect_sw, -m);
-	Sw = effect_sw * (slm - slr) + slr;
-    return Sw;
+	double Sg;
+	double const Pb_van_Genuchten = _cap_pressure_value[0];
+	double const S_lr = _cap_pressure_value[1];
+	double const S_gr = _cap_pressure_value[2];
+	double const n_van_Genuchten= _cap_pressure_value[4];
+	double const m = 1.0 - 1.0 / n_van_Genuchten;
+	if (pc > 0) {
+		Sg = 1 - (((1 - S_gr - S_lr) / pow((pow((pc / Pb_van_Genuchten), n_van_Genuchten) + 1), m)) + S_lr);
+	}
+	else
+		Sg = 0.0;//just for test
+	return 1 - Sg;
 }
 
 double vanGenuchten::getDerivSaturation(double const pc) const
 {
-	double dSwdPc;
-	double const pb = _cap_pressure_value[0];
-	double const slr = _cap_pressure_value[1];
-	double const slm = 1.0;
-	double const sgr = _cap_pressure_value[2];
-	double const m = _cap_pressure_value[3];  // always <= 1.0.
-
-	assert(m <= 1);
-	// pc = MRange(FLT_EPSILON, pc, capillary_pressure_values[4]);
-
-	double const v1 = std::pow((pc / pb), (1.0 / (1.0 - m)));
-	double const v2 = std::pow((1.0 + v1), (-1.0 - m));
-	dSwdPc = (m * v1 * v2 * (slm - slr)) / ((m - 1.0) * pc);
-	return dSwdPc;
+	double dPC;
+	double const Pb_van_Genuchten = _cap_pressure_value[0];
+	double const S_lr = _cap_pressure_value[1];
+	double const S_gr = _cap_pressure_value[2];
+	double const n_van_Genuchten = _cap_pressure_value[4];
+	double const m = 1.0 - 1.0 / n_van_Genuchten;
+	dPC = m*n_van_Genuchten*
+		(1 - S_gr - S_lr)*(1 / Pb_van_Genuchten)*(pow((pc / Pb_van_Genuchten), (n_van_Genuchten - 1)))*pow(((pow((pc / Pb_van_Genuchten), n_van_Genuchten)) + 1), (-m - 1));
+	if (pc <= 0)
+	{
+		dPC = 0.0;//just for test
+	}
+	return -dPC;
 }
 
 double vanGenuchten::getrelativePermeability_liquid(
     double const sw) const
 {
-	double rel_wet_perm;
-	double const slr = _rel_wet_perm_value[0];
-	double const sgr = _rel_wet_perm_value[1];
-	double const slm = 1.0;
-	double const m = _rel_wet_perm_value[2];
+	double Kr_L;
+	double const S_lr = _rel_wet_perm_value[0];
+	double const S_gr = _rel_wet_perm_value[1];
+	double const n_van_Genuchten = _rel_wet_perm_value[2];
+	double const m = 1.0 - 1.0 / n_van_Genuchten;
 	double const kr_min = _rel_wet_perm_value[3];
-	double sl = sw;
-	double const se = (sl - slr) / (slm - slr - sgr);
-	//
-	rel_wet_perm = std::pow(se, 3.0 + 2.0 / m);
-	if (rel_wet_perm < kr_min)
-		rel_wet_perm = kr_min;
-	return rel_wet_perm;
+	double EffectSat_l = (sw - S_lr) / (1 - S_gr - S_lr);
+	Kr_L = sqrt(EffectSat_l)*pow(1 - pow(1 - pow(EffectSat_l, 1 / m), m), 2);
+	if (sw < 0)
+		Kr_L = kr_min;
+	else if (sw > 1)
+		Kr_L = 1;
+	return Kr_L;
 }
+
 
 double vanGenuchten::getrelativePermeability_gas(double const sw) const
 {
-    double rel_nonwet_perm;
-    double const slr = _rel_nonwet_perm_value[0];
-    double const sgr = _rel_nonwet_perm_value[1];
-    double const slm = 1.0;
-    double const m = _rel_nonwet_perm_value[2];
-    double const kr_min = _rel_nonwet_perm_value[3];
-    double S_le = (sw - slr) / (slm - slr - sgr);
-    rel_nonwet_perm =
-        std::pow(1.0 - S_le, 2) * (1.0 - std::pow(S_le, 1.0 + 2.0 / m));
-    if (rel_nonwet_perm < kr_min)
-        rel_nonwet_perm = kr_min;
-
-    return rel_nonwet_perm;
+	double Kr_G;
+	double const S_lr = _rel_nonwet_perm_value[0];
+	double const S_gr = _rel_nonwet_perm_value[1];
+	double const n_van_Genuchten = _rel_nonwet_perm_value[2];
+	double const m = 1.0 - 1.0 / n_van_Genuchten;
+	double const kr_min = _rel_wet_perm_value[3];
+	double EffectSat_g = (1 - sw - S_gr) / (1 - S_gr - S_lr);
+	Kr_G = sqrt(EffectSat_g)*pow(1 - pow(1 - EffectSat_g, 1 / m), 2 * m);
+	if (sw < 0)
+		Kr_G = 1;
+	else if (sw > 1)
+		Kr_G = kr_min;
+	return Kr_G;;
 }
 }  // end of namespace
 }  // end of namespace
