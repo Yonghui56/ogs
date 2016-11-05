@@ -30,14 +30,16 @@ struct TwoPhaseFlowWithPPProcessData
         bool const has_mass_lumping_,
         std::unique_ptr<MaterialLib::TwoPhaseFlowWithPP::
                             TwoPhaseFlowWithPPMaterialProperties>&& material_,
-        std::map<std::string,
-                 std::unique_ptr<MathLib::PiecewiseLinearInterpolation>> const&
-            curves_)
+		MathLib::PiecewiseLinearInterpolation const& interpolated_Pc_,
+		MathLib::PiecewiseLinearInterpolation const& interpolated_Kr_wet_,
+		MathLib::PiecewiseLinearInterpolation const& interpolated_Kr_nonwet_)
         : _specific_body_force(specific_body_force_),
           _has_gravity(has_gravity_),
           _has_mass_lumping(has_mass_lumping_),
           _material(std::move(material_)),
-          _curves(curves_)
+		  _interpolated_Pc(interpolated_Pc_),
+		  _interpolated_Kr_wet(interpolated_Kr_wet_),
+		  _interpolated_Kr_nonwet(interpolated_Kr_nonwet_)
     {
     }
 
@@ -46,8 +48,10 @@ struct TwoPhaseFlowWithPPProcessData
           _has_gravity(other._has_gravity),
           _has_mass_lumping(other._has_mass_lumping),
           _material(std::move(other._material)),
-          _curves(other._curves)
-    {
+		  _interpolated_Pc(other._interpolated_Pc),
+		  _interpolated_Kr_wet(other._interpolated_Kr_wet),
+		  _interpolated_Kr_nonwet(other._interpolated_Kr_nonwet)
+    { 
     }
 
     //! Copies are forbidden.
@@ -66,9 +70,9 @@ struct TwoPhaseFlowWithPPProcessData
     std::unique_ptr<
         MaterialLib::TwoPhaseFlowWithPP::TwoPhaseFlowWithPPMaterialProperties>
         _material;
-    std::map<std::string,
-             std::unique_ptr<MathLib::PiecewiseLinearInterpolation>> const&
-        _curves;
+	MathLib::PiecewiseLinearInterpolation const& _interpolated_Pc;
+	MathLib::PiecewiseLinearInterpolation const& _interpolated_Kr_wet;
+	MathLib::PiecewiseLinearInterpolation const& _interpolated_Kr_nonwet;
 };
 
 }  // namespace TwoPhaseFlowWithPP

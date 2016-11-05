@@ -46,7 +46,6 @@ std::unique_ptr<Process> CreateTwoPhaseFlowWithPPProcess(
         variables, config,
         {//! \ogs_file_param_special{process__TWOPHASE_FLOW__WITHPP__process_variables__process_variable}
          "gas_pressure", "capillary_pressure"});
-    //"process_variable"});
 
     SecondaryVariableCollection secondary_variables;
 
@@ -79,13 +78,12 @@ std::unique_ptr<Process> CreateTwoPhaseFlowWithPPProcess(
 
     auto const& mat_ids =
         mesh.getProperties().getPropertyVector<int>("MaterialIDs");
-    //auto is_heterogeneous = config.getConfigParameter<bool>("heterogeneous");
 
     std::unique_ptr<
         MaterialLib::TwoPhaseFlowWithPP::TwoPhaseFlowWithPPMaterialProperties>
         material = nullptr;
 
-    if (mat_ids)  //
+    if (mat_ids)
     {
         INFO("The twophase flow is in heterogeneous porous media.");
         const bool has_material_ids = true;
@@ -94,7 +92,10 @@ std::unique_ptr<Process> CreateTwoPhaseFlowWithPPProcess(
                                                  *mat_ids);
         TwoPhaseFlowWithPPProcessData process_data{specific_body_force,
                                                    has_gravity, mass_lump,
-                                                   std::move(material), curves};
+                                                   std::move(material),
+			                                       *curves.at("curve_PC_S"),
+			                                       *curves.at("curve_S_Krel_wet"),
+			                                       *curves.at("curve_S_Krel_nonwet")};
         return std::unique_ptr<Process>{new TwoPhaseFlowWithPPProcess{
             mesh, std::move(jacobian_assembler), parameters, integration_order,
             std::move(process_variables), std::move(process_data),
@@ -120,7 +121,10 @@ std::unique_ptr<Process> CreateTwoPhaseFlowWithPPProcess(
                                                  *dummy_property_vector);
         TwoPhaseFlowWithPPProcessData process_data{specific_body_force,
                                                    has_gravity, mass_lump,
-                                                   std::move(material), curves};
+                                                   std::move(material),
+			                                       *curves.at("curve_PC_S"),
+			                                       *curves.at("curve_S_Krel_wet"),
+			                                       *curves.at("curve_S_Krel_nonwet")};
         return std::unique_ptr<Process>{new TwoPhaseFlowWithPPProcess{
             mesh, std::move(jacobian_assembler), parameters, integration_order,
             std::move(process_variables), std::move(process_data),
