@@ -107,8 +107,21 @@ CreateTwoPhaseFlowMaterialProperties(
             cap_pressure_conf.getConfigParameter<std::string>("type");
         if (cap_pressure_type == "Curve")
             cap_pressure_model = 0;
-        else if (cap_pressure_type == "van_Genuchten")
-            cap_pressure_model = 1;
+		else if (cap_pressure_type == "van_Genuchten")
+		{
+			cap_pressure_model = 1;
+			cap_pressure_value = {
+			{//! \ogs_file_param{material__fluid__density__linear_temperature__rho0}
+				cap_pressure_conf.getConfigParameter<double>("entry_pressure"),
+				//! \ogs_file_param{material__fluid__density__linear_temperature__temperature0}
+				cap_pressure_conf.getConfigParameter<double>(
+					"res_saturation_wet"),
+				//! \ogs_file_param{material__fluid__density__linear_temperature__beta}
+				cap_pressure_conf.getConfigParameter<double>(
+					"res_saturation_nonwet"),
+				//! \ogs_file_param{material__fluid__density__linear_temperature__beta}
+				cap_pressure_conf.getConfigParameter<double>("lambda") } };
+		}
         else if (cap_pressure_type == "Brooks_Corey")
         {
             cap_pressure_model = 2;
@@ -135,8 +148,22 @@ CreateTwoPhaseFlowMaterialProperties(
             rel_wet_perm_conf.getConfigParameter<std::string>("type");
         if (rel_wet_perm_type == "Curve")
             rel_wet_perm_model = 0;
-        else if (rel_wet_perm_type == "van_Genuchten")
-            rel_wet_perm_model = 1;
+		else if (rel_wet_perm_type == "van_Genuchten")
+		{
+			rel_wet_perm_model = 1;
+			rel_wet_perm_value = {
+				{//! \ogs_file_param{material__fluid__density__linear_temperature__rho0}
+					rel_wet_perm_conf.getConfigParameter<double>(
+						"res_saturation_wet"),
+				//! \ogs_file_param{material__fluid__density__linear_temperature__temperature0}
+				rel_wet_perm_conf.getConfigParameter<double>(
+					"res_saturation_nonwet"),
+				//! \ogs_file_param{material__fluid__density__linear_temperature__beta}
+				rel_wet_perm_conf.getConfigParameter<double>("lambda"),
+				//! \ogs_file_param{material__fluid__density__linear_temperature__beta}
+				rel_wet_perm_conf.getConfigParameter<double>(
+					"minimum_value") } };
+		}
         else if (rel_wet_perm_type == "Brooks_Corey")
         {
             rel_wet_perm_model = 2;
@@ -165,8 +192,22 @@ CreateTwoPhaseFlowMaterialProperties(
             rel_nonwet_perm_conf.getConfigParameter<std::string>("type");
         if (rel_nonwet_perm_type == "Curve")
             rel_nonwet_perm_model = 0;
-        else if (rel_nonwet_perm_type == "van_Genuchten")
-            rel_nonwet_perm_model = 1;
+		else if (rel_nonwet_perm_type == "van_Genuchten")
+		{
+			rel_nonwet_perm_model = 1;
+			rel_nonwet_perm_value = {
+				{//! \ogs_file_param{material__fluid__density__linear_temperature__rho0}
+					rel_nonwet_perm_conf.getConfigParameter<double>(
+						"res_saturation_wet"),
+				//! \ogs_file_param{material__fluid__density__linear_temperature__temperature0}
+				rel_nonwet_perm_conf.getConfigParameter<double>(
+					"res_saturation_nonwet"),
+				//! \ogs_file_param{material__fluid__density__linear_temperature__beta}
+				rel_nonwet_perm_conf.getConfigParameter<double>("lambda"),
+				//! \ogs_file_param{material__fluid__density__linear_temperature__beta}
+				rel_nonwet_perm_conf.getConfigParameter<double>(
+					"minimum_value") } };
+		}
         else if (rel_nonwet_perm_type == "Brooks_Corey")
         {
             rel_nonwet_perm_model = 2;
