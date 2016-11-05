@@ -59,6 +59,12 @@ class TwoPhaseFlowWithPPLocalAssembler
     using NodalMatrixType = typename LocalAssemblerTraits::LocalMatrix;
     using NodalVectorType = typename LocalAssemblerTraits::LocalVector;
     using GlobalDimVectorType = typename ShapeMatricesType::GlobalDimVectorType;
+    using LocalMatrixType = typename ShapeMatricesType::template MatrixType<
+        ShapeFunction::NPOINTS * NUM_NODAL_DOF,
+        ShapeFunction::NPOINTS * NUM_NODAL_DOF>;
+    using LocalVectorType =
+        typename ShapeMatricesType::template VectorType<ShapeFunction::NPOINTS *
+                                                        NUM_NODAL_DOF>;
 
 public:
     TwoPhaseFlowWithPPLocalAssembler(
