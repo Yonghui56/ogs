@@ -52,9 +52,11 @@ void TwoPhaseFlowWithPPProcess::initializeConcreteProcess(
     MeshLib::Mesh const& mesh,
     unsigned const integration_order)
 {
+	ProcessLib::ProcessVariable const& pv = getProcessVariables()[0];
     ProcessLib::createLocalAssemblers<TwoPhaseFlowWithPPLocalAssembler>(
 		mesh.getDimension(), mesh.getElements(), dof_table,
-		_local_assemblers, mesh.isAxiallySymmetric(), integration_order,_process_data);
+		pv.getShapeFunctionOrder(), _local_assemblers,
+		mesh.isAxiallySymmetric(), integration_order, _process_data);
 
     _secondary_variables.addSecondaryVariable(
         "saturation", 1,

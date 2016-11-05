@@ -63,7 +63,6 @@ TwoPhaseFlowWithPPMaterialProperties::TwoPhaseFlowWithPPMaterialProperties(
         curves_)
     : _has_material_ids(has_material_ids),
       _material_ids(material_ids),
-      curves(curves_),
       _liquid_density(std::move(liquid_density)),
       _viscosity(std::move(viscosity)),
       _gas_density(std::move(gas_density)),
@@ -76,7 +75,8 @@ TwoPhaseFlowWithPPMaterialProperties::TwoPhaseFlowWithPPMaterialProperties(
       _rel_nonwet_perm_model(rel_nonwet_perm_model),
       _cap_pressure_value(cap_pressure_value),
       _rel_wet_perm_value(rel_wet_perm_value),
-      _rel_nonwet_perm_value(rel_nonwet_perm_value)
+      _rel_nonwet_perm_value(rel_nonwet_perm_value),
+	  _curves(curves_)
 {
     DBUG("Create material properties for Two-Phase flow with PP model.");
 }

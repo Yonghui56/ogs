@@ -87,7 +87,7 @@ double TwoPhaseFlowCurve::getSaturation(double pc) const
     /// TODO waiting for a better way to implemente the PC-S curve
     assert(_cap_pressure_model == 0);
 	MathLib::PiecewiseLinearInterpolation const& interpolated_Pc =
-		*curves.at("curve_PC_S");
+		*_curves.at("curve_PC_S");
 	Sw = interpolated_Pc.getValue(pc);
 	return Sw;
 }
@@ -96,7 +96,7 @@ double TwoPhaseFlowCurve::getDerivSaturation(double const pc) const
 {
 	double dSwdPc;
 	MathLib::PiecewiseLinearInterpolation const& interpolated_Pc =
-		*curves.at("curve_PC_S");
+		*_curves.at("curve_PC_S");
 	dSwdPc = interpolated_Pc.getDerivative(pc);
 	if (pc > interpolated_Pc.getSupportMax())
 		dSwdPc = interpolated_Pc.getDerivative(
@@ -112,7 +112,7 @@ double TwoPhaseFlowCurve::getrelativePermeability_liquid(
 {
 	double rel_wet_perm;
 	MathLib::PiecewiseLinearInterpolation const& interpolated_Kr =
-		*curves.at("curve_S_Krel_wet");
+		*_curves.at("curve_S_Krel_wet");
 	rel_wet_perm = interpolated_Kr.getValue(sw);
 	return rel_wet_perm;
 }

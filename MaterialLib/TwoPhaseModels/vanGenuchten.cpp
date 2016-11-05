@@ -87,7 +87,7 @@ double vanGenuchten::getSaturation(double pc) const
 	double const Pb_van_Genuchten = _cap_pressure_value[0];
 	double const S_lr = _cap_pressure_value[1];
 	double const S_gr = _cap_pressure_value[2];
-	double const n_van_Genuchten= _cap_pressure_value[4];
+	double const n_van_Genuchten= _cap_pressure_value[3];
 	double const m = 1.0 - 1.0 / n_van_Genuchten;
 	if (pc > 0) {
 		Sg = 1 - (((1 - S_gr - S_lr) / pow((pow((pc / Pb_van_Genuchten), n_van_Genuchten) + 1), m)) + S_lr);
@@ -103,7 +103,7 @@ double vanGenuchten::getDerivSaturation(double const pc) const
 	double const Pb_van_Genuchten = _cap_pressure_value[0];
 	double const S_lr = _cap_pressure_value[1];
 	double const S_gr = _cap_pressure_value[2];
-	double const n_van_Genuchten = _cap_pressure_value[4];
+	double const n_van_Genuchten = _cap_pressure_value[3];
 	double const m = 1.0 - 1.0 / n_van_Genuchten;
 	dPC = m*n_van_Genuchten*
 		(1 - S_gr - S_lr)*(1 / Pb_van_Genuchten)*(pow((pc / Pb_van_Genuchten), (n_van_Genuchten - 1)))*pow(((pow((pc / Pb_van_Genuchten), n_van_Genuchten)) + 1), (-m - 1));

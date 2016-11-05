@@ -108,14 +108,12 @@ void TwoPhaseFlowWithPPLocalAssembler<
         double const mu_liquid =
             _process_data._material->getLiquidViscosity(pl, _temperature);
 
-        double Sw = _process_data._material->getSaturation(pc_int_pt);  // pc
+         double Sw = _process_data._material->getSaturation(pc_int_pt);  // pc
 
         if (pc_int_pt < 0)
             Sw = 1.0;
 		_saturation[ip] = Sw;
         double dSwdPc = _process_data._material->getDerivSaturation(pc_int_pt);
-
-		double const rho_mass_wet = rho_w + pg_int_pt*x_nonwet_b*_process_data._henry_const*MaterialLib::PhysicalConstant::MolarMass::H2;
 		
         double const k_rel_L =
             _process_data._material->getrelativePermeability_liquid(Sw);
@@ -126,25 +124,32 @@ void TwoPhaseFlowWithPPLocalAssembler<
             pg_int_pt, _temperature);
         double const poro = _process_data._material->getPorosity(
             t, pos, pg_int_pt, _temperature, porosity_variable);
+
+		double const henry_const= _process_data._henry_const(t, pos)[0];
+		double const diffusion_coeff_componentb= _process_data._diffusion_coeff_componentb(t, pos)[0];
+		double const diffusion_coeff_componenta=_process_data._diffusion_coeff_componenta(t, pos)[0];
+		
+		// component a -- (water component)
+		// component b -- (non-wet component)
+		//TODO here we assume no vaporation of water into nonwet phase
+		double const x_nonwet_b = 1.0;
+
 		double const molar_mass_a = MaterialLib::PhysicalConstant::MolarMass::Water;
 		double const molar_mass_b= MaterialLib::PhysicalConstant::MolarMass::H2;
-		double const rho_mol_wet_b = pg_int_pt*x_nonwet_b*_process_data._henry_const;
+		double const rho_mass_wet = rho_w + pg_int_pt*x_nonwet_b*henry_const*MaterialLib::PhysicalConstant::MolarMass::H2;
+		double const rho_mol_wet_b = pg_int_pt*x_nonwet_b*henry_const;
 		double const rho_mol_nonwet= rho_gas/ MaterialLib::PhysicalConstant::MolarMass::H2;
 		double const rho_mol_wet = (1 / molar_mass_a)*rho_w + rho_mol_wet_b;
 		double const x_mol_wet_b = rho_mol_wet_b / rho_mol_wet;
 		double const X_mass_wet_b = x_mol_wet_b*molar_mass_b / (x_mol_wet_b*molar_mass_b + (1 - x_mol_wet_b)*molar_mass_a);
         // Assemble mass matrix, M
 		// wet -- wetting phase
-		// component a -- (water component)
-		// component b -- (non-wet component)
-		//TODO here we assume no vaporation of water into nonwet phase
-		double const x_nonwet_b = 1.0;
 		//double const x_wet_b = pg_int_pt*x_nonwet_b*_process_data._henry_const / rho_mol_wet;
         // nonwetting
 		mass_mat_coeff(nonwet_pressure_coeff_index,
 			nonwet_pressure_coeff_index) =
-			poro*Sw *_process_data._henry_const + poro*(1 - Sw)/ MaterialLib::PhysicalConstant::IdealGasConstant/_temperature;  // dPG
-		mass_mat_coeff(nonwet_pressure_coeff_index, cap_pressure_coeff_index) = poro*dSwdPc*(pg_int_pt*x_nonwet_b*_process_data._henry_const
+			poro*Sw *henry_const + poro*(1 - Sw)/ MaterialLib::PhysicalConstant::IdealGasConstant/_temperature;  // dPG
+		mass_mat_coeff(nonwet_pressure_coeff_index, cap_pressure_coeff_index) = poro*dSwdPc*(pg_int_pt*x_nonwet_b*henry_const
 			- rho_mol_nonwet);
         // wetting
         mass_mat_coeff(cap_pressure_coeff_index, nonwet_pressure_coeff_index) =
@@ -173,14 +178,14 @@ void TwoPhaseFlowWithPPLocalAssembler<
 		K_mat_coeff(nonwet_pressure_coeff_index, nonwet_pressure_coeff_index) =
 			rho_mol_nonwet*x_nonwet_b*perm(0, 0)*lambda_G
 			+ rho_mol_wet_b * perm(0, 0) * lambda_L
-			+ poro*Sw*X_mass*_process_data._diffusion_coeff_componentb*_process_data._henry_const;
+			+ poro*Sw*X_mass*diffusion_coeff_componentb*henry_const;
         K_mat_coeff(nonwet_pressure_coeff_index, cap_pressure_coeff_index) =
 			-rho_mol_wet_b * perm(0, 0) * lambda_L;
 
         // water
 		K_mat_coeff(cap_pressure_coeff_index, nonwet_pressure_coeff_index) =
 			rho_w*perm(0, 0)*lambda_L / molar_mass_a
-			- poro*Sw*X_mass*_process_data._diffusion_coeff_componentb*_process_data._henry_const;
+			- poro*Sw*X_mass*diffusion_coeff_componentb*henry_const;
         K_mat_coeff(cap_pressure_coeff_index, cap_pressure_coeff_index) =
             -rho_w * perm(0, 0) * lambda_L/molar_mass_a;
         // std::cout << K_mat_coeff << std::endl;

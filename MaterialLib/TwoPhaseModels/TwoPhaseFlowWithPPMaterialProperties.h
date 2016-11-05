@@ -146,7 +146,7 @@ protected:
 
     std::map<std::string,
              std::unique_ptr<MathLib::PiecewiseLinearInterpolation>> const&
-        curves;
+        _curves;
 
     int _current_material_id = 0;
     std::vector<Eigen::MatrixXd> _intrinsic_permeability_models;
