@@ -232,41 +232,41 @@ void TwoPhaseFlowWithPPLocalAssembler<
     }
     // assembler fully coupled mass matrix
     local_M
-        .block<nonwet_pressure_size, nonwet_pressure_size>(
+        .template block<nonwet_pressure_size, nonwet_pressure_size>(
             nonwet_pressure_matrix_index, nonwet_pressure_matrix_index)
         .noalias() += Mgp;
     local_M
-        .block<nonwet_pressure_size, cap_pressure_size>(
+        .template block<nonwet_pressure_size, cap_pressure_size>(
             nonwet_pressure_matrix_index, cap_pressure_matrix_index)
         .noalias() += Mgpc;
     local_M
-        .block<cap_pressure_size, nonwet_pressure_size>(
+        .template block<cap_pressure_size, nonwet_pressure_size>(
             cap_pressure_matrix_index, nonwet_pressure_matrix_index)
         .noalias() += Mlp;
     local_M
-        .block<cap_pressure_size, cap_pressure_size>(cap_pressure_matrix_index,
+        .template block<cap_pressure_size, cap_pressure_size>(cap_pressure_matrix_index,
                                                      cap_pressure_matrix_index)
         .noalias() += Mlpc;
     local_K
-        .block<nonwet_pressure_size, nonwet_pressure_size>(
+        .template block<nonwet_pressure_size, nonwet_pressure_size>(
             nonwet_pressure_matrix_index, nonwet_pressure_matrix_index)
         .noalias() += Kgp;
     local_K
-        .block<nonwet_pressure_size, cap_pressure_size>(
+        .template block<nonwet_pressure_size, cap_pressure_size>(
             nonwet_pressure_matrix_index, cap_pressure_matrix_index)
         .noalias() += Kgpc;
     local_K
-        .block<cap_pressure_size, nonwet_pressure_size>(
+        .template block<cap_pressure_size, nonwet_pressure_size>(
             cap_pressure_matrix_index, nonwet_pressure_matrix_index)
         .noalias() += Klp;
     local_K
-        .block<cap_pressure_size, cap_pressure_size>(cap_pressure_matrix_index,
+        .template block<cap_pressure_size, cap_pressure_size>(cap_pressure_matrix_index,
                                                      cap_pressure_matrix_index)
         .noalias() += Klpc;
 
-    local_b.block<nonwet_pressure_size, 1>(nonwet_pressure_matrix_index, 0) +=
+    local_b.template block<nonwet_pressure_size, 1>(nonwet_pressure_matrix_index, 0) +=
         Bg;
-    local_b.block<cap_pressure_size, 1>(cap_pressure_matrix_index, 0) += Bl;
+    local_b.template block<cap_pressure_size, 1>(cap_pressure_matrix_index, 0) += Bl;
 }
 
 }  // end of namespace
