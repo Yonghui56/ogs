@@ -49,8 +49,10 @@ void TwoPhaseFlowWithPPLocalAssembler<
     auto local_b = MathLib::createZeroedVector<LocalVectorType>(
         local_b_data, local_matrix_size);
 
-    NodalMatrixType Mgp;
-    Mgp.setZero(ShapeFunction::NPOINTS, ShapeFunction::NPOINTS);
+    auto Mgp =
+        local_M.template block<nonwet_pressure_size, nonwet_pressure_size>(
+            nonwet_pressure_matrix_index, nonwet_pressure_matrix_index);
+    //Mgp.setZero(ShapeFunction::NPOINTS, ShapeFunction::NPOINTS);
     NodalMatrixType Mgpc;
     Mgpc.setZero(ShapeFunction::NPOINTS, ShapeFunction::NPOINTS);
     NodalMatrixType Mlp;
@@ -231,10 +233,10 @@ void TwoPhaseFlowWithPPLocalAssembler<
         }
     }
     // assembler fully coupled mass matrix
-    local_M
-        .template block<nonwet_pressure_size, nonwet_pressure_size>(
-            nonwet_pressure_matrix_index, nonwet_pressure_matrix_index)
-        .noalias() += Mgp;
+    // local_M
+    //     .template block<nonwet_pressure_size, nonwet_pressure_size>(
+    //         nonwet_pressure_matrix_index, nonwet_pressure_matrix_index)
+    //     .noalias() += Mgp;
     local_M
         .template block<nonwet_pressure_size, cap_pressure_size>(
             nonwet_pressure_matrix_index, cap_pressure_matrix_index)
