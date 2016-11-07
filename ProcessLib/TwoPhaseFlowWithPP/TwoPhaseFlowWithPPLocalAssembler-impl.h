@@ -84,7 +84,7 @@ void TwoPhaseFlowWithPPLocalAssembler<
     // Note: currently only isothermal case is considered, so the temperature is
     // assumed to be const
     // the variation of temperatura will be taken into account in future
-    _temperature = 293.15;
+    _temperature = 303.15;
     for (unsigned ip = 0; ip < n_integration_points; ip++)
     {
         auto const& sm = _shape_matrices[ip];
@@ -178,16 +178,16 @@ void TwoPhaseFlowWithPPLocalAssembler<
 		K_mat_coeff(nonwet_pressure_coeff_index, nonwet_pressure_coeff_index) =
 			rho_mol_nonwet*x_nonwet_b*perm(0, 0)*lambda_G
 			+ rho_mol_wet_b * perm(0, 0) * lambda_L
-			+ poro*Sw*X_mass*diffusion_coeff_componentb*henry_const;
+			+ poro*Sw*diffusion_coeff_componentb*henry_const;
         K_mat_coeff(nonwet_pressure_coeff_index, cap_pressure_coeff_index) =
 			-rho_mol_wet_b * perm(0, 0) * lambda_L;
 
         // water
 		K_mat_coeff(cap_pressure_coeff_index, nonwet_pressure_coeff_index) =
 			rho_w*perm(0, 0)*lambda_L / molar_mass_a
-			- poro*Sw*X_mass*diffusion_coeff_componentb*henry_const;
+			- poro*Sw*diffusion_coeff_componentb*henry_const;
         K_mat_coeff(cap_pressure_coeff_index, cap_pressure_coeff_index) =
-            -rho_w * perm(0, 0) * lambda_L/molar_mass_a;
+            -rho_w  * perm(0, 0) * lambda_L/molar_mass_a;
         // std::cout << K_mat_coeff << std::endl;
         // assembly the mass matrix
 
