@@ -99,7 +99,6 @@ void TwoPhaseFlowWithPPLocalAssembler<
     for (unsigned ip = 0; ip < n_integration_points; ip++)
     {
         auto const& sm = _shape_matrices[ip];
-        auto const& wp = _integration_method.getWeightedPoint(ip);
 
         double pc_int_pt = 0.;
         double pg_int_pt = 0.;
@@ -107,8 +106,10 @@ void TwoPhaseFlowWithPPLocalAssembler<
 
         _pressure_wetting[ip] = pg_int_pt - pc_int_pt;
 
+        auto const& wp = _integration_method.getWeightedPoint(ip);
         const double integration_factor =
             sm.integralMeasure * sm.detJ * wp.getWeight();
+
         double const rho_gas =
             _process_data._material->getGasDensity(pg_int_pt, _temperature);
         double const rho_w = _process_data._material->getLiquidDensity(
@@ -139,8 +140,6 @@ void TwoPhaseFlowWithPPLocalAssembler<
         mass_mat_coeff(nonwet_pressure_coeff_index, cap_pressure_coeff_index) =
             -porosity * rho_gas * dSwdPc;
         // wetting
-        mass_mat_coeff(cap_pressure_coeff_index, nonwet_pressure_coeff_index) =
-            0.0;
         mass_mat_coeff(cap_pressure_coeff_index, cap_pressure_coeff_index) =
             porosity * dSwdPc * rho_w;
 
@@ -165,8 +164,6 @@ void TwoPhaseFlowWithPPLocalAssembler<
         double const lambda_G = k_rel_G / mu_gas;
         K_mat_coeff(nonwet_pressure_coeff_index, nonwet_pressure_coeff_index) =
             rho_gas * perm(0, 0) * lambda_G;
-        K_mat_coeff(nonwet_pressure_coeff_index, cap_pressure_coeff_index) =
-            0.0;
 
         // wet
         double const k_rel_L = interpolated_Kr_wet.getValue(Sw);
