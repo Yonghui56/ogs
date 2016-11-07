@@ -156,23 +156,22 @@ void TwoPhaseFlowWithPPLocalAssembler<
             mass_mat_coeff(cap_pressure_coeff_index, cap_pressure_coeff_index) *
             sm.N.transpose() * sm.N * integration_factor;
 
+        // Assemble M matrix
+        // nonwet
         double const k_rel_G = interpolated_Kr_nonwet.getValue(Sw);
         double const mu_gas =
             _process_data._material->getGasViscosity(pg_int_pt, _temperature);
         double const lambda_G = k_rel_G / mu_gas;
-
-        double const k_rel_L = interpolated_Kr_wet.getValue(Sw);
-        double const mu_liquid = _process_data._material->getLiquidViscosity(
-            _pressure_wetting[ip], _temperature);
-        double const lambda_L = k_rel_L / mu_liquid;
-        // Assemble M matrix
-        // nonwet
         K_mat_coeff(nonwet_pressure_coeff_index, nonwet_pressure_coeff_index) =
             rho_gas * perm(0, 0) * lambda_G;
         K_mat_coeff(nonwet_pressure_coeff_index, cap_pressure_coeff_index) =
             0.0;
 
         // wet
+        double const k_rel_L = interpolated_Kr_wet.getValue(Sw);
+        double const mu_liquid = _process_data._material->getLiquidViscosity(
+            _pressure_wetting[ip], _temperature);
+        double const lambda_L = k_rel_L / mu_liquid;
         K_mat_coeff(cap_pressure_coeff_index, nonwet_pressure_coeff_index) =
             rho_w * perm(0, 0) * lambda_L;
         K_mat_coeff(cap_pressure_coeff_index, cap_pressure_coeff_index) =
