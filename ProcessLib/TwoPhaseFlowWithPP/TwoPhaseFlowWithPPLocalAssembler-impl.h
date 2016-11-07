@@ -37,7 +37,7 @@ void TwoPhaseFlowWithPPLocalAssembler<
 
     assert(local_matrix_size == ShapeFunction::NPOINTS * NUM_NODAL_DOF);
     // todo use matrix types from shape matrix policy
-    Eigen::MatrixXd mass_mat_coeff =
+    Eigen::MatrixXd M_mat_coeff =
         Eigen::MatrixXd::Zero(NUM_NODAL_DOF, NUM_NODAL_DOF);
     Eigen::MatrixXd K_mat_coeff =
         Eigen::MatrixXd::Zero(NUM_NODAL_DOF, NUM_NODAL_DOF);
@@ -53,26 +53,33 @@ void TwoPhaseFlowWithPPLocalAssembler<
     auto Mgp =
         local_M.template block<nonwet_pressure_size, nonwet_pressure_size>(
             nonwet_pressure_matrix_index, nonwet_pressure_matrix_index);
-    //Mgp.setZero(ShapeFunction::NPOINTS, ShapeFunction::NPOINTS);
-    NodalMatrixType Mgpc;
-    Mgpc.setZero(ShapeFunction::NPOINTS, ShapeFunction::NPOINTS);
-    NodalMatrixType Mlp;
-    Mlp.setZero(ShapeFunction::NPOINTS, ShapeFunction::NPOINTS);
-    NodalMatrixType Mlpc;
-    Mlpc.setZero(ShapeFunction::NPOINTS, ShapeFunction::NPOINTS);
-    NodalMatrixType Kgp;
-    Kgp.setZero(ShapeFunction::NPOINTS, ShapeFunction::NPOINTS);
-    NodalMatrixType Kgpc;
-    Kgpc.setZero(ShapeFunction::NPOINTS, ShapeFunction::NPOINTS);
-    NodalMatrixType Klp;
-    Klp.setZero(ShapeFunction::NPOINTS, ShapeFunction::NPOINTS);
-    NodalMatrixType Klpc;
-    Klpc.setZero(ShapeFunction::NPOINTS, ShapeFunction::NPOINTS);
+    auto Mgpc = local_M.template block<nonwet_pressure_size, cap_pressure_size>(
+        nonwet_pressure_matrix_index, cap_pressure_matrix_index);
 
-    NodalVectorType Bg;
-    Bg.setZero(ShapeFunction::NPOINTS);
-    NodalVectorType Bl;
-    Bl.setZero(ShapeFunction::NPOINTS);
+    auto Mlp = local_M.template block<cap_pressure_size, nonwet_pressure_size>(
+        cap_pressure_matrix_index, nonwet_pressure_matrix_index);
+
+    auto Mlpc = local_M.template block<cap_pressure_size, cap_pressure_size>(
+        cap_pressure_matrix_index, cap_pressure_matrix_index);
+
+    auto Kgp =
+        local_K.template block<nonwet_pressure_size, nonwet_pressure_size>(
+            nonwet_pressure_matrix_index, nonwet_pressure_matrix_index);
+
+    auto Kgpc = local_K.template block<nonwet_pressure_size, cap_pressure_size>(
+        nonwet_pressure_matrix_index, cap_pressure_matrix_index);
+
+    auto Klp = local_K.template block<cap_pressure_size, nonwet_pressure_size>(
+        cap_pressure_matrix_index, nonwet_pressure_matrix_index);
+
+    auto Klpc = local_K.template block<cap_pressure_size, cap_pressure_size>(
+        cap_pressure_matrix_index, cap_pressure_matrix_index);
+
+    auto Bg = local_b.template block<nonwet_pressure_size, 1>(
+        nonwet_pressure_matrix_index, 0);
+
+    auto Bl = local_b.template block<cap_pressure_size, 1>(
+        cap_pressure_matrix_index, 0);
 
     unsigned const n_integration_points =
         _integration_method.getNumberOfPoints();
@@ -134,26 +141,25 @@ void TwoPhaseFlowWithPPLocalAssembler<
         // nonwetting
         double const drhogas_dpg = _process_data._material->getDerivGasDensity(
             pg_int_pt, _temperature);
-        mass_mat_coeff(nonwet_pressure_coeff_index,
-                       nonwet_pressure_coeff_index) =
+        M_mat_coeff(nonwet_pressure_coeff_index, nonwet_pressure_coeff_index) =
             porosity * (1 - Sw) * drhogas_dpg;
-        mass_mat_coeff(nonwet_pressure_coeff_index, cap_pressure_coeff_index) =
+        M_mat_coeff(nonwet_pressure_coeff_index, cap_pressure_coeff_index) =
             -porosity * rho_gas * dSwdPc;
         // wetting
-        mass_mat_coeff(cap_pressure_coeff_index, cap_pressure_coeff_index) =
+        M_mat_coeff(cap_pressure_coeff_index, cap_pressure_coeff_index) =
             porosity * dSwdPc * rho_w;
 
-        Mgp.noalias() += mass_mat_coeff(nonwet_pressure_coeff_index,
-                                        nonwet_pressure_coeff_index) *
+        Mgp.noalias() += M_mat_coeff(nonwet_pressure_coeff_index,
+                                     nonwet_pressure_coeff_index) *
                          sm.N.transpose() * sm.N * integration_factor;
-        Mgpc.noalias() += mass_mat_coeff(nonwet_pressure_coeff_index,
-                                         cap_pressure_coeff_index) *
-                          sm.N.transpose() * sm.N * integration_factor;
-        Mlp.noalias() += mass_mat_coeff(cap_pressure_coeff_index,
-                                        nonwet_pressure_coeff_index) *
-                         sm.N.transpose() * sm.N * integration_factor;
+        Mgpc.noalias() +=
+            M_mat_coeff(nonwet_pressure_coeff_index, cap_pressure_coeff_index) *
+            sm.N.transpose() * sm.N * integration_factor;
+        Mlp.noalias() +=
+            M_mat_coeff(cap_pressure_coeff_index, nonwet_pressure_coeff_index) *
+            sm.N.transpose() * sm.N * integration_factor;
         Mlpc.noalias() +=
-            mass_mat_coeff(cap_pressure_coeff_index, cap_pressure_coeff_index) *
+            M_mat_coeff(cap_pressure_coeff_index, cap_pressure_coeff_index) *
             sm.N.transpose() * sm.N * integration_factor;
 
         // Assemble M matrix
@@ -229,45 +235,7 @@ void TwoPhaseFlowWithPPLocalAssembler<
                 }
             }
         }
-    }
-    // assembler fully coupled mass matrix
-    // local_M
-    //     .template block<nonwet_pressure_size, nonwet_pressure_size>(
-    //         nonwet_pressure_matrix_index, nonwet_pressure_matrix_index)
-    //     .noalias() += Mgp;
-    local_M
-        .template block<nonwet_pressure_size, cap_pressure_size>(
-            nonwet_pressure_matrix_index, cap_pressure_matrix_index)
-        .noalias() += Mgpc;
-    local_M
-        .template block<cap_pressure_size, nonwet_pressure_size>(
-            cap_pressure_matrix_index, nonwet_pressure_matrix_index)
-        .noalias() += Mlp;
-    local_M
-        .template block<cap_pressure_size, cap_pressure_size>(cap_pressure_matrix_index,
-                                                     cap_pressure_matrix_index)
-        .noalias() += Mlpc;
-    local_K
-        .template block<nonwet_pressure_size, nonwet_pressure_size>(
-            nonwet_pressure_matrix_index, nonwet_pressure_matrix_index)
-        .noalias() += Kgp;
-    local_K
-        .template block<nonwet_pressure_size, cap_pressure_size>(
-            nonwet_pressure_matrix_index, cap_pressure_matrix_index)
-        .noalias() += Kgpc;
-    local_K
-        .template block<cap_pressure_size, nonwet_pressure_size>(
-            cap_pressure_matrix_index, nonwet_pressure_matrix_index)
-        .noalias() += Klp;
-    local_K
-        .template block<cap_pressure_size, cap_pressure_size>(cap_pressure_matrix_index,
-                                                     cap_pressure_matrix_index)
-        .noalias() += Klpc;
-
-    // only if has gravity
-    local_b.template block<nonwet_pressure_size, 1>(nonwet_pressure_matrix_index, 0) +=
-        Bg;
-    local_b.template block<cap_pressure_size, 1>(cap_pressure_matrix_index, 0) += Bl;
+    }  // end of mass-lumping
 }
 
 }  // end of namespace
