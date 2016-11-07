@@ -266,6 +266,7 @@ void TwoPhaseFlowWithPPLocalAssembler<
                                                      cap_pressure_matrix_index)
         .noalias() += Klpc;
 
+    // only if has gravity
     local_b.template block<nonwet_pressure_size, 1>(nonwet_pressure_matrix_index, 0) +=
         Bg;
     local_b.template block<cap_pressure_size, 1>(cap_pressure_matrix_index, 0) += Bl;
