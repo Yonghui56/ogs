@@ -5,24 +5,17 @@
  *              See accompanying file LICENSE.txt or
  *              http://www.opengeosys.org/project/license
  *
- * \file:   createPorosityModel.cpp
- *
- * Created on August 16, 2016, 1:16 PM
  */
 
-#include <logog/include/logog.hpp>
-
-#include "BaseLib/reorderVector.h"
-
-#include "MathLib/InterpolationAlgorithms/PiecewiseLinearInterpolation.h"
-
-#include "MeshLib/Mesh.h"
-#include "MeshLib/PropertyVector.h"
-
 #include "CreateTwoPhaseFlowMaterialProperties.h"
+#include <logog/include/logog.hpp>
+#include "BaseLib/reorderVector.h"
 #include "MaterialLib/Fluid/FluidProperty.h"
 #include "MaterialLib/PorousMedium/Porosity/Porosity.h"
 #include "MaterialLib/PorousMedium/Storage/Storage.h"
+#include "MathLib/InterpolationAlgorithms/PiecewiseLinearInterpolation.h"
+#include "MeshLib/Mesh.h"
+#include "MeshLib/PropertyVector.h"
 #include "ProcessLib/Parameter/Parameter.h"
 #include "ProcessLib/Parameter/SpatialPosition.h"
 #include "TwoPhaseFlowWithPPMaterialProperties.h"
@@ -43,21 +36,22 @@ CreateTwoPhaseFlowMaterialProperties(
     auto const& fluid_config = config.getConfigSubtree("fluid");
 
     // Get fluid properties
-    //! \ogs_file_param{prj__material_property__fluid__density}
+    //! \ogs_file_param{prj__material_property__liquiddensity}
     auto const& rho_conf = fluid_config.getConfigSubtree("liquiddensity");
     auto _liquid_density =
         MaterialLib::Fluid::createFluidDensityModel(rho_conf);
+    //! \ogs_file_param{prj__material_property__gasdensity}
     auto const& rho_gas_conf = fluid_config.getConfigSubtree("gasdensity");
     auto _gas_density =
         MaterialLib::Fluid::createFluidDensityModel(rho_gas_conf);
-    //! \ogs_file_param{prj__material_property__fluid__viscosity}
+    //! \ogs_file_param{prj__material_property__liquidviscosity}
     auto const& mu_conf = fluid_config.getConfigSubtree("liquidviscosity");
     auto _viscosity = MaterialLib::Fluid::createViscosityModel(mu_conf);
-    //! \ogs_file_param{prj__material_property__fluid__gas__viscosity}
+    //! \ogs_file_param{prj__material_property__gasviscosity}
     auto const& mu_gas_conf = fluid_config.getConfigSubtree("gasviscosity");
     auto _gas_viscosity = MaterialLib::Fluid::createViscosityModel(mu_gas_conf);
-    // Get porous properties
 
+    // Get porous properties
     std::vector<int> mat_ids;
     std::vector<Eigen::MatrixXd> _intrinsic_permeability_models;
     std::vector<std::unique_ptr<MaterialLib::PorousMedium::Porosity>>

@@ -5,9 +5,6 @@
  *              See accompanying file LICENSE.txt or
  *              http://www.opengeosys.org/project/license
  *
- * \file   TWOPHASEFLOWMaterialProperties.h
- *
- * Created on August 18, 2016, 11:03 AM
  */
 
 #ifndef OGS_TWOPHASEFLOWWITHPPMATERIALPROPERTIES_H
@@ -25,14 +22,6 @@
 namespace ProcessLib
 {
 class SpatialPosition;
-}
-namespace MaterialLib
-{
-namespace PorousMedium
-{
-class Porosity;
-class Storage;
-}
 }
 
 namespace MeshLib

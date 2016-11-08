@@ -5,9 +5,6 @@
  *              See accompanying file LICENSE.txt or
  *              http://www.opengeosys.org/project/license
  *
- * \file   CreateTwoPhaseFlowWithPPProcess.h
- *
- * Created on August 19, 2016, 1:30 PM
  */
 
 #ifndef OGS_CREATETWOPHASEFLOWWITHPPPROCESS_H

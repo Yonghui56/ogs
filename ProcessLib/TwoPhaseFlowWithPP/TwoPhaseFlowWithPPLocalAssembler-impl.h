@@ -5,9 +5,6 @@
  *              See accompanying file LICENSE.txt or
  *              http://www.opengeosys.org/project/license
  *
- * \file   TwoPhaseFlowWithPPLocalAssembler.cpp
- *
- * Created on October 19, 2016, 2:28 PM
  */
 
 #ifndef OGS_TWOPHASEFLOWWITHPPLOCALASSEMBLER_IMPL_H

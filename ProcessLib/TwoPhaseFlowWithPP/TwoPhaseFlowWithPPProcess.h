@@ -5,9 +5,6 @@
  *              See accompanying file LICENSE.txt or
  *              http://www.opengeosys.org/project/license
  *
- * \file   TWOPHASEFlowWITHPPProcess.h
- *
- * Created on August 19, 2016, 1:38 PM
  */
 
 #ifndef OGS_TWOPHASEFLOWWITHPPPROCESS_H

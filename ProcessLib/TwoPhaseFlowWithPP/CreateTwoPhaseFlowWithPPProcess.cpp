@@ -5,9 +5,6 @@
  *              See accompanying file LICENSE.txt or
  *              http://www.opengeosys.org/project/license
  *
- * \file   CreateTwoPhaseFlowWithPPProcess.cpp
- *
- * Created on August 19, 2016, 1:30 PM
  */
 #include "CreateTwoPhaseFlowWithPPProcess.h"
 #include <cassert>
