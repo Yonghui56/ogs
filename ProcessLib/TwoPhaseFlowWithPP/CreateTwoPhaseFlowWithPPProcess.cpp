@@ -54,11 +54,16 @@ std::unique_ptr<Process> CreateTwoPhaseFlowWithPPProcess(
 
     ProcessLib::parseSecondaryVariables(config, secondary_variables,
                                         named_function_caller);
+    // Specific body force
+    Eigen::VectorXd specific_body_force;
 
-	//! \ogs_file_param{process__TWOPHASE_FLOW__specific_body_force}.
-	auto specific_body_force = config.getConfigParameter<std::vector<double>>("specific_body_force");
-	bool const has_gravity = 
-            MathLib::toVector(specific_body_force).norm() > 0;
+    std::vector<double> const b =
+        //! \ogs_file_param_special{process__TWOPHASE_FLOW_specific_body_force}
+        config.getConfigParameter<std::vector<double>>("specific_body_force");
+    specific_body_force.resize(b.size());
+    bool const has_gravity = MathLib::toVector(b).norm() > 0;
+    if (has_gravity)
+        std::copy_n(b.data(), b.size(), specific_body_force.data());
 
     // //! \ogs_file_param{process__TWOPHASE_FLOW__mass_lump}
     auto mass_lump = config.getConfigParameter<bool>("mass_lumping");

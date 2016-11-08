@@ -208,10 +208,7 @@ void TwoPhaseFlowWithPPLocalAssembler<
 
         if (_process_data._has_gravity)
         {
-			auto const body_force = _process_data._specific_body_force;
-            assert(body_force.size() == GlobalDim);
-            auto const b =
-                MathLib::toVector<GlobalDimVectorType>(body_force, GlobalDim);
+            auto const& b = _process_data._specific_body_force;
             Bg.noalias() += sm.dNdx.transpose() *
                             H_vec_coeff(nonwet_pressure_coeff_index) * b *
                             integration_factor;
