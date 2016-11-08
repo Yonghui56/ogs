@@ -36,19 +36,19 @@ CreateTwoPhaseFlowMaterialProperties(
     auto const& fluid_config = config.getConfigSubtree("fluid");
 
     // Get fluid properties
-    //! \ogs_file_param{prj__material_property__liquiddensity}
-    auto const& rho_conf = fluid_config.getConfigSubtree("liquiddensity");
+    //! \ogs_file_param{prj__material_property__liquid_density}
+    auto const& rho_conf = fluid_config.getConfigSubtree("liquid_density");
     auto _liquid_density =
         MaterialLib::Fluid::createFluidDensityModel(rho_conf);
-    //! \ogs_file_param{prj__material_property__gasdensity}
-    auto const& rho_gas_conf = fluid_config.getConfigSubtree("gasdensity");
+    //! \ogs_file_param{prj__material_property__gas_density}
+    auto const& rho_gas_conf = fluid_config.getConfigSubtree("gas_density");
     auto _gas_density =
         MaterialLib::Fluid::createFluidDensityModel(rho_gas_conf);
-    //! \ogs_file_param{prj__material_property__liquidviscosity}
-    auto const& mu_conf = fluid_config.getConfigSubtree("liquidviscosity");
+    //! \ogs_file_param{prj__material_property__liquid_viscosity}
+    auto const& mu_conf = fluid_config.getConfigSubtree("liquid_viscosity");
     auto _viscosity = MaterialLib::Fluid::createViscosityModel(mu_conf);
-    //! \ogs_file_param{prj__material_property__gasviscosity}
-    auto const& mu_gas_conf = fluid_config.getConfigSubtree("gasviscosity");
+    //! \ogs_file_param{prj__material_property__gas_viscosity}
+    auto const& mu_gas_conf = fluid_config.getConfigSubtree("gas_viscosity");
     auto _gas_viscosity = MaterialLib::Fluid::createViscosityModel(mu_gas_conf);
 
     // Get porous properties
@@ -68,18 +68,18 @@ CreateTwoPhaseFlowMaterialProperties(
         mat_ids.push_back(*id);
 
         //! \ogs_file_param{prj__material_property__porous_medium__porous_medium__permeability}
-        auto const& perm_conf = conf.getConfigSubtree("permeability");
+        auto const& permeability_conf = conf.getConfigSubtree("permeability");
         _intrinsic_permeability_models.emplace_back(
-            MaterialLib::PorousMedium::createPermeabilityModel(perm_conf));
+            MaterialLib::PorousMedium::createPermeabilityModel(permeability_conf));
 
         //! \ogs_file_param{prj__material_property__porous_medium__porous_medium__porosity}
-        auto const& poro_conf = conf.getConfigSubtree("porosity");
-        auto n = MaterialLib::PorousMedium::createPorosityModel(poro_conf);
+        auto const& porosity_conf = conf.getConfigSubtree("porosity");
+        auto n = MaterialLib::PorousMedium::createPorosityModel(porosity_conf);
         _porosity_models.emplace_back(std::move(n));
 
         //! \ogs_file_param{prj__material_property__porous_medium__porous_medium__storage}
-        auto const& stora_conf = conf.getConfigSubtree("storage");
-        auto beta = MaterialLib::PorousMedium::createStorageModel(stora_conf);
+        auto const& storage_conf = conf.getConfigSubtree("storage");
+        auto beta = MaterialLib::PorousMedium::createStorageModel(storage_conf);
         _storage_models.emplace_back(std::move(beta));
     }
 

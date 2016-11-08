@@ -62,7 +62,7 @@ std::unique_ptr<Process> CreateTwoPhaseFlowWithPPProcess(
     if (has_gravity)
         std::copy_n(b.data(), b.size(), specific_body_force.data());
 
-    // //! \ogs_file_param{process__TWOPHASE_FLOW__mass_lump}
+    // //! \ogs_file_param{process__TWOPHASE_FLOW__mass_lumping}
     auto mass_lump = config.getConfigParameter<bool>("mass_lumping");
 
     //! \ogs_file_param{process__TWOPHASE_FLOW__material_property}
@@ -101,7 +101,7 @@ std::unique_ptr<Process> CreateTwoPhaseFlowWithPPProcess(
         INFO("The twophase flow is in homogeneous porous media.");
 
         MeshLib::Properties dummy_property;
-        // For a reference argument of LiquidFlowProcess(...).
+
         auto const& dummy_property_vector =
             dummy_property.createNewPropertyVector<int>(
                 "MaterialIDs", MeshLib::MeshItemType::Cell, 1);

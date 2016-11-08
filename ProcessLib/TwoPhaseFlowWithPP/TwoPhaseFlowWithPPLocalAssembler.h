@@ -55,6 +55,7 @@ class TwoPhaseFlowWithPPLocalAssembler
 
     using NodalMatrixType = typename LocalAssemblerTraits::LocalMatrix;
     using NodalVectorType = typename LocalAssemblerTraits::LocalVector;
+    using GlobalDimMatrixType = typename ShapeMatricesType::GlobalDimMatrixType;
     using GlobalDimVectorType = typename ShapeMatricesType::GlobalDimVectorType;
     using LocalMatrixType = typename ShapeMatricesType::template MatrixType<
         ShapeFunction::NPOINTS * NUM_NODAL_DOF,
@@ -119,6 +120,9 @@ private:
 
     TwoPhaseFlowWithPPProcessData const& _process_data;
 
+    // Note: currently only isothermal case is considered, so the temperature is
+    // assumed to be const
+    // the variation of temperatura will be taken into account in future
     double _temperature = 293.15;
     std::vector<double> _saturation;
     std::vector<double> _pressure_wetting;

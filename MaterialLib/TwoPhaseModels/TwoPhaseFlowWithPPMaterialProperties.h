@@ -75,7 +75,6 @@ public:
      * \param p                  Pressure value
      * \param T                  Temperature value
      */
-
     Eigen::MatrixXd const& getPermeability(
         const double t,
         const ProcessLib::SpatialPosition& pos,

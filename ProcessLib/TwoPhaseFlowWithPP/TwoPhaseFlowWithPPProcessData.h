@@ -64,7 +64,7 @@ struct TwoPhaseFlowWithPPProcessData
     //! Assignments are not needed.
     void operator=(TwoPhaseFlowWithPPProcessData&&) = delete;
     Eigen::VectorXd const _specific_body_force;
-    // Parameter<std::vector<double>> const& _specific_body_force;
+
     bool const _has_gravity;
     bool const _has_mass_lumping;
     std::unique_ptr<

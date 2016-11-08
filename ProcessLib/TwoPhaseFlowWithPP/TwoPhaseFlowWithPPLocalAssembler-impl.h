@@ -78,11 +78,11 @@ void TwoPhaseFlowWithPPLocalAssembler<
     auto Klpc = local_K.template block<cap_pressure_size, cap_pressure_size>(
         cap_pressure_matrix_index, cap_pressure_matrix_index);
 
-    auto Bg = local_b.template block<nonwet_pressure_size, 1>(
-        nonwet_pressure_matrix_index, 0);
+    auto Bg = local_b.template segment<nonwet_pressure_size>(
+        nonwet_pressure_matrix_index);
 
-    auto Bl = local_b.template block<cap_pressure_size, 1>(
-        cap_pressure_matrix_index, 0);
+    auto Bl = local_b.template segment<cap_pressure_size>(
+        cap_pressure_matrix_index);
 
     unsigned const n_integration_points =
         _integration_method.getNumberOfPoints();
@@ -93,15 +93,19 @@ void TwoPhaseFlowWithPPLocalAssembler<
 
     const Eigen::MatrixXd& perm = _process_data._material->getPermeability(
         t, pos, _element.getDimension());
-
+    assert(perm.rows() == GlobalDim || perm.rows() == 1);
+    GlobalDimMatrixType permeability =
+        GlobalDimMatrixType::Zero(GlobalDim, GlobalDim);
+    if (perm.rows() == GlobalDim)
+        permeability = perm;
+    else if (perm.rows() == 1)
+        permeability.diagonal().setConstant(perm(0, 0));
     MathLib::PiecewiseLinearInterpolation const& interpolated_Pc =
         _process_data._interpolated_Pc;
     MathLib::PiecewiseLinearInterpolation const& interpolated_Kr_wet =
         _process_data._interpolated_Kr_wet;
     MathLib::PiecewiseLinearInterpolation const& interpolated_Kr_nonwet =
         _process_data._interpolated_Kr_nonwet;
-
-    assert(perm.rows() == GlobalDim || perm.rows() == 1);
 
     // Note: currently only isothermal case is considered, so the temperature is
     // assumed to be const
@@ -172,7 +176,7 @@ void TwoPhaseFlowWithPPLocalAssembler<
             _process_data._material->getGasViscosity(pg_int_pt, _temperature);
         double const lambda_G = k_rel_G / mu_gas;
         K_mat_coeff(nonwet_pressure_coeff_index, nonwet_pressure_coeff_index) =
-            rho_gas * perm(0, 0) * lambda_G;
+            rho_gas * lambda_G;
 
         // wet
         double const k_rel_L = interpolated_Kr_wet.getValue(Sw);
@@ -180,37 +184,37 @@ void TwoPhaseFlowWithPPLocalAssembler<
             _pressure_wetting[ip], _temperature);
         double const lambda_L = k_rel_L / mu_liquid;
         K_mat_coeff(cap_pressure_coeff_index, nonwet_pressure_coeff_index) =
-            rho_w * perm(0, 0) * lambda_L;
+            rho_w * lambda_L;
         K_mat_coeff(cap_pressure_coeff_index, cap_pressure_coeff_index) =
-            -rho_w * perm(0, 0) * lambda_L;
+            -rho_w * lambda_L;
 
         Kgp.noalias() += K_mat_coeff(nonwet_pressure_coeff_index,
                                      nonwet_pressure_coeff_index) *
-                         sm.dNdx.transpose() * sm.dNdx * integration_factor;
+                         sm.dNdx.transpose() * permeability * sm.dNdx *
+                         integration_factor;
+
         Kgpc.noalias() +=
             K_mat_coeff(nonwet_pressure_coeff_index, cap_pressure_coeff_index) *
-            sm.dNdx.transpose() * sm.dNdx * integration_factor;
+            sm.dNdx.transpose() * permeability * sm.dNdx * integration_factor;
         Klp.noalias() +=
             K_mat_coeff(cap_pressure_coeff_index, nonwet_pressure_coeff_index) *
-            sm.dNdx.transpose() * sm.dNdx * integration_factor;
+            sm.dNdx.transpose() * permeability * sm.dNdx * integration_factor;
         Klpc.noalias() +=
             K_mat_coeff(cap_pressure_coeff_index, cap_pressure_coeff_index) *
-            sm.dNdx.transpose() * sm.dNdx * integration_factor;
+            sm.dNdx.transpose() * permeability * sm.dNdx * integration_factor;
 
-        H_vec_coeff(nonwet_pressure_coeff_index) =
-            rho_gas * rho_gas * perm(0, 0) * lambda_G;
+        H_vec_coeff(nonwet_pressure_coeff_index) = rho_gas * rho_gas * lambda_G;
 
-        H_vec_coeff(cap_pressure_coeff_index) =
-            rho_w * rho_w * perm(0, 0) * lambda_L;
+        H_vec_coeff(cap_pressure_coeff_index) = rho_w * rho_w * lambda_L;
 
         if (_process_data._has_gravity)
         {
             auto const& b = _process_data._specific_body_force;
-            Bg.noalias() += sm.dNdx.transpose() *
-                            H_vec_coeff(nonwet_pressure_coeff_index) * b *
+            Bg.noalias() += H_vec_coeff(nonwet_pressure_coeff_index) *
+                            sm.dNdx.transpose() * permeability * b *
                             integration_factor;
-            Bl.noalias() += sm.dNdx.transpose() *
-                            H_vec_coeff(cap_pressure_coeff_index) * b *
+            Bl.noalias() += H_vec_coeff(cap_pressure_coeff_index) *
+                            sm.dNdx.transpose() * permeability * b *
                             integration_factor;
 
         }  // end of has gravity
