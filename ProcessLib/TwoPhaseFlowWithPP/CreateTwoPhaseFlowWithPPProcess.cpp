@@ -55,25 +55,15 @@ std::unique_ptr<Process> CreateTwoPhaseFlowWithPPProcess(
     ProcessLib::parseSecondaryVariables(config, secondary_variables,
                                         named_function_caller);
 
-    // Specific body force parameter.
-    auto& specific_body_force = findParameter<double>(
-        config,
-        //! \ogs_file_param_special{process__TWOPHASE_FLOW_specific_body_force}
-        "specific_body_force", parameters, mesh.getDimension());
-    DBUG("Use \'%s\' as specific body force parameter.",
-         specific_body_force.name.c_str());
+	//! \ogs_file_param{process__TWOPHASE_FLOW__specific_body_force}.
+	auto specific_body_force = config.getConfigParameter<std::vector<double>>("specific_body_force");
+	bool const has_gravity = 
+            MathLib::toVector(specific_body_force).norm() > 0;
 
-    // Assume constant parameter, then check the norm at arbitrary
-    // SpatialPosition and time.
-    assert(dynamic_cast<ConstantParameter<double>*>(&specific_body_force));
-    bool const has_gravity =
-        MathLib::toVector(specific_body_force(0, SpatialPosition{})).norm() > 0;
-
-    // has mass lumping
+    // //! \ogs_file_param{process__TWOPHASE_FLOW__mass_lump}
     auto mass_lump = config.getConfigParameter<bool>("mass_lumping");
 
     //! \ogs_file_param{process__TWOPHASE_FLOW__material_property}
-
     auto const& mat_config = config.getConfigSubtree("material_property");
 
     auto const& mat_ids =

@@ -25,7 +25,7 @@ namespace TwoPhaseFlowWithPP
 struct TwoPhaseFlowWithPPProcessData
 {
     TwoPhaseFlowWithPPProcessData(
-        Parameter<double> const& specific_body_force_,
+		std::vector<double> const specific_body_force_,
         bool const has_gravity_,
         bool const has_mass_lumping_,
         std::unique_ptr<MaterialLib::TwoPhaseFlowWithPP::
@@ -63,8 +63,8 @@ struct TwoPhaseFlowWithPPProcessData
 
     //! Assignments are not needed.
     void operator=(TwoPhaseFlowWithPPProcessData&&) = delete;
-
-    Parameter<double> const& _specific_body_force;
+	std::vector<double> const _specific_body_force;
+    //Parameter<std::vector<double>> const& _specific_body_force;
     bool const _has_gravity;
     bool const _has_mass_lumping;
     std::unique_ptr<

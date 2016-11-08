@@ -208,8 +208,7 @@ void TwoPhaseFlowWithPPLocalAssembler<
 
         if (_process_data._has_gravity)
         {
-            // TODO move b to _process_data.
-            auto const body_force = _process_data._specific_body_force(t, pos);
+			auto const body_force = _process_data._specific_body_force;
             assert(body_force.size() == GlobalDim);
             auto const b =
                 MathLib::toVector<GlobalDimVectorType>(body_force, GlobalDim);
