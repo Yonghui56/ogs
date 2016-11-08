@@ -36,12 +36,18 @@ void TwoPhaseFlowWithPPLocalAssembler<
     auto const local_matrix_size = local_x.size();
 
     assert(local_matrix_size == ShapeFunction::NPOINTS * NUM_NODAL_DOF);
-    // todo use matrix types from shape matrix policy
-    Eigen::MatrixXd M_mat_coeff =
-        Eigen::MatrixXd::Zero(NUM_NODAL_DOF, NUM_NODAL_DOF);
-    Eigen::MatrixXd K_mat_coeff =
-        Eigen::MatrixXd::Zero(NUM_NODAL_DOF, NUM_NODAL_DOF);
-    Eigen::VectorXd H_vec_coeff = Eigen::VectorXd::Zero(NUM_NODAL_DOF);
+    using CoefficientMatrixType =
+        typename ShapeMatricesType::template MatrixType<NUM_NODAL_DOF,
+                                                        NUM_NODAL_DOF>;
+    CoefficientMatrixType M_mat_coeff =
+        CoefficientMatrixType::Zero(NUM_NODAL_DOF, NUM_NODAL_DOF);
+    CoefficientMatrixType K_mat_coeff =
+        CoefficientMatrixType::Zero(NUM_NODAL_DOF, NUM_NODAL_DOF);
+
+    using CoefficientVectorType =
+        typename ShapeMatricesType::template VectorType<NUM_NODAL_DOF>;
+    CoefficientVectorType H_vec_coeff =
+        CoefficientVectorType::Zero(NUM_NODAL_DOF);
 
     auto local_M = MathLib::createZeroedMatrix<LocalMatrixType>(
         local_M_data, local_matrix_size, local_matrix_size);
