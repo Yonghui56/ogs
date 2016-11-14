@@ -77,6 +77,8 @@ const double O2 = 0.032;  ///< kg \per{mol}
 const double Air = 0.02897;  ///< kg \per{mol}
 
 const double H2 = 0.002;     ///< kg \per{mol}
+
+const double CO2 = 0.044;     ///< kg \per{mol}
 }  // namespace MolarMass
 
 /**

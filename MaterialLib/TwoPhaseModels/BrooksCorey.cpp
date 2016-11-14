@@ -90,9 +90,15 @@ double BrooksCorey::getSaturation(double pc) const
 	const double sgr = _cap_pressure_value[2];
 	const double lambda = _cap_pressure_value[3];  // always >= 1.0
 	if (pc < pb)
-		pc = pb;
-	double const effect_sw = std::pow(pc / pb, -lambda);
-	Sw = effect_sw * (slm - sgr - slr) + slr;
+		Sw =  1-lambda*(pc - pb) / pb;
+	else {
+		double const effect_sw = std::pow(pc / pb, -lambda);
+		Sw = effect_sw * (slm - sgr - slr) + slr;
+	}
+	if (Sw > 1)
+		Sw = 1;
+	else if (Sw < 0)
+		Sw = 0;
 	return Sw;
 }
 
@@ -104,9 +110,12 @@ double BrooksCorey::getDerivSaturation(double const pc) const
 	double const slm = 1.0;
 	double const sgr = _cap_pressure_value[2];
 	const double lambda = _cap_pressure_value[3];  // always >= 1.0
-												   //
-	double const v1 = std::pow((pc / pb), -lambda);
-	dSwdPc = (lambda * v1 * (slr - slm)) / pc;
+	if (pc < pb)
+		dSwdPc = 0.0;// -lambda / pb;//
+	else {
+		double const v1 = std::pow((pc / pb), -lambda);
+		dSwdPc = (lambda * v1 * (slr - slm)) / pc;
+	}
 	return dSwdPc;
 }
 

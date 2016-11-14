@@ -15,6 +15,8 @@
 
 #include <vector>
 
+#include "MaterialLib/PhysicalConstant.h"
+#include "MaterialLib/TwoPhaseModels/TwoPhaseFlowWithPPMaterialProperties.h"
 #include "MathLib/LinAlg/Eigen/EigenMapTools.h"
 #include "NumLib/Extrapolation/ExtrapolatableElement.h"
 #include "NumLib/Fem/FiniteElement/TemplateIsoparametric.h"
@@ -23,8 +25,6 @@
 #include "ProcessLib/LocalAssemblerTraits.h"
 #include "ProcessLib/Parameter/Parameter.h"
 #include "ProcessLib/Utils/InitShapeMatrices.h"
-
-#include "MaterialLib/TwoPhaseModels/TwoPhaseFlowWithPPMaterialProperties.h"
 #include "TwoPhaseFlowWithPPProcessData.h"
 
 namespace ProcessLib
@@ -127,6 +127,11 @@ private:
 
     static const int nonwet_pressure_size = ShapeFunction::NPOINTS;
     static const int cap_pressure_size = ShapeFunction::NPOINTS;
+
+    const double molar_mass_h2o =
+        MaterialLib::PhysicalConstant::MolarMass::Water;
+    const double molar_mass_co2 = MaterialLib::PhysicalConstant::MolarMass::CO2;
+    const double eps = 1e-7;
 };
 
 }  // end of namespace

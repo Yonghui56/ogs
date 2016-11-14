@@ -73,22 +73,21 @@ std::unique_ptr<Process> CreateTwoPhaseFlowWithPPProcess(
     // has mass lumping
     auto mass_lump = config.getConfigParameter<bool>("mass_lumping");
 
-	// henry const parameter
-	auto& henry_const = findParameter<double>(
-		config,
-		//! \ogs_file_param_special{process__TWOPHASE_FLOW__water_density}
-		"henry_const", parameters, 1);
+    // henry const parameter
+    auto& henry_const = findParameter<double>(
+        config,
+        //! \ogs_file_param_special{process__TWOPHASE_FLOW__water_density}
+        "henry_const", parameters, 1);
 
-	//diffusion coeff
-	auto& diff_coeff_b = findParameter<double>(
-		config,
-		//! \ogs_file_param_special{process__TWOPHASE_FLOW__water_density}
-		"diffusion_coeff_componentb", parameters, 1);
-	auto& diff_coeff_a = findParameter<double>(
-		config,
-		//! \ogs_file_param_special{process__TWOPHASE_FLOW__water_density}
-		"diffusion_coeff_componenta", parameters, 1);
-	
+    // diffusion coeff
+    auto& diff_coeff_b = findParameter<double>(
+        config,
+        //! \ogs_file_param_special{process__TWOPHASE_FLOW__diffusion_coeff_componentb}
+        "diffusion_coeff_componentb", parameters, 1);
+    auto& diff_coeff_a = findParameter<double>(
+        config,
+        //! \ogs_file_param_special{process__TWOPHASE_FLOW__diffusion_coeff_componenta}
+        "diffusion_coeff_componenta", parameters, 1);
 
     //! \ogs_file_param{process__TWOPHASE_FLOW__material_property}
 
@@ -109,7 +108,17 @@ std::unique_ptr<Process> CreateTwoPhaseFlowWithPPProcess(
             CreateTwoPhaseFlowMaterialProperties(mat_config, has_material_ids,
                                                  *mat_ids, curves);
         TwoPhaseFlowWithPPProcessData process_data{
-            specific_body_force, has_gravity, mass_lump, henry_const, diff_coeff_b, diff_coeff_a, std::move(material)};
+            specific_body_force,
+            has_gravity,
+            mass_lump,
+            henry_const,
+            diff_coeff_b,
+            diff_coeff_a,
+            std::move(material),
+            *curves.at("curve_co2_solubility"),
+            *curves.at("curve_h2o_solubility"),
+            *curves.at("curve_co2_density"),
+            *curves.at("curve_co2_viscosity")};
         return std::unique_ptr<Process>{new TwoPhaseFlowWithPPProcess{
             mesh, std::move(jacobian_assembler), parameters, integration_order,
             std::move(process_variables), std::move(process_data),
@@ -131,10 +140,20 @@ std::unique_ptr<Process> CreateTwoPhaseFlowWithPPProcess(
         // that material_ids does not exist.
         const bool has_material_ids = false;
         material = MaterialLib::TwoPhaseFlowWithPP::
-            CreateTwoPhaseFlowMaterialProperties(mat_config, has_material_ids,
-                                                 *dummy_property_vector, curves);
-		TwoPhaseFlowWithPPProcessData process_data{
-			specific_body_force, has_gravity, mass_lump, henry_const, diff_coeff_b, diff_coeff_a, std::move(material) };
+            CreateTwoPhaseFlowMaterialProperties(
+                mat_config, has_material_ids, *dummy_property_vector, curves);
+        TwoPhaseFlowWithPPProcessData process_data{
+            specific_body_force,
+            has_gravity,
+            mass_lump,
+            henry_const,
+            diff_coeff_b,
+            diff_coeff_a,
+            std::move(material),
+            *curves.at("curve_co2_solubility"),
+            *curves.at("curve_h2o_solubility"),
+            *curves.at("curve_co2_density"),
+            *curves.at("curve_co2_viscosity")};
         return std::unique_ptr<Process>{new TwoPhaseFlowWithPPProcess{
             mesh, std::move(jacobian_assembler), parameters, integration_order,
             std::move(process_variables), std::move(process_data),

@@ -32,14 +32,22 @@ struct TwoPhaseFlowWithPPProcessData
 		Parameter<double> const& diffusion_coeff_componentb_,
 		Parameter<double> const& diffusion_coeff_componenta_,
         std::unique_ptr<MaterialLib::TwoPhaseFlowWithPP::
-                            TwoPhaseFlowWithPPMaterialProperties>&& material_)
+                            TwoPhaseFlowWithPPMaterialProperties>&& material_,
+		MathLib::PiecewiseLinearInterpolation const& interpolated_co2_solubility_,
+		MathLib::PiecewiseLinearInterpolation const& interpolated_h2o_solubility_,
+		MathLib::PiecewiseLinearInterpolation const& interpolated_co2_density_,
+		MathLib::PiecewiseLinearInterpolation const& interpolated_co2_viscosity_)
         : _specific_body_force(specific_body_force_),
           _has_gravity(has_gravity_),
           _has_mass_lumping(has_mass_lumping_),
 		  _henry_const(henry_const_),
 		  _diffusion_coeff_componentb(diffusion_coeff_componentb_),
 		  _diffusion_coeff_componenta(diffusion_coeff_componenta_),
-          _material(std::move(material_))
+		  _material(std::move(material_)),
+		  _interpolated_co2_solubility(interpolated_co2_solubility_),
+		  _interpolated_h2o_solubiity(interpolated_h2o_solubility_),
+		  _interpolated_co2_density(interpolated_co2_density_),
+		  _interpolated_co2_viscosity(interpolated_co2_viscosity_)
     {
     }
 
@@ -50,7 +58,11 @@ struct TwoPhaseFlowWithPPProcessData
 		_henry_const(other._henry_const),
 		_diffusion_coeff_componentb(other._diffusion_coeff_componentb),
 		_diffusion_coeff_componenta(other._diffusion_coeff_componenta),
-          _material(std::move(other._material))
+        _material(std::move(other._material)),
+		_interpolated_co2_solubility(other._interpolated_co2_solubility),
+		_interpolated_h2o_solubiity(other._interpolated_h2o_solubiity),
+		_interpolated_co2_density(other._interpolated_co2_density),
+		_interpolated_co2_viscosity(other._interpolated_co2_viscosity)
     {
     }
 
@@ -71,11 +83,14 @@ struct TwoPhaseFlowWithPPProcessData
 	Parameter<double> const& _diffusion_coeff_componentb;
 	Parameter<double> const& _diffusion_coeff_componenta;
 
-    std::unique_ptr<
-        MaterialLib::TwoPhaseFlowWithPP::TwoPhaseFlowWithPPMaterialProperties>
-        _material;
+	std::unique_ptr<
+		MaterialLib::TwoPhaseFlowWithPP::TwoPhaseFlowWithPPMaterialProperties>
+		_material;
 
-    
+	MathLib::PiecewiseLinearInterpolation const& _interpolated_co2_solubility;
+	MathLib::PiecewiseLinearInterpolation const& _interpolated_h2o_solubiity;
+	MathLib::PiecewiseLinearInterpolation const& _interpolated_co2_density;
+	MathLib::PiecewiseLinearInterpolation const& _interpolated_co2_viscosity;
 };
 
 }  // namespace TwoPhaseFlowWithPP
