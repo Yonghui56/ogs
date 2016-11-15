@@ -122,9 +122,9 @@ void TwoPhaseFlowWithPPLocalAssembler<
         */
         double const rho_co2 = interpolated_rho_co2_nonwet.getValue(pg_int_pt);
         double const rho_co2_plus =
-            interpolated_rho_co2_nonwet.getValue(pg_int_pt + eps);
+            interpolated_rho_co2_nonwet.getValue(pg_int_pt + eps*std::abs(pg_int_pt));
         double const rho_co2_minus =
-            interpolated_rho_co2_nonwet.getValue(pg_int_pt - eps);
+            interpolated_rho_co2_nonwet.getValue(pg_int_pt - eps*std::abs(pg_int_pt));
         // comparison with reading curve
         double const rho_nonwet =
             interpolated_rho_co2_nonwet.getValue(pg_int_pt);
@@ -138,10 +138,10 @@ void TwoPhaseFlowWithPPLocalAssembler<
             rho_co2);
         // for derivative
         _process_data._material->calculateMoleFractions(
-            pg_int_pt + eps, _temperature, 0.0, x_co2_in_wet_dpn_plus,
+            pg_int_pt + eps*std::abs(pg_int_pt), _temperature, 0.0, x_co2_in_wet_dpn_plus,
             x_h2o_in_nonwet_dpn_plus, rho_co2_plus);
         _process_data._material->calculateMoleFractions(
-            pg_int_pt - eps, _temperature, 0.0, x_co2_in_wet_dpn_minus,
+            pg_int_pt - eps*std::abs(pg_int_pt), _temperature, 0.0, x_co2_in_wet_dpn_minus,
             x_h2o_in_nonwet_dpn_minus, rho_co2_minus);
 		
 		//---- For comparison from reading curve
@@ -165,9 +165,9 @@ void TwoPhaseFlowWithPPLocalAssembler<
         * drho_n_dpn pure co2 density derivative w.r.t pressure nonwet
         */
         double const dx_co2_in_wet_dpn =
-            (x_co2_in_wet_dpn_plus - x_co2_in_wet_dpn_minus) / 2 / eps;
+            (x_co2_in_wet_dpn_plus - x_co2_in_wet_dpn_minus) / 2 / eps/std::abs(pg_int_pt);
         double const dx_h2o_in_nonwet_dpn =
-            (x_h2o_in_nonwet_dpn_plus - x_h2o_in_nonwet_dpn_minus) / 2 / eps;
+            (x_h2o_in_nonwet_dpn_plus - x_h2o_in_nonwet_dpn_minus) / 2 / eps/std::abs(pg_int_pt);
 
         //double const drho_n_dpn = (rho_co2_plus - rho_co2_minus) / 2 / eps;
 		double const drho_n_dpn = interpolated_rho_co2_nonwet.getDerivative(pg_int_pt);
@@ -226,8 +226,8 @@ void TwoPhaseFlowWithPPLocalAssembler<
             _process_data._material->getrelativePermeability_gas(Sw);
 
         // gas viscosity
-		double const mu_gas = 1.7E-5;
-            //_process_data._material->gasViscosity(pg_int_pt, _temperature);
+		double const mu_gas = 
+            _process_data._material->gasViscosity(pg_int_pt, _temperature);
         double const mu_liquid =
             _process_data._material->getLiquidViscosity(pl, _temperature);
 
@@ -244,8 +244,8 @@ void TwoPhaseFlowWithPPLocalAssembler<
         K_mat_coeff(nonwet_pressure_coeff_index, nonwet_pressure_coeff_index) =
             (rho_co2 / molar_mass_co2) * perm(0, 0) * lambda_G +
             rho_mol_w * x_co2_in_wet * perm(0, 0) * lambda_L +
-            poro * Sw * diffusion_coeff_componentb * rho_mol_w *
-                dx_co2_in_wet_dpn / (1 - x_co2_in_wet) -
+			std::pow(poro * Sw, 10 / 3)*(1 / poro / poro) * diffusion_coeff_componentb * rho_mol_w *
+			dx_co2_in_wet_dpn -
             poro * (1 - Sw) * diffusion_coeff_componenta *
                 (rho_mol_nonwet * dx_h2o_in_nonwet_dpn / (1 - x_h2o_in_nonwet) +
                  drho_n_dpn * x_h2o_in_nonwet / (1 - x_h2o_in_nonwet) /
@@ -257,12 +257,12 @@ void TwoPhaseFlowWithPPLocalAssembler<
         K_mat_coeff(cap_pressure_coeff_index, nonwet_pressure_coeff_index) =
             rho_w * perm(0, 0) * lambda_L / molar_mass_h2o +
             rho_mol_nonwet * x_h2o_in_nonwet * perm(0, 0) * lambda_G -
-            poro * Sw * diffusion_coeff_componentb * rho_mol_w *
-                dx_co2_in_wet_dpn / (1 - x_co2_in_wet) +
+            std::pow(poro * Sw,10/3)*(1/poro/poro) * diffusion_coeff_componentb * rho_mol_w *
+                dx_co2_in_wet_dpn  +
 			poro * (1 - Sw) * diffusion_coeff_componenta *
 			(rho_mol_nonwet * dx_h2o_in_nonwet_dpn / (1 - x_h2o_in_nonwet) +
 				drho_n_dpn * x_h2o_in_nonwet / (1 - x_h2o_in_nonwet) /
-				molar_mass_co2);
+				molar_mass_co2);;// / (1 - x_co2_in_wet)
 
         K_mat_coeff(cap_pressure_coeff_index, cap_pressure_coeff_index) =
             -rho_w * perm(0, 0) * lambda_L / molar_mass_h2o;
