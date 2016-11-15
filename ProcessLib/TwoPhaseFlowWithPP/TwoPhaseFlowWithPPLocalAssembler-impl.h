@@ -193,7 +193,7 @@ void TwoPhaseFlowWithPPLocalAssembler<
         
 		mass_mat_coeff(nonwet_pressure_coeff_index, cap_pressure_coeff_index) =
 			poro * dSwdPc *
-			(-rho_co2 / molar_mass_co2 + rho_mol_w*x_co2_in_wet);
+			(rho_mol_w*x_co2_in_wet - rho_co2 / molar_mass_co2);
 
         // wetting
 		mass_mat_coeff(cap_pressure_coeff_index, nonwet_pressure_coeff_index) = 0.0;
