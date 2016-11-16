@@ -186,7 +186,7 @@ bool NonlinearSolver<NonlinearSolverTag::Newton>::solve(
         NumLib::GlobalMatrixProvider::provider.getMatrix(_J_id);
 
     bool error_norms_met = false;
-
+	double d_norm(9999999.9), d1_norm(9999999.9);
     // TODO be more efficient
     // init _minus_delta_x to the right size and 0.0
     LinAlg::copy(x, minus_delta_x);
@@ -194,6 +194,9 @@ bool NonlinearSolver<NonlinearSolverTag::Newton>::solve(
 
     _convergence_criterion->preFirstIteration();
 
+	sys.assemble(x);
+	sys.getResidual(x, res);
+	d_norm = MathLib::LinAlg::norm(res, MathLib::VecNormType::NORM2);
     unsigned iteration = 1;
     for (; iteration <= _maxiter;
          ++iteration, _convergence_criterion->reset())
@@ -205,8 +208,8 @@ bool NonlinearSolver<NonlinearSolverTag::Newton>::solve(
 
         BaseLib::RunTime time_assembly;
         time_assembly.start();
-        sys.assemble(x);
-        sys.getResidual(x, res);
+        //sys.assemble(x);
+        //sys.getResidual(x, res);
         sys.getJacobian(J);
         INFO("[time] Assembly took %g s.", time_assembly.elapsed());
 
@@ -259,7 +262,34 @@ bool NonlinearSolver<NonlinearSolverTag::Newton>::solve(
                         .releaseVector(x_new);
                     continue;  // That throws the iteration result away.
             }
+			sys.assemble(x_new);
+			sys.getResidual(x_new, res);
+			unsigned linesearch_iteration = 1;
+			_beta = 1.0;
+			while (linesearch_iteration < 10)
+			{
 
+				d1_norm = MathLib::LinAlg::norm(res, MathLib::VecNormType::NORM2);
+				if (d1_norm < d_norm)
+				{
+					break;
+				}
+				else
+				{
+					INFO("Global Line Search begins!");
+					INFO("Line search Convergence criterion: |dx|=%.4e, |x|=%.4e, |dx|/|x|=%.4e", d1_norm);
+					auto& x_new =
+						NumLib::GlobalVectorProvider::provider.getVector(
+							x, _x_new_id);
+					_beta *= 0.5;
+					LinAlg::axpy(x_new, -_beta, minus_delta_x);
+					sys.assemble(x_new);
+					sys.getResidual(x_new, res);
+					linesearch_iteration++;
+				}
+				
+			}
+			d_norm = d1_norm;
             // TODO could be done via swap. Note: that also requires swapping
             // the ids. Same for the Picard scheme.
             LinAlg::copy(x_new, x);  // copy new solution to x

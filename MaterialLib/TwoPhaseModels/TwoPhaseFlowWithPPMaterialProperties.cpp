@@ -279,13 +279,13 @@ double TwoPhaseFlowWithPPMaterialProperties::getDissolvedGas(
 * To calculate the values, the \ref fullerMethod is used.
 */
 double TwoPhaseFlowWithPPMaterialProperties::getgasDiffCoeff(
-    double const pressure, double const temperature) const
+    double const pressure, double const temperature, double const rho_co2) const
 {
     double const k = 1.3806504e-23;  // Boltzmann constant
     double const c = 4;  // slip parameter, can vary between 4 (slip condition)
                          // and 6 (stick condition)
     double const R_h = 1.72e-10;  // hydrodynamic radius of the solute
-    const double mu = gasViscosity(temperature, pressure);  // CO2 viscosity
+    const double mu = gasViscosity(temperature, pressure, rho_co2);  // CO2 viscosity
     return k / (c * M_PI * R_h) * (temperature / mu);
 }
 
@@ -375,7 +375,7 @@ double TwoPhaseFlowWithPPMaterialProperties::moleFracCO2InBrine_duan(
     *                        - Fenhour etl al., 1998
     */
 double TwoPhaseFlowWithPPMaterialProperties::gasViscosity(
-    double const pressure, const double temperature) const
+    double const pressure, const double temperature, const double rho_co2) const
 {
     const double a0 = 0.235156;
     const double a1 = -0.491266;
@@ -401,9 +401,8 @@ double TwoPhaseFlowWithPPMaterialProperties::gasViscosity(
 
     double mu0 = 1.00697 * std::sqrt(temperature) / SigmaStar;
 
-    // const double rho = gasDensity(temperature, pressure); // CO2 mass density
+    const double rho = rho_co2; // CO2 mass density
     // [kg/m^3]
-    const double rho = 1000;
     // dmu : excess viscosity at elevated density
     double dmu = d11 * rho + d21 * rho * rho +
                  d64 * std::pow(rho, 6.0) / (TStar * TStar * TStar) +

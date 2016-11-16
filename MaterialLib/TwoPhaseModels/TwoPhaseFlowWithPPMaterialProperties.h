@@ -128,11 +128,11 @@ public:
     * To calculate the values, the \ref fullerMethod is used. Spycher and Pruess
     */
     double getgasDiffCoeff(double const pressure,
-                           double const temperature) const;
+                           double const temperature, double const rho_co2) const;
     void calculateMoleFractions(double const pressure, double const temperature,
                                 double const salinity, double& xlCO2,
                                 double& ygH2O, double const rho_co2) const;
-    double gasViscosity(double const pressure, const double temperature) const;
+    double gasViscosity(double const pressure, const double temperature, const double rho_co2/*co2 mass density*/) const;
     /*!
     * \brief Binary diffusion coefficent [m^2/s] for molecular water and CO2.
     *
