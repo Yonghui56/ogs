@@ -297,12 +297,10 @@ void TwoPhaseFlowWithPPMaterialProperties::calculateMoleFractions(
 	/* salinity: conversion from mass fraction to mol fraction */
 	const double x_NaCl = salinityToMolFrac_(salinity);
 	const double p_sat = saturationPressure(temperature);
-	if (pressure < 5e+4) {
+	if (pressure < p_sat) {
 		xlCO2 = pressure / henry(temperature);
 		//virtual equilibrium mole fraction of water in the non-existing gas phase
 		ygH2O = 0.0;// A * (1 - xlCO2 - x_NaCl);//virtual
-		if (p_sat > pressure)
-			ygH2O = 0.0;// if the pressure is smaller than the saturation pressure of pure water
 	}
 	else {
 		double const molalityNaCl =

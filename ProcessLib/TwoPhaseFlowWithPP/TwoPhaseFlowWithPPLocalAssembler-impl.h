@@ -262,7 +262,7 @@ void TwoPhaseFlowWithPPLocalAssembler<
 			poro * (1 - Sw) * diffusion_coeff_componenta *
 			(rho_mol_nonwet * dx_h2o_in_nonwet_dpn / (1 - x_h2o_in_nonwet) +
 				drho_n_dpn * x_h2o_in_nonwet / (1 - x_h2o_in_nonwet) /
-				molar_mass_co2);;// / (1 - x_co2_in_wet) std::pow(poro * Sw,10/3)*(1/poro/poro)
+				molar_mass_co2);// / (1 - x_co2_in_wet) std::pow(poro * Sw,10/3)*(1/poro/poro)
 
         K_mat_coeff(cap_pressure_coeff_index, cap_pressure_coeff_index) =
             -rho_w * perm(0, 0) * lambda_L / molar_mass_h2o;
