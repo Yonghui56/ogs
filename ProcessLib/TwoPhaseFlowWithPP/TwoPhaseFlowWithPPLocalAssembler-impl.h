@@ -120,6 +120,8 @@ void TwoPhaseFlowWithPPLocalAssembler<
         /*! pure co2 density
         * from Span and Wagner EoS
         */
+		if (pg_int_pt > 9000)
+			pg_int_pt = pg_int_pt;
         double const rho_co2 = interpolated_rho_co2_nonwet.getValue(pg_int_pt);
         double const rho_co2_plus =
             interpolated_rho_co2_nonwet.getValue(pg_int_pt + eps*std::abs(pg_int_pt));
