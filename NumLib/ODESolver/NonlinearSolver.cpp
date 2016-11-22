@@ -193,33 +193,30 @@ bool NonlinearSolver<NonlinearSolverTag::Newton>::solve(
     minus_delta_x.setZero();
 
     _convergence_criterion->preFirstIteration();
-
+	BaseLib::RunTime time_assembly;
+	time_assembly.start();
 	sys.assemble(x);
 	sys.getResidual(x, res);
+	INFO("[time] Assembly took %g s.", time_assembly.elapsed());
 	d_norm = MathLib::LinAlg::norm(res, MathLib::VecNormType::NORM2);
     unsigned iteration = 1;
     for (; iteration <= _maxiter;
          ++iteration, _convergence_criterion->reset())
     {
+        bool phase_change_index = false;
+		bool critical_transition = false;
         BaseLib::RunTime time_iteration;
         time_iteration.start();
 
         sys.preIteration(iteration, x);
-
-        BaseLib::RunTime time_assembly;
-        time_assembly.start();
         //sys.assemble(x);
         //sys.getResidual(x, res);
         sys.getJacobian(J);
-        INFO("[time] Assembly took %g s.", time_assembly.elapsed());
 
         BaseLib::RunTime time_dirichlet;
         time_dirichlet.start();
         sys.applyKnownSolutionsNewton(J, res, minus_delta_x);
         INFO("[time] Applying Dirichlet BCs took %g s.", time_dirichlet.elapsed());
-
-        if (!sys.isLinear() && _convergence_criterion->hasResidualCheck())
-            _convergence_criterion->checkResidual(res);
 
         BaseLib::RunTime time_linear_solver;
         time_linear_solver.start();
@@ -242,7 +239,34 @@ bool NonlinearSolver<NonlinearSolverTag::Newton>::solve(
 
             if (postIterationCallback)
                 postIterationCallback(iteration, x_new);
-
+			int n_nodes = x.size();
+			for (int n = 0; n < n_nodes/2; n++) {
+				if (x[2 * n + 1] < 0 && x_new[2 * n + 1] > 0) {
+					double PL = x[2 * n] - x[2 * n + 1];
+					x[2 * n + 1] = 10;
+					x[2 * n] = 10 + PL;
+					phase_change_index = true;
+				}
+				
+			}
+			if (phase_change_index || critical_transition)
+			{
+				sys.assemble(x);
+				sys.getResidual(x, res);
+				iteration--;
+				continue;
+			}
+			//post iteration
+			/*
+			for (int n = 0; n < n_nodes; n++){
+			if (x_pre[2 * n + 1] < x_pre[2 * n] * 1.53e-8 && x_new[2 * n + 1] > x_new[2 * n] * 1.53e-8){
+			//double PL = x_pre[2 * n] - x_pre[2 * n + 1];
+			x_pre[2 * n + 1] = 1e-4 + x_pre[2 * n] * 1.53e-8;
+			x_pre[2 * n] = x_pre[2 * n] -  1000;
+			m_flag = 0;
+			}
+			}
+			*/
             switch(sys.postIteration(x_new))
             {
                 case IterationResult::SUCCESS:
@@ -278,11 +302,11 @@ bool NonlinearSolver<NonlinearSolverTag::Newton>::solve(
 				{
 					INFO("Global Line Search begins!");
 					INFO("Line search Convergence criterion: |dx|=%.4e, |x|=%.4e, |dx|/|x|=%.4e", d1_norm);
-					auto& x_new =
-						NumLib::GlobalVectorProvider::provider.getVector(
-							x, _x_new_id);
+					//auto& x_new =
+						//NumLib::GlobalVectorProvider::provider.getVector(
+							//x, _x_new_id);
 					_beta *= 0.5;
-					LinAlg::axpy(x_new, -_beta, minus_delta_x);
+					LinAlg::axpy(x_new, _beta, minus_delta_x);
 					sys.assemble(x_new);
 					sys.getResidual(x_new, res);
 					linesearch_iteration++;
@@ -311,7 +335,9 @@ bool NonlinearSolver<NonlinearSolverTag::Newton>::solve(
                 // Note: x contains the new solution!
                 _convergence_criterion->checkDeltaX(minus_delta_x, x);
             }
-
+			else if (_convergence_criterion->hasResidualCheck()) {
+				_convergence_criterion->checkResidual(res);
+			}
             error_norms_met = _convergence_criterion->isSatisfied();
         }
 
