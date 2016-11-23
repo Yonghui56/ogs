@@ -69,7 +69,7 @@ public:
         std::map<std::string,
                  std::unique_ptr<MathLib::PiecewiseLinearInterpolation>> const&
             curves);
-
+	
     bool isLinear() const override { return false; }
 private:
     void initializeConcreteProcess(
