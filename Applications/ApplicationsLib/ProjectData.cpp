@@ -44,6 +44,7 @@
 #include "ProcessLib/TES/CreateTESProcess.h"
 #include "ProcessLib/HT/CreateHTProcess.h"
 #include "ProcessLib/TwoPhaseFlowWithPP/CreateTwoPhaseFlowWithPPProcess.h"
+#include "ProcessLib/TwoPhaseFlowWithPX/CreateTwoPhaseFlowWithPXProcess.h"
 
 namespace detail
 {
@@ -437,6 +438,15 @@ void ProjectData::parseProcesses(BaseLib::ConfigTree const& processes_config,
                     _process_variables, _parameters, integration_order,
                     process_config, _curves);
         }
+
+		else if (type == "TWOPHASE_FLOW_PX")
+		{
+			process =
+				ProcessLib::TwoPhaseFlowWithPX::CreateTwoPhaseFlowWithPXProcess(
+					*_mesh_vec[0], std::move(jacobian_assembler),
+					_process_variables, _parameters, integration_order,
+					process_config, _curves);
+		}
 
         else
         {
