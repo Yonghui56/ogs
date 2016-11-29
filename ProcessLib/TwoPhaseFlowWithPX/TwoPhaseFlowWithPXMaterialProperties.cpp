@@ -170,6 +170,27 @@ namespace ProcessLib
 			const double pc = _capillary_pressure_models[_current_material_id]->getCapillaryPressure(saturation);
 			return pc;
 		}
+		double TwoPhaseFlowWithPXMaterialProperties::getRegularizedCapillaryPressure(
+			const double /*t*/, const ProcessLib::SpatialPosition& /*pos*/,
+			const double /*p*/, const double /*T*/, const double saturation) const
+		{
+			const double pc = _capillary_pressure_models[_current_material_id]->getRegularizedCapillaryPressure(saturation);
+			return pc;
+		}
 
+		double TwoPhaseFlowWithPXMaterialProperties::getDerivCapillaryPressure(
+			const double /*t*/, const ProcessLib::SpatialPosition& /*pos*/,
+			const double /*p*/, const double /*T*/, const double saturation) const
+		{
+			const double dpcdsw = _capillary_pressure_models[_current_material_id]->getdPcdS(saturation);
+			return dpcdsw;
+		}
+		double TwoPhaseFlowWithPXMaterialProperties::getRegularizedDerivCapillaryPressure(
+			const double /*t*/, const ProcessLib::SpatialPosition& /*pos*/,
+			const double /*p*/, const double /*T*/, const double saturation) const
+		{
+			const double dpcdsw = _capillary_pressure_models[_current_material_id]->getRegularizedPcdS(saturation);
+			return dpcdsw;
+		}
 	}  // end of namespace
 }  // end of namespace

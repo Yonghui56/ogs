@@ -61,19 +61,23 @@ public:
         double const PG,
         double const X,
         double& Sw,
-        double& X_m
+        double& X_m,
+		double& dsw_dpg,
+		double& dsw_dX,
+		double& dxm_dpg,
+		double& dxm_dX
         ) override;
 
 private:
     /// Calculates the 18x1 residual vector.
-    void calculateResidual(double const PG, double const X, UnknownVector vec_unknown,
+    void calculateResidual(double const PG, double const X, double Sw, double X_m,
                                   ResidualVector& res);
 
     /// Calculates the 18x18 Jacobian.
     void calculateJacobian(double const t,
                                   ProcessLib::SpatialPosition const& x,
                                   double const PG, double const X,
-                                  JacobianMatrix& Jac,UnknownVector& vec_unknown);
+                                  JacobianMatrix& Jac, double Sw, double X_m);
 
     /**
     * Complementary condition 1
@@ -86,7 +90,7 @@ private:
         return std::min(1 - Sw, x_equili_m - X_m);
     }
 	/**
-	* Complementary condition 3
+	* Complementary condition 2
 	* for calculating the saturation
 	*/
 	const double Calc_Saturation(double PG, double X, double Sw, double X_m,
@@ -96,7 +100,57 @@ private:
 		const double N_L = rho_mol_h2o / (1 - X_m);
 		return ((1 - Sw) * N_G * (X - X_M) + Sw * N_L * (X - X_m)) / ((1 - Sw) * N_G + Sw * N_L);
 	}
-
+	/**
+	* Calculate the derivatives using the analytical way
+	*/
+	const double Calculate_dSwdP(double PG, double S, double X_m,
+		double T = 303.15)
+	{
+		double const x_equili_m = PG * Hen / (PG * Hen + rho_mol_h2o);
+		if ((1 - S) < (x_equili_m - X_m))
+		{
+			return 0.0;
+		}
+		else
+		return (S * (1 + (-1 + Hen * R * T) * S)) / PG;
+	}
+	/*
+	* Calculate the derivative using the analytical way
+	*/
+	const double Calculate_dSwdX(double PG, double X, double S,double X_m,
+		double T = 303.15)
+	{
+		double const x_equili_m = PG * Hen / (PG * Hen + rho_mol_h2o);
+		if ((1 - S) < (x_equili_m - X_m))
+		{
+			return 0.0;
+		}
+		else
+		return -pow((PG + (rho_mol_h2o * R * T + PG * (-1 + Hen * R * T)) * S), 2) / (rho_mol_h2o * PG * R* T);
+	}
+	/*
+	* Calculate the derivative using the analytical way
+	*/
+	const double Calculate_dX_mdX(double PG, double Sw, double X_m)
+	{
+		double dX_mdX = 0.0;
+		double const x_equili_m = PG * Hen / (PG * Hen+rho_mol_h2o);
+		//if ((1 - Sw)<(x_equili_m-X_m))
+			//dX_mdX = 1.0;
+		return dX_mdX;
+	}
+	/*
+	* Calculate the derivative using the analytical way
+	*/
+	const double Calculate_dX_mdP(double PG, double Sw, double X_m)
+	{
+		double dX_mdP(0.0);
+		dX_mdP = (rho_mol_h2o * Hen) / pow((PG * Hen + rho_mol_h2o), 2);
+		double const x_equili_m = PG * Hen / (PG * Hen + rho_mol_h2o);
+		//if ((1 - Sw)<(x_equili_m- X_m))
+			//dX_mdP = 0.0;
+		return dX_mdP;
+	}
 private:
 	EoS_IdealMix_Properties _eos_prop;
     double const Hen = 7.65e-6;  // mol/Pa./m3
@@ -113,6 +167,7 @@ private:
     * molar density of water
     */
     double const rho_mol_h2o = rho_mass_h20 / molar_mass_h2o;
+	double const R = MaterialLib::PhysicalConstant::IdealGasConstant;
 };
 
 

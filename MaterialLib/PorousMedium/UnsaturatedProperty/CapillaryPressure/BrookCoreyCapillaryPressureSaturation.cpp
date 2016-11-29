@@ -29,7 +29,10 @@ double BrookCoreyCapillaryPressureSaturation::getCapillaryPressure(
     const double pc = _pb * std::pow(Se, -1.0 / _mm);
     return MathLib::limitValueInInterval(pc, _minor_offset, _Pc_max);
 }
-
+double BrookCoreyCapillaryPressureSaturation::getRegularizedCapillaryPressure(const double saturation) const
+{
+	return 0.0;
+}
 double BrookCoreyCapillaryPressureSaturation::getSaturation(
     const double capillary_pressure) const
 {
@@ -50,5 +53,10 @@ double BrookCoreyCapillaryPressureSaturation::getdPcdS(
     return (_pb * val) / (_mm * (_Sr - S));
 }
 
+double BrookCoreyCapillaryPressureSaturation::getRegularizedPcdS(
+	const double saturation) const
+{
+	return 0.0;
+}
 }  // end namespace
 }  // end namespace

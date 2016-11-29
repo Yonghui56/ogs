@@ -64,13 +64,15 @@ public:
 
     /// Get capillary pressure.
     double getCapillaryPressure(const double saturation) const override;
-
+	/// Get capillary pressure.
+	double getRegularizedCapillaryPressure(const double saturation) const override;
     /// Get capillary pressure.
     double getSaturation(const double capillary_pressure) const override;
 
     /// Get the derivative of the capillary pressure with respect to saturation
     double getdPcdS(const double saturation) const override;
 
+	double getRegularizedPcdS(const double saturation) const override;
 private:
     const double _pb;      ///< Entry pressure.
     const double _Sr;      ///< Residual saturation.

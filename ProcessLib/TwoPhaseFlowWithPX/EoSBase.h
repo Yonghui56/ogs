@@ -39,7 +39,11 @@ public:
         double const PG,
 		double const X,
 		double& Sw,
-		double& X_m) = 0;
+		double& X_m,
+		double& dsw_dpg,
+		double& dsw_dX,
+		double& dxm_dpg,
+		double& dxm_dX) = 0;
 
     virtual ~EoSBase() = default;
 };

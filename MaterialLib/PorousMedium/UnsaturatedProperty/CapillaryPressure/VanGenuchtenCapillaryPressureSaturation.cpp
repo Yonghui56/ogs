@@ -30,6 +30,23 @@ double VanGenuchtenCapillaryPressureSaturation::getCapillaryPressure(
         _pb * std::pow(std::pow(Se, (-1.0 / _mm)) - 1.0, 1.0 - _mm);
     return MathLib::limitValueInInterval(pc, _minor_offset, _Pc_max);
 }
+double VanGenuchtenCapillaryPressureSaturation::getRegularizedCapillaryPressure(
+	const double saturation) const
+{
+	double Sg = 1 - saturation;
+	if (Sg <= 1- _Sr && Sg >= 0)
+	{
+		return getPc_bar_vG_Sg(Sg);
+	}
+	else if (Sg < 0.0)
+	{
+		return getPc_bar_vG_Sg(0.0) + get_dPCdS_vG_bar(0.0)*(Sg - 0.0);
+	}
+	else
+	{
+		return getPc_bar_vG_Sg(1 - _Sr) + get_dPCdS_vG_bar(1 - _Sr)*(Sg - 1 + _Sr);
+	}
+}
 
 double VanGenuchtenCapillaryPressureSaturation::getSaturation(
     const double capillary_pressure) const
@@ -52,6 +69,24 @@ double VanGenuchtenCapillaryPressureSaturation::getdPcdS(
     const double val2 = std::pow(val1 - 1.0, -_mm);
     return _pb * (_mm - 1.0) * val1 * val2 / (_mm * (S - _Sr));
 }
+
+double VanGenuchtenCapillaryPressureSaturation::getRegularizedPcdS(const double saturation) const
+{
+	double const Sg = 1 - saturation;
+	if (Sg >= 0.0 && Sg <= 1 - _Sr)
+	{
+		return -get_dPCdS_vG_bar(Sg);
+	}
+	else if (Sg < 0.0)
+	{
+		return -get_dPCdS_vG_bar(0.0);
+	}
+	else
+	{
+		return -get_dPCdS_vG_bar(1 - _Sr);
+	}
+}
+
 
 }  // end namespace
 }  // end namespace

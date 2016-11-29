@@ -22,7 +22,11 @@ bool EoS_IdealMix::computeConstitutiveRelation(
 	double const PG,
 	double const X,
 	double& Sw,
-	double& X_m)
+	double& X_m,
+	double& dsw_dpg,
+	double& dsw_dX,
+	double& dxm_dpg,
+	double& dxm_dX)
 {
     using LocalJacobianMatrix =
         Eigen::Matrix<double, 2, 2,
@@ -48,16 +52,16 @@ bool EoS_IdealMix::computeConstitutiveRelation(
             Eigen::Matrix<double, 2, 1>;
 		using LocalUnknownVector = Eigen::Matrix<double, 2, 1>;
         LocalJacobianMatrix J_loc;
-		LocalUnknownVector sec_var_unknown;
-		sec_var_unknown(0) = Sw;
-		sec_var_unknown(1) = X_m;
+		//LocalUnknownVector sec_var_unknown;
+		//sec_var_unknown(0) = Sw;
+		//sec_var_unknown(1) = X_m;
         auto const update_residual = [&](LocalResidualVector& residual) {
-            calculateResidual(PG, X, sec_var_unknown, residual);
+            calculateResidual(PG, X, Sw, X_m, residual);
         };
 
         auto const update_jacobian = [&](LocalJacobianMatrix& jacobian) {
             calculateJacobian(
-                t, x, PG,X,jacobian, sec_var_unknown);  // for solution dependent Jacobians
+                t, x, PG,X,jacobian, Sw, X_m);  // for solution dependent Jacobians
         };
 
         auto const update_solution = [&](LocalResidualVector const& increment) {
@@ -89,16 +93,17 @@ bool EoS_IdealMix::computeConstitutiveRelation(
         if (*success_iterations == 0)
             linear_solver.compute(J_loc);
     }
-
+	dsw_dpg = Calculate_dSwdP(PG, Sw, X_m);
+	dsw_dX = Calculate_dSwdX(PG, X, Sw,X_m);
+	dxm_dpg=Calculate_dX_mdP(PG, Sw, X_m);
+	dxm_dX = Calculate_dX_mdX(PG, Sw, X_m);
     return true;
 }
 
-void EoS_IdealMix::calculateResidual(double const PG, double const X, UnknownVector vec_unknown,
+void EoS_IdealMix::calculateResidual(double const PG, double const X, double Sw, double X_m,
 	ResidualVector& res)
 {
 	// getting unknowns
-	const double Sw = vec_unknown(0);
-	const double X_m = vec_unknown(1);
 	const double X_M = 1.0;
 
 	// calculating residual
@@ -109,18 +114,17 @@ void EoS_IdealMix::calculateResidual(double const PG, double const X, UnknownVec
 void EoS_IdealMix::calculateJacobian(double const t,
 	ProcessLib::SpatialPosition const& x,
 	double const PG, double const X,
-	JacobianMatrix& Jac, UnknownVector& vec_unknown)
+	JacobianMatrix& Jac, double Sw, double X_m)
 {
 	// getting unknowns
-	double Sw = vec_unknown(0);
-	double X_m = vec_unknown(1);
 	double X_M = 1.0;
-	double const x_equili_m = PG * Hen / rho_mol_h2o;
-	const double N_G = PG / 8.314 / 303.15;
+	double const x_equili_m = PG * Hen / (PG * Hen+rho_mol_h2o);
+	const double N_G = PG / R / 303.15;
 	const double N_L = rho_mol_h2o / (1 - X_m);
+	const double RT= R * 303.15;
 	// evaluate J
 	Jac.setZero();
-	if ((1 - Sw) < x_equili_m - X_m)
+	if ((1 - Sw) < (x_equili_m - X_m))
 	{
 		Jac(0, 0) = -1;
 		Jac(0, 1) = 0.0;
@@ -128,14 +132,18 @@ void EoS_IdealMix::calculateJacobian(double const t,
 	else
 	{
 		Jac(0, 0) = 0.0;
-		Jac(0, 1) = -PG * Hen / rho_mol_h2o - 1;
+		Jac(0, 1) = - 1;
 	}
-	Jac(1, 0) = ((-N_G * (X - X_M) + N_L * (X - X_m)) *
+	/*double test1 = ((-N_G * (X - X_M) + N_L * (X - X_m)) *
 		((1 - Sw) * N_G + Sw * N_L) -
 		((1 - Sw) * N_G * (X - X_M) + Sw * N_L * (X - X_m)) *
 		(N_G - N_L)) /
-		pow(((1 - Sw) * N_G + Sw * N_L), 2);
-	Jac(1, 1) = -Sw*N_L + Sw*(X - X_m)*rho_mol_h2o / std::pow(1 - X_m, 2);
+		pow(((1 - Sw) * N_G + Sw * N_L), 2);*/
+	//double test2 = (rho_mol_h2o* PG * RT*pow(-1 + X_m, 2)) / pow((rho_mol_h2o* RT * Sw + PG*(-1 + Sw) * (-1 + X_m)), 2);
+	Jac(1, 0) = (rho_mol_h2o* PG * RT*pow(-1 + X_m, 2)) / pow((rho_mol_h2o* RT * Sw + PG*(-1 + Sw) * (-1 + X_m)), 2);
+	//Jac(1, 1) = -Sw*N_L + Sw*(X - X_m)*rho_mol_h2o / std::pow(1 - X_m, 2);
+	Jac(1, 1) = -(pow(rho_mol_h2o, 2) * pow(RT, 2) * pow(Sw, 2)) / pow((rho_mol_h2o*RT*Sw + PG*(-1 + Sw) * (-1 + X_m)), 2);
+	//std::cout << Jac << std::endl;
 }
 
 }  // namespace Solids

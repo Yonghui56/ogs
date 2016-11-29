@@ -33,11 +33,15 @@ struct IntegrationPointData final
 
 	double _sw, _sw_pre;
 	double _x_m, _x_m_prev;
+	double _dsw_dpg;
+	double _dsw_dX;
+	double _dxm_dpg;
+	double _dxm_dX;
 
 	ProcessLib::TwoPhaseFlowWithPX::EoSBase& _EoS_material;
 
-	double _detJ;
-	double _integralMeasure;
+	//double _detJ;
+	//double _integralMeasure;
 	//copy the previous to current
 	void pushBackState()
 	{
@@ -99,13 +103,39 @@ public:
           _pressure_wetting(
               std::vector<double>(_integration_method.getNumberOfPoints()))
     {
+		unsigned const n_integration_points =
+			_integration_method.getNumberOfPoints();
+		_ip_data.reserve(n_integration_points);
+		for (unsigned ip = 0; ip < n_integration_points; ip++)
+		{
+			//initialize
+			_ip_data.emplace_back(*_process_data._eos);
+			_ip_data[ip]._sw = 1.0;
+			//_ip_data[ip]._sw_pre = 1.0;
+			_ip_data[ip]._x_m = 0.0;
+			//_ip_data[ip]._x_m_prev = 0.0;
+			_ip_data[ip]._dsw_dpg = 0.0;
+			_ip_data[ip]._dsw_dX = 0.0;
+			_ip_data[ip]._dxm_dpg = 0.0;
+			_ip_data[ip]._dxm_dX = 0.0;
+		}
     }
 
     void assemble(double const t, std::vector<double> const& local_x,
                   std::vector<double>& local_M_data,
                   std::vector<double>& local_K_data,
                   std::vector<double>& local_b_data) override;
+	void preIterationConcreteProcess(const unsigned /*iter*/,
+		GlobalVector const& /*x*/) override
+	{
+		unsigned const n_integration_points =
+			_integration_method.getNumberOfPoints();
 
+		for (unsigned ip = 0; ip < n_integration_points; ip++)
+		{
+			_ip_data[ip].pushBackState();
+		}
+	}
     Eigen::Map<const Eigen::RowVectorXd> getShapeMatrix(
         const unsigned integration_point) const override
     {
@@ -143,7 +173,7 @@ private:
 	const double molar_mass_h2o =
 		MaterialLib::PhysicalConstant::MolarMass::Water;
 	const double molar_mass_h2 = MaterialLib::PhysicalConstant::MolarMass::H2;
-	double _temperature = 293.15;
+	double _temperature = 303.15;
     std::vector<double> _saturation;
     std::vector<double> _pressure_wetting;
     static const int nonwet_pressure_coeff_index = 0;
