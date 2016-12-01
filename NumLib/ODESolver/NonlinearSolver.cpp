@@ -198,6 +198,7 @@ bool NonlinearSolver<NonlinearSolverTag::Newton>::solve(
     for (; iteration <= _maxiter;
          ++iteration, _convergence_criterion->reset())
     {
+		bool phase_change_index = false;
         BaseLib::RunTime time_iteration;
         time_iteration.start();
 
@@ -239,7 +240,24 @@ bool NonlinearSolver<NonlinearSolverTag::Newton>::solve(
 
             if (postIterationCallback)
                 postIterationCallback(iteration, x_new);
+			int n_nodes = x.size()/2;
+			for (int n = 0; n < n_nodes; n++) {
+				double const x_equili_pre = x[2 * n] * 7.65e-6 / (x[2 * n] * 7.65e-6 + 1000 / 0.018016);
+				double const x_equili_new = x_new[2 * n] * 7.65e-6 / (x_new[2 * n] * 7.65e-6 + 1000 / 0.018016);
+			if (x[2 * n + 1] <x_equili_pre
+				&& x_new[2 * n + 1] >x_equili_new) {
+			
+				x[2 * n + 1] = 1.01 * x_equili_pre;
+			    phase_change_index = true;
+			}
 
+			}
+			if (phase_change_index)
+			{
+			iteration--;
+			continue;
+			}
+			
             switch(sys.postIteration(x_new))
             {
                 case IterationResult::SUCCESS:
