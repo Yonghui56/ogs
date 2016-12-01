@@ -135,8 +135,8 @@ private:
 	{
 		double dX_mdX = 0.0;
 		double const x_equili_m = PG * Hen / (PG * Hen+rho_mol_h2o);
-		//if ((1 - Sw)<(x_equili_m-X_m))
-			//dX_mdX = 1.0;
+		if ((1 - Sw)<(x_equili_m-X_m))
+			dX_mdX = 1.0;
 		return dX_mdX;
 	}
 	/*
@@ -147,8 +147,8 @@ private:
 		double dX_mdP(0.0);
 		dX_mdP = (rho_mol_h2o * Hen) / pow((PG * Hen + rho_mol_h2o), 2);
 		double const x_equili_m = PG * Hen / (PG * Hen + rho_mol_h2o);
-		//if ((1 - Sw)<(x_equili_m- X_m))
-			//dX_mdP = 0.0;
+		if ((1 - Sw)<(x_equili_m- X_m))
+			dX_mdP = 0.0;
 		return dX_mdP;
 	}
 private:

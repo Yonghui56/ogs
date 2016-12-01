@@ -58,6 +58,9 @@ void TwoPhaseFlowWithPXLocalAssembler<
     NodalMatrixType laplace_operator;
     laplace_operator.setZero(ShapeFunction::NPOINTS, ShapeFunction::NPOINTS);
 
+	//NodalMatrixType laplace_diffusion_operator;
+	//laplace_diffusion_operator.setZero(ShapeFunction::NPOINTS, ShapeFunction::NPOINTS);
+
     auto Kgp =
         local_K.template block<nonwet_pressure_size, nonwet_pressure_size>(
             nonwet_pressure_matrix_index, nonwet_pressure_matrix_index);
@@ -135,11 +138,11 @@ void TwoPhaseFlowWithPXLocalAssembler<
                 dXh2wet_dpg,
                 dXh2wet_dX))
             OGS_FATAL("Computation of local constitutive relation failed.");
-		double const pc =
-			_process_data._material->getCapillaryPressure(t, pos, pg_int_pt, _temperature, Sw);
-        /*double const pc =
+		/*double const pc =
+			_process_data._material->getCapillaryPressure(t, pos, pg_int_pt, _temperature, Sw);*/
+        double const pc =
             _process_data._material->getRegularizedCapillaryPressure(
-                t, pos, pg_int_pt, _temperature, Sw);*/
+                t, pos, pg_int_pt, _temperature, Sw);
         _saturation[ip] = Sw;  // there is no need
         _pressure_wetting[ip] = pg_int_pt - pc;
         double const rho_mol_wet = rho_mol_w_std / (1 - X_h2_wet);
@@ -166,6 +169,27 @@ void TwoPhaseFlowWithPXLocalAssembler<
             t, pos, pg_int_pt, _temperature, 0);
         mass_operator.noalias() = sm.N.transpose() * sm.N * integration_factor;
         // X*(N_G*(1-Sw)+N_L*Sw)
+		/*double const mgp_coeff = porosity *
+			(totalX_int_pt *
+			(-dSwdP_gp * rho_mol_nonwet + (1 - Sw) * drhomolnonwet_dpg +
+				Sw * drhomolwet_dpg + dSwdP_gp * rho_mol_wet));
+		double const mgx_coeff = porosity *
+			((1 - Sw) * rho_mol_nonwet + Sw * rho_mol_wet +
+				totalX_int_pt *
+				((1 - Sw) * drhomolnonwet_dX - rho_mol_nonwet * dSwdX_gp +
+					Sw * drhomolwet_dX + dSwdX_gp * rho_mol_wet));
+		double const mlp_coeff = porosity *
+			((1 - totalX_int_pt) *
+			(-dSwdP_gp * rho_mol_nonwet + (1 - Sw) * drhomolnonwet_dpg +
+				Sw * drhomolwet_dpg + dSwdP_gp * rho_mol_wet));
+		double const mlx_coeff = porosity* (-((1 - Sw) * rho_mol_nonwet + Sw * rho_mol_wet) +
+			(1 - totalX_int_pt) *
+			((1 - Sw) * drhomolnonwet_dX - rho_mol_nonwet * dSwdX_gp +
+				Sw * drhomolwet_dX + dSwdX_gp * rho_mol_wet));
+		std::cout << mgp_coeff << std::endl;
+		std::cout << mgx_coeff << std::endl;
+		std::cout << mlp_coeff << std::endl;
+		std::cout << mlx_coeff << std::endl;*/
         Mgp.noalias() +=
             porosity *
             (totalX_int_pt *
@@ -193,16 +217,11 @@ void TwoPhaseFlowWithPXLocalAssembler<
                  ((1 - Sw) * drhomolnonwet_dX - rho_mol_nonwet * dSwdX_gp +
                   Sw * drhomolwet_dX + dSwdX_gp * rho_mol_wet)) *
             mass_operator;
-		/*std::cout << Mgp << std::endl;
-		std::cout << Mgx << std::endl;
-		std::cout << Mlp << std::endl;
-		std::cout << Mlx << std::endl;*/
-        // Assemble M matrix
-        // nonwet
+
         double const k_rel_G =
             _process_data._material->getNonwetRelativePermeability(
                 t, pos, pg_int_pt, _temperature,
-                Sw);  //->_nonwet_relative_permeability_models[0]->getValue(Sw);
+                Sw);  
         double const mu_gas =
             _process_data._material->getGasViscosity(pg_int_pt, _temperature);
         double const lambda_G = k_rel_G / mu_gas;
@@ -221,28 +240,48 @@ void TwoPhaseFlowWithPXLocalAssembler<
 
         laplace_operator.noalias() =
             sm.dNdx.transpose() * permeability * sm.dNdx * integration_factor;
-        // N_L*X_L^h*K*lambda_L*(PG-PC)+N_G*X_G^h*K*lambda_G+poro*Sw*D_L^h*d(X_L^h*N_L)
-        Kgp.noalias() +=
-            (rho_mol_nonwet * X_h2_nonwet * lambda_G +
-             rho_mol_wet * X_h2_wet * lambda_L * (1 - dPC_dSw_gp * dSwdP_gp) +
-             rho_mol_wet * Sw * porosity * diffusion_coeff_componenth2 *
-                 dXh2wet_dpg) *
-            laplace_operator;
+		// N_L*X_L^h*K*lambda_L*(PG-PC)+N_G*X_G^h*K*lambda_G+poro*Sw*D_L^h*d(X_L^h*N_L)
+		/*double const kgp_coeff = (rho_mol_nonwet * X_h2_nonwet * lambda_G +
+			rho_mol_wet * X_h2_wet * lambda_L * (1 - dPC_dSw_gp * dSwdP_gp))*5e-20
+			+ (rho_mol_wet * Sw * porosity * diffusion_coeff_componenth2 *
+				dXh2wet_dpg);
+		double const Kgx_coeff = (-rho_mol_wet * X_h2_wet * lambda_L * dPC_dSw_gp * dSwdX_gp) * 5e-20
+			+ (rho_mol_wet * Sw * porosity * diffusion_coeff_componenth2 *
+				dXh2wet_dX);
+		double const Klp_coeff = (rho_mol_nonwet * (1 - X_h2_nonwet) * lambda_G +
+			rho_mol_w_std * lambda_L * (1 - dPC_dSw_gp * dSwdP_gp)) *5e-20
+			+ (-rho_mol_wet * Sw * porosity * diffusion_coeff_componenth2 *
+				dXh2wet_dpg);
+		double const Klx_coeff = (-rho_mol_w_std * lambda_L * dPC_dSw_gp * dSwdX_gp)*5e-20
+			+ (-
+				rho_mol_wet * Sw * porosity *
+				diffusion_coeff_componenth2 * dXh2wet_dX);
+		std::cout << kgp_coeff << std::endl;
+		std::cout << Kgx_coeff << std::endl;
+		std::cout << Klp_coeff << std::endl;
+		std::cout << Klx_coeff << std::endl;*/
+		Kgp.noalias() +=
+			(rho_mol_nonwet * X_h2_nonwet * lambda_G +
+				rho_mol_wet * X_h2_wet * lambda_L * (1 - dPC_dSw_gp * dSwdP_gp)) *
+			laplace_operator +
+			(rho_mol_wet * Sw * porosity * diffusion_coeff_componenth2 *
+				dXh2wet_dpg)*sm.dNdx.transpose() * sm.dNdx * integration_factor;
         Kgx.noalias() +=
-            (-rho_mol_wet * X_h2_wet * lambda_L * dPC_dSw_gp * dSwdX_gp +
-             rho_mol_wet * Sw * porosity * diffusion_coeff_componenth2 *
-                 dXh2wet_dX) *
-            laplace_operator;
+            (-rho_mol_wet * X_h2_wet * lambda_L * dPC_dSw_gp * dSwdX_gp ) *
+            laplace_operator +
+			(rho_mol_wet * Sw * porosity * diffusion_coeff_componenth2 *
+			dXh2wet_dX) * sm.dNdx.transpose() * sm.dNdx * integration_factor;
         Klp.noalias() +=
             (rho_mol_nonwet * (1 - X_h2_nonwet) * lambda_G +
-             rho_mol_w_std * lambda_L * (1 - dPC_dSw_gp * dSwdP_gp) -
-             rho_mol_wet * Sw * porosity * diffusion_coeff_componenth2 *
-                 dXh2wet_dpg) *
-            laplace_operator;
-        Klx.noalias() += (-rho_mol_w_std * lambda_L * dPC_dSw_gp * dSwdX_gp -
-                          rho_mol_wet * Sw * porosity *
-                              diffusion_coeff_componenth2 * dXh2wet_dX) *
-                         laplace_operator;
+             rho_mol_w_std * lambda_L * (1 - dPC_dSw_gp * dSwdP_gp)) *
+            laplace_operator + (-
+			rho_mol_wet * Sw * porosity * diffusion_coeff_componenth2 *
+			dXh2wet_dpg) * sm.dNdx.transpose() * sm.dNdx * integration_factor;
+
+        Klx.noalias() += (-rho_mol_w_std * lambda_L * dPC_dSw_gp * dSwdX_gp) *
+                         laplace_operator + (-
+							 rho_mol_wet * Sw * porosity *
+							 diffusion_coeff_componenth2 * dXh2wet_dX) * sm.dNdx.transpose() * sm.dNdx * integration_factor;
 
         double const rho_mass_wet =
             rho_mol_wet *
