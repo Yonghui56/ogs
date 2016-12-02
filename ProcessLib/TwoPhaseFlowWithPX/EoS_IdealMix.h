@@ -120,13 +120,18 @@ private:
 	const double Calculate_dSwdX(double PG, double X, double S,double X_m,
 		double T = 303.15)
 	{
+		double const rho_mol_G = PG / R / T;
+		double const rho_mol_L = rho_mol_h2o / (1 - X_m);
 		double const x_equili_m = PG * Hen / (PG * Hen + rho_mol_h2o);
 		if ((1 - S) < (x_equili_m - X_m))
 		{
 			return 0.0;
 		}
 		else
-		return -pow((PG + (rho_mol_h2o * R * T + PG * (-1 + Hen * R * T)) * S), 2) / (rho_mol_h2o * PG * R* T);
+		double test1=-pow((PG + (rho_mol_h2o * R * T + PG * (-1 + Hen * R * T)) * S), 2) / (rho_mol_h2o * PG * R* T);
+		double test2=pow(rho_mol_G*(1 - S) + S*rho_mol_L, 2)
+			/ ((rho_mol_L*X_m - rho_mol_G)*(rho_mol_G*(1 - S) + rho_mol_L*S) - (rho_mol_G*(1 - S) + rho_mol_L*S*X_m)*(rho_mol_L - rho_mol_G));
+		return test2;
 	}
 	/*
 	* Calculate the derivative using the analytical way

@@ -158,10 +158,11 @@ void TwoPhaseFlowWithPXLocalAssembler<
         double const drhomolnonwet_dX = 0.0;                           // TODO
         double const dXh2nonwet_dpg = 0.0;                             // TODO
         double const dXh2nonwet_dX = 0.0;                              // TODO
-		/*double const dPC_dSw_gp =
+		/*double dPC_dSw_gp =
         _process_data._material->getDerivCapillaryPressure(t, pos, pg_int_pt,
          _temperature, Sw);*/
-        double const dPC_dSw_gp =
+		
+        double dPC_dSw_gp =
             _process_data._material->getRegularizedDerivCapillaryPressure(
                 t, pos, pg_int_pt, _temperature, Sw);
 
@@ -217,7 +218,33 @@ void TwoPhaseFlowWithPXLocalAssembler<
                  ((1 - Sw) * drhomolnonwet_dX - rho_mol_nonwet * dSwdX_gp +
                   Sw * drhomolwet_dX + dSwdX_gp * rho_mol_wet)) *
             mass_operator;
-
+		/*Mgp.noalias() +=
+			porosity *
+			(totalX_int_pt *
+			(-0.0 * rho_mol_nonwet + (1 - Sw) * drhomolnonwet_dpg +
+				Sw * drhomolwet_dpg + 0.0 * rho_mol_wet)) *
+			mass_operator;
+		Mgx.noalias() +=
+			porosity *
+			((1 - Sw) * rho_mol_nonwet + Sw * rho_mol_wet +
+				totalX_int_pt *
+				((1 - Sw) * drhomolnonwet_dX - rho_mol_nonwet * 0.0 +
+					Sw * drhomolwet_dX + 0.0 * rho_mol_wet)) *
+			mass_operator;
+		//(1-X)*(N_G*(1-Sw)+N_L*Sw)
+		Mlp.noalias() +=
+			porosity *
+			((1 - totalX_int_pt) *
+			(-0.0 * rho_mol_nonwet + (1 - Sw) * drhomolnonwet_dpg +
+				Sw * drhomolwet_dpg + 0.0 * rho_mol_wet)) *
+			mass_operator;
+		Mlx.noalias() +=
+			porosity *
+			(-((1 - Sw) * rho_mol_nonwet + Sw * rho_mol_wet) +
+			(1 - totalX_int_pt) *
+				((1 - Sw) * drhomolnonwet_dX - rho_mol_nonwet * 0.0 +
+					Sw * drhomolwet_dX + 0.0 * rho_mol_wet)) *
+			mass_operator;*/
         double const k_rel_G =
             _process_data._material->getNonwetRelativePermeability(
                 t, pos, pg_int_pt, _temperature,
