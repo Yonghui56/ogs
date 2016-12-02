@@ -106,13 +106,23 @@ private:
 	const double Calculate_dSwdP(double PG, double S, double X_m,
 		double T = 303.15)
 	{
+		double const dNG_dPG = 1 / R / T;
+		double const dXm_dPG = (rho_mol_h2o * Hen) / pow((PG * Hen + rho_mol_h2o), 2);
+		double const dNL_dPG = rho_mol_h2o * dXm_dPG / pow(-1 + X_m, 2);
+		double const rho_mol_G = PG / R / T;
+		double const rho_mol_L = rho_mol_h2o / (1 - X_m);
+		double const A = rho_mol_G*(1 - S) + S*rho_mol_L*X_m;
+		double const B = rho_mol_G*(1 - S) + S*rho_mol_L;
 		double const x_equili_m = PG * Hen / (PG * Hen + rho_mol_h2o);
 		if ((1 - S) < (x_equili_m - X_m))
 		{
 			return 0.0;
 		}
-		else
-		return (S * (1 + (-1 + Hen * R * T) * S)) / PG;
+		else {
+			//double const test1 = (S * (1 + (-1 + Hen * R * T) * S)) / PG;
+			//double const test2 = S*(dNG_dPG*(1 - S) + S*dNL_dPG) / rho_mol_G;
+			return (S * (1 + (-1 + Hen * R * T) * S)) / PG;
+		}
 	}
 	/*
 	* Calculate the derivative using the analytical way
@@ -127,11 +137,12 @@ private:
 		{
 			return 0.0;
 		}
-		else
-		double test1=-pow((PG + (rho_mol_h2o * R * T + PG * (-1 + Hen * R * T)) * S), 2) / (rho_mol_h2o * PG * R* T);
-		double test2=pow(rho_mol_G*(1 - S) + S*rho_mol_L, 2)
-			/ ((rho_mol_L*X_m - rho_mol_G)*(rho_mol_G*(1 - S) + rho_mol_L*S) - (rho_mol_G*(1 - S) + rho_mol_L*S*X_m)*(rho_mol_L - rho_mol_G));
-		return test2;
+		else{
+		//double test1=-pow((PG + (rho_mol_h2o * R * T + PG * (-1 + Hen * R * T)) * S), 2) / (rho_mol_h2o * PG * R* T);
+		//double test2=pow(rho_mol_G*(1 - S) + S*rho_mol_L, 2)
+		//	/ ((rho_mol_L*X_m - rho_mol_G)*(rho_mol_G*(1 - S) + rho_mol_L*S) - (rho_mol_G*(1 - S) + rho_mol_L*S*X_m)*(rho_mol_L - rho_mol_G));
+		return -pow((PG + (rho_mol_h2o * R * T + PG * (-1 + Hen * R * T)) * S), 2) / (rho_mol_h2o * PG * R* T);
+		}
 	}
 	/*
 	* Calculate the derivative using the analytical way
