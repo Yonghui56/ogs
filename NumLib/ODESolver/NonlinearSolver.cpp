@@ -241,7 +241,7 @@ bool NonlinearSolver<NonlinearSolverTag::Newton>::solve(
             if (postIterationCallback)
                 postIterationCallback(iteration, x_new);
 
-			int n_nodes = x.size() / 2;
+			/*int n_nodes = x.size() / 2;
 			for (int n = 0; n < n_nodes; n++) {
 				double const rho_equili_pre = x[2 * n] * 7.65e-6 *0.002;
 				double const rho_equili_new = x_new[2 * n] * 7.65e-6 *0.002;
@@ -257,7 +257,7 @@ bool NonlinearSolver<NonlinearSolverTag::Newton>::solve(
 			{
 				iteration--;
 				continue;
-			}
+			}*/
             switch(sys.postIteration(x_new))
             {
                 case IterationResult::SUCCESS:
