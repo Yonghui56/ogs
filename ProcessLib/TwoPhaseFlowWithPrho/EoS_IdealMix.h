@@ -15,7 +15,7 @@
 #include "BaseLib/Error.h"
 #include "EoSBase.h"
 #include "MaterialLib/PhysicalConstant.h"
-
+#include "TwoPhaseFlowWithPrhoProcessData.h"
 namespace ProcessLib
 {
     class SpatialPosition;
@@ -84,7 +84,7 @@ private:
     * for calculating molar fraction of light component in the liquid phase
     */
     const double Calc_equili_rho_m(double const PG, double const Sw, double const rho_h2_wet)
-    {	
+    {	 
         double const rho_equili_h2_wet = PG * Hen * molar_mass_h2;
         return std::min(1 - Sw, rho_equili_h2_wet - rho_h2_wet);
     }

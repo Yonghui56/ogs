@@ -22,12 +22,12 @@
 #include "ProcessLib/Utils/InitShapeMatrices.h"
 
 #include "TwoPhaseFlowWithPrhoProcessData.h"
-#include "EoSBase.h"
+//#include "EoSBase.h"
 struct IntegrationPointData final
 {
 	explicit IntegrationPointData(
-		ProcessLib::TwoPhaseFlowWithPrho::EoSBase& EoS_material)
-		: _EoS_material(EoS_material)
+		ProcessLib::TwoPhaseFlowWithPrho::TwoPhaseFlowWithPrhoMaterialProperties& material_property)
+		: _mat_property(material_property)
 	{
 	}
 
@@ -38,8 +38,8 @@ struct IntegrationPointData final
 	double _drhom_dpg;
 	double _drhom_drho;
 
-	ProcessLib::TwoPhaseFlowWithPrho::EoSBase& _EoS_material;
-
+	//ProcessLib::TwoPhaseFlowWithPrho::EoSBase& _EoS_material;
+	ProcessLib::TwoPhaseFlowWithPrho::TwoPhaseFlowWithPrhoMaterialProperties& _mat_property;
 	//double _detJ;
 	//double _integralMeasure;
 	//copy the previous to current
@@ -109,7 +109,7 @@ public:
 		for (unsigned ip = 0; ip < n_integration_points; ip++)
 		{
 			//initialize
-			_ip_data.emplace_back(*_process_data._eos);
+			_ip_data.emplace_back(*_process_data._material);
 			_ip_data[ip]._sw = 1.0;
 			//_ip_data[ip]._sw_pre = 1.0;
 			_ip_data[ip]._rho_m = 0.0;

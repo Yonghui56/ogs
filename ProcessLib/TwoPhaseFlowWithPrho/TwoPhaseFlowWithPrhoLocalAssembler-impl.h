@@ -104,17 +104,16 @@ void TwoPhaseFlowWithPrhoLocalAssembler<
     {
         auto const& sm = _shape_matrices[ip];
 
-        double pg_int_pt = 0.;
+        double pl_int_pt = 0.;
         double totalrho_int_pt = 0.;  // total mass density of the light component
-        NumLib::shapeFunctionInterpolate(local_x, sm.N, pg_int_pt,
+        NumLib::shapeFunctionInterpolate(local_x, sm.N, pl_int_pt,
                                          totalrho_int_pt);
-
         auto const& wp = _integration_method.getWeightedPoint(ip);
         const double integration_factor =
             sm.integralMeasure * sm.detJ * wp.getWeight();
 
         double const rho_gas =
-            _process_data._material->getGasDensity(pg_int_pt, _temperature);
+            _process_data._material->getGasDensity(pl_int_pt, _temperature);
         double const rho_h2o = _process_data._material->getLiquidDensity(
             _pressure_wetting[ip], _temperature);
 
@@ -123,47 +122,45 @@ void TwoPhaseFlowWithPrhoLocalAssembler<
         double& rho_h2_wet = _ip_data[ip]._rho_m;  // TODO
         double& dSwdP_gp = _ip_data[ip]._dsw_dpg;
 		double& dSwdrho_gp = _ip_data[ip]._dsw_drho;
-        double& drhoh2wet_dpg = _ip_data[ip]._drhom_dpg;
+        double& drhoh2wet_dp = _ip_data[ip]._drhom_dpg;
         double& drhoh2wet_drho = _ip_data[ip]._drhom_drho;
-        if (!_ip_data[ip]._EoS_material.computeConstitutiveRelation(
-                t,
-                pos,
-                pg_int_pt,
-                totalrho_int_pt,
-                Sw,
-                rho_h2_wet,
-                dSwdP_gp,
-                dSwdrho_gp,
-                drhoh2wet_dpg,
-                drhoh2wet_drho))
-            OGS_FATAL("Computation of local constitutive relation failed.");
-		if (Sw < 1.0)
-			Sw = Sw;
+		if (!_ip_data[ip]._mat_property.computeConstitutiveRelation(
+			t,
+			pos,
+			pl_int_pt,
+			totalrho_int_pt,
+			Sw,
+			rho_h2_wet,
+			dSwdP_gp,
+			dSwdrho_gp,
+			drhoh2wet_dp,
+			drhoh2wet_drho))
+			OGS_FATAL("Computation of local constitutive relation failed.");
         double const pc =
-            _process_data._material->getCapillaryPressure(t, pos, pg_int_pt,
+            _process_data._material->getCapillaryPressure(t, pos, pl_int_pt,
            _temperature, Sw);
 		double const rho_wet = rho_h2o + rho_h2_wet;
         /*double const pc =
             _process_data._material->getRegularizedCapillaryPressure(
-                t, pos, pg_int_pt, _temperature, Sw);*/
+                t, pos, pl_int_pt, _temperature, Sw);*/
         _saturation[ip] = Sw;  // there is no need
-        _pressure_wetting[ip] = pg_int_pt - pc;
+        _pressure_wetting[ip] = pl_int_pt - pc;
 
         // Assemble M matrix
         // nonwetting
         double const drhogas_dpg = _process_data._material->getDerivGasDensity(
-            pg_int_pt, _temperature);
+            pl_int_pt, _temperature);
 
         double dPC_dSw_gp =
             _process_data._material->getDerivCapillaryPressure(
-                t, pos, pg_int_pt, _temperature, Sw);
+                t, pos, pl_int_pt, _temperature, Sw);
 
         /*double dPC_dSw_gp =
             _process_data._material->getRegularizedDerivCapillaryPressure(
-                t, pos, pg_int_pt, _temperature, Sw);*/
+                t, pos, pl_int_pt, _temperature, Sw);*/
 
         double const porosity = _process_data._material->getPorosity(
-            t, pos, pg_int_pt, _temperature, 0);
+            t, pos, pl_int_pt, _temperature, 0);
         mass_operator.noalias() = sm.N.transpose() * sm.N * integration_factor;
        
         Mgx.noalias() +=
@@ -176,9 +173,9 @@ void TwoPhaseFlowWithPrhoLocalAssembler<
 
         double const k_rel_G =
             _process_data._material->getNonwetRelativePermeability(
-                t, pos, pg_int_pt, _temperature, Sw);
+                t, pos, pl_int_pt, _temperature, Sw);
         double const mu_gas =
-            _process_data._material->getGasViscosity(pg_int_pt, _temperature);
+            _process_data._material->getGasViscosity(pl_int_pt, _temperature);
         double const lambda_G = k_rel_G / mu_gas;
         double const diffusion_coeff_componenth2 =
             _process_data._diffusion_coeff_componentb(t, pos)[0];
@@ -187,7 +184,7 @@ void TwoPhaseFlowWithPrhoLocalAssembler<
         // wet
         double const k_rel_L =
             _process_data._material->getWetRelativePermeability(
-                t, pos, pg_int_pt, _temperature,
+                t, pos, pl_int_pt, _temperature,
                 Sw);  // interpolated_Kr_wet.getValue(Sw);
         double const mu_liquid = _process_data._material->getLiquidViscosity(
             _pressure_wetting[ip], _temperature);
@@ -197,25 +194,25 @@ void TwoPhaseFlowWithPrhoLocalAssembler<
             sm.dNdx.transpose() * permeability * sm.dNdx * integration_factor;
 
         Kgp.noalias() +=
-            (rho_gas * X_h2_nonwet * lambda_G +
-             rho_h2_wet * lambda_L * (1 - dPC_dSw_gp * dSwdP_gp)) *
+            (rho_gas * X_h2_nonwet * lambda_G *(1+ dPC_dSw_gp * dSwdP_gp)+
+             rho_h2_wet * lambda_L ) *
                 laplace_operator +
             (Sw * porosity * diffusion_coeff_componenth2 * (rho_h2o/rho_wet) *
-             drhoh2wet_dpg )*
+             drhoh2wet_dp )*
                 sm.dNdx.transpose() * sm.dNdx * integration_factor;
         Kgx.noalias() +=
-            (-rho_h2_wet * lambda_L * dPC_dSw_gp * dSwdrho_gp) *
+            (rho_gas * X_h2_nonwet * lambda_G * dPC_dSw_gp * dSwdrho_gp) *
                 laplace_operator +
 			(Sw * porosity * diffusion_coeff_componenth2 * (rho_h2o / rho_wet) * 
 				drhoh2wet_drho )*
 				sm.dNdx.transpose() * sm.dNdx * integration_factor;
 		Klp.noalias() +=
-			(rho_gas * lambda_G +
-				rho_wet * lambda_L * (1 - dPC_dSw_gp * dSwdP_gp)) *
+			(rho_gas * lambda_G * (1+ dPC_dSw_gp * dSwdP_gp) +
+				rho_wet * lambda_L) *
 			laplace_operator;
 
 		Klx.noalias() +=
-			(-rho_wet * lambda_L * dPC_dSw_gp * dSwdrho_gp) *
+			(rho_gas * lambda_G  * dPC_dSw_gp * dSwdrho_gp) *
 			laplace_operator;
 
         // rho_mol_nonwet * ((1 - x_h2o_in_nonwet) * molar_mass_co2 +
