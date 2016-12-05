@@ -117,7 +117,7 @@ private:
     const unsigned _maxiter;  //!< maximum number of iterations
 
     double const _alpha =
-        1;  //!< Damping factor. \todo Add constructor parameter.
+        1.;  //!< Damping factor. \todo Add constructor parameter.
 
     std::size_t _res_id = 0u;            //!< ID of the residual vector.
     std::size_t _J_id = 0u;              //!< ID of the Jacobian matrix.
