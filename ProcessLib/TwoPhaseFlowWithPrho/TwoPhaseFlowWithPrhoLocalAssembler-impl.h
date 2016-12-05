@@ -108,6 +108,7 @@ void TwoPhaseFlowWithPrhoLocalAssembler<
         double totalrho_int_pt = 0.;  // total mass density of the light component
         NumLib::shapeFunctionInterpolate(local_x, sm.N, pl_int_pt,
                                          totalrho_int_pt);
+
         auto const& wp = _integration_method.getWeightedPoint(ip);
         const double integration_factor =
             sm.integralMeasure * sm.detJ * wp.getWeight();
@@ -170,7 +171,6 @@ void TwoPhaseFlowWithPrhoLocalAssembler<
 		Mlp.noalias() += porosity*rho_h2o*dSwdP_gp*mass_operator;
 
 		Mlx.noalias() += porosity*(1 + dSwdrho_gp*rho_h2o) * mass_operator;
-
         double const k_rel_G =
             _process_data._material->getNonwetRelativePermeability(
                 t, pos, pl_int_pt, _temperature, Sw);
@@ -192,7 +192,15 @@ void TwoPhaseFlowWithPrhoLocalAssembler<
 
         laplace_operator.noalias() =
             sm.dNdx.transpose() * permeability * sm.dNdx * integration_factor;
-
+		double const test1 = (rho_gas * X_h2_nonwet * lambda_G *(1 + dPC_dSw_gp * dSwdP_gp) +
+			rho_h2_wet * lambda_L)*5e-20 + (Sw * porosity * diffusion_coeff_componenth2 * (rho_h2o / rho_wet) *
+				drhoh2wet_dp);
+		double const test2 = (rho_gas * X_h2_nonwet * lambda_G * dPC_dSw_gp * dSwdrho_gp)*5e-20
+			+ (Sw * porosity * diffusion_coeff_componenth2 * (rho_h2o / rho_wet) *
+				drhoh2wet_drho);
+		double const test3 = (rho_gas * lambda_G * (1 + dPC_dSw_gp * dSwdP_gp) +
+			rho_wet * lambda_L)*5e-20;
+		double const test4= (rho_gas * lambda_G  * dPC_dSw_gp * dSwdrho_gp)*5e-20;
         Kgp.noalias() +=
             (rho_gas * X_h2_nonwet * lambda_G *(1+ dPC_dSw_gp * dSwdP_gp)+
              rho_h2_wet * lambda_L ) *

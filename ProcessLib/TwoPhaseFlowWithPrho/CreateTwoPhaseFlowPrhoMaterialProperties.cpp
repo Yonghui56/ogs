@@ -146,6 +146,7 @@ CreateTwoPhaseFlowPrhoMaterialProperties(
             _wet_relative_permeability_models.emplace_back(std::move(krel_w));
             */
         }
+		BaseLib::reorderVector(_nonwet_relative_permeability_models, mat_krel_ids);
     }
 
     BaseLib::reorderVector(_intrinsic_permeability_models, mat_ids);
