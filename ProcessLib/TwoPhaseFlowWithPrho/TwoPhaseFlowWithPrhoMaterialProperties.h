@@ -83,7 +83,13 @@ namespace ProcessLib
 			double getCapillaryPressure(const double t, const ProcessLib::SpatialPosition& pos,
 				const double p, const double T,
 				const double saturation) const;
+			double getRegularizedCapillaryPressure(const double t, const ProcessLib::SpatialPosition& pos,
+				const double p, const double T,
+				const double saturation) const;
 			double getDerivCapillaryPressure(const double t, const ProcessLib::SpatialPosition& pos,
+				const double p, const double T,
+				const double saturation) const;
+			double getRegularizedDerivCapillaryPressure(const double t, const ProcessLib::SpatialPosition& pos,
 				const double p, const double T,
 				const double saturation) const;
 			double getLiquidDensity(const double p, const double T) const;

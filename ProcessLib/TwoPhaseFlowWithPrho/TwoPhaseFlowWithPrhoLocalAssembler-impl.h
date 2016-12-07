@@ -108,7 +108,6 @@ void TwoPhaseFlowWithPrhoLocalAssembler<
         double totalrho_int_pt = 0.;  // total mass density of the light component
         NumLib::shapeFunctionInterpolate(local_x, sm.N, pg_int_pt,
                                          totalrho_int_pt);
-
         auto const& wp = _integration_method.getWeightedPoint(ip);
         const double integration_factor =
             sm.integralMeasure * sm.detJ * wp.getWeight();
@@ -137,11 +136,12 @@ void TwoPhaseFlowWithPrhoLocalAssembler<
                 drhoh2wet_dpg,
                 drhoh2wet_drho))
             OGS_FATAL("Computation of local constitutive relation failed.");
-		if (Sw < 1.0)
-			Sw = Sw;
-        double const pc =
+        /*double const pc =
             _process_data._material->getCapillaryPressure(t, pos, pg_int_pt,
-           _temperature, Sw);
+           _temperature, Sw);*/
+		double const pc =
+			_process_data._material->getRegularizedCapillaryPressure(t, pos, pg_int_pt,
+				_temperature, Sw);
 		double const rho_wet = rho_h2o + rho_h2_wet;
         /*double const pc =
             _process_data._material->getRegularizedCapillaryPressure(
@@ -154,13 +154,13 @@ void TwoPhaseFlowWithPrhoLocalAssembler<
         double const drhogas_dpg = _process_data._material->getDerivGasDensity(
             pg_int_pt, _temperature);
 
-        double dPC_dSw_gp =
-            _process_data._material->getDerivCapillaryPressure(
-                t, pos, pg_int_pt, _temperature, Sw);
-
         /*double dPC_dSw_gp =
-            _process_data._material->getRegularizedDerivCapillaryPressure(
+            _process_data._material->getDerivCapillaryPressure(
                 t, pos, pg_int_pt, _temperature, Sw);*/
+
+        double dPC_dSw_gp =
+            _process_data._material->getRegularizedDerivCapillaryPressure(
+                t, pos, pg_int_pt, _temperature, Sw);
 
         double const porosity = _process_data._material->getPorosity(
             t, pos, pg_int_pt, _temperature, 0);

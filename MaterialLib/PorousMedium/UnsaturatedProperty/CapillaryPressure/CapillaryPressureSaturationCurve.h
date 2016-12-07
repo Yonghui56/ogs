@@ -53,7 +53,15 @@ public:
 
         return _curve_data->getValue(S);
     }
+	double getRegularizedCapillaryPressure(
+		const double saturation) const
+	{
+		const double S = MathLib::limitValueInInterval(
+			saturation, _saturation_r + _minor_offset,
+			_saturation_max - _minor_offset);
 
+		return _curve_data->getValue(S);
+	}
     /// Get saturation.
     double getSaturation(const double capillary_pressure) const override
     {
@@ -71,7 +79,15 @@ public:
 
         return _curve_data->getDerivative(S);
     }
+	double getRegularizedPcdS(
+		const double saturation) const
+	{
+		const double S = MathLib::limitValueInInterval(
+			saturation, _saturation_r + _minor_offset,
+			_saturation_max - _minor_offset);
 
+		return _curve_data->getDerivative(S);
+	}
 private:
     std::unique_ptr<MathLib::PiecewiseLinearMonotonicCurve> _curve_data;
 };
