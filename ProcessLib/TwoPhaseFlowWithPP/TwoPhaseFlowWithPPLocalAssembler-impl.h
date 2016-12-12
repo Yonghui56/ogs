@@ -100,7 +100,6 @@ void TwoPhaseFlowWithPPLocalAssembler<
         double pc_int_pt = 0.;
         double pg_int_pt = 0.;
         NumLib::shapeFunctionInterpolate(local_x, sm.N, pg_int_pt, pc_int_pt);
-
         // TODO : compute _temperature from the heat transport pcs
         double const pl = pg_int_pt - pc_int_pt;
         _pressure_wetting[ip] = pl;
@@ -128,25 +127,13 @@ void TwoPhaseFlowWithPPLocalAssembler<
         // comparison with reading curve
         double const rho_nonwet =
             interpolated_rho_co2_nonwet.getValue(pg_int_pt);
-        /*! Mutual solubility
-        * x_co2_in_wet molar fraction of CO2 dissolved in wetting phase
-        * x_h2o_in_nonwet molar fraction of h2o dissolved in non-wetting phase
-        * from Pruess EoS
-        */
-        /*_process_data._material->calculateMoleFractions(
-            pg_int_pt, _temperature, 0.0, x_co2_in_wet, x_h2o_in_nonwet,
-            rho_co2);
-        // for derivative
-        _process_data._material->calculateMoleFractions(
-            pg_int_pt + eps*std::abs(pg_int_pt), _temperature, 0.0, x_co2_in_wet_dpn_plus,
-            x_h2o_in_nonwet_dpn_plus, rho_co2_plus);
-        _process_data._material->calculateMoleFractions(
-            pg_int_pt - eps*std::abs(pg_int_pt), _temperature, 0.0, x_co2_in_wet_dpn_minus,
-            x_h2o_in_nonwet_dpn_minus, rho_co2_minus);
-		*/
 		//---- For comparison from reading curve
-		double const x_co2_in_wet_duan = _process_data._material->moleFracCO2InBrine_duan(_temperature, pg_int_pt, 0.0, rho_co2);
-		double const x_co2_in_wet =
+		double const x_co2_in_wet = _process_data._material->moleFracCO2InBrine_duan(_temperature, pg_int_pt, 0.0, rho_co2);
+		double const x_co2_in_wet_plus= 
+			_process_data._material->moleFracCO2InBrine_duan(_temperature, pg_int_pt+ eps*std::abs(pg_int_pt), 0.0, rho_co2_plus);
+		double const x_co2_in_wet_minus =
+			_process_data._material->moleFracCO2InBrine_duan(_temperature, pg_int_pt - eps*std::abs(pg_int_pt), 0.0, rho_co2_minus);
+		double const x_co2_in_wet_test =
             interpolated_x_co2_in_wet.getValue(pg_int_pt);
 		double const x_h2o_in_nonwet = 0.0;//
             //interpolated_x_h2o_in_nonwet.getValue(pg_int_pt);
@@ -164,14 +151,14 @@ void TwoPhaseFlowWithPPLocalAssembler<
         * dx_co2_in_wet_dpn partial pressure
         * drho_n_dpn pure co2 density derivative w.r.t pressure nonwet
         */
-		double dx_co2_in_wet_dpn = interpolated_x_co2_in_wet.getDerivative(pg_int_pt);
+		/*double dx_co2_in_wet_dpn_test = interpolated_x_co2_in_wet.getDerivative(pg_int_pt);
 		if (pg_int_pt > interpolated_x_co2_in_wet.getSupportMax())
 			dx_co2_in_wet_dpn = interpolated_x_co2_in_wet.getDerivative(
 				interpolated_x_co2_in_wet.getSupportMax());
 		else if (pg_int_pt < interpolated_x_co2_in_wet.getSupportMin())
 			dx_co2_in_wet_dpn = interpolated_x_co2_in_wet.getDerivative(
-				interpolated_x_co2_in_wet.getSupportMin());
-            //(x_co2_in_wet_dpn_plus - x_co2_in_wet_dpn_minus) / 2 / eps/std::abs(pg_int_pt);
+				interpolated_x_co2_in_wet.getSupportMin());*/
+		double dx_co2_in_wet_dpn=(x_co2_in_wet_plus - x_co2_in_wet_minus) / 2 / eps/std::abs(pg_int_pt);
         double const dx_h2o_in_nonwet_dpn = 0.0;//
             //(x_h2o_in_nonwet_dpn_plus - x_h2o_in_nonwet_dpn_minus) / 2 / eps/std::abs(pg_int_pt);
 

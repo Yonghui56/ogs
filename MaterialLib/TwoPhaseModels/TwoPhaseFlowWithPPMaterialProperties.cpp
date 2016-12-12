@@ -327,10 +327,6 @@ double TwoPhaseFlowWithPPMaterialProperties::moleFracCO2InBrine_duan(
     {
         pressure = 2.5e8;
     }
-    if (pressure < 2.e5)
-    {
-        pressure = 2.e5;
-    }
     if (temperature < 275.)
     {
         temperature = 275;
