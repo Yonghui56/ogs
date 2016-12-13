@@ -68,9 +68,7 @@ namespace ProcessLib
 				std::vector<std::unique_ptr<MaterialLib::PorousMedium::CapillaryPressureSaturation>>&&
 				capillary_pressure_models, 
 				std::vector<std::unique_ptr<MaterialLib::PorousMedium::RelativePermeability>>&&
-				nonwet_relative_permeability_models,
-				std::vector<std::unique_ptr<MaterialLib::PorousMedium::RelativePermeability>>&&
-				wet_relative_permeability_models);
+				relative_permeability_models);
 
 			void setMaterialID(const ProcessLib::SpatialPosition& pos);
 
@@ -136,9 +134,7 @@ namespace ProcessLib
 			std::vector<std::unique_ptr<MaterialLib::PorousMedium::CapillaryPressureSaturation>>
 				_capillary_pressure_models;
 			std::vector<std::unique_ptr<MaterialLib::PorousMedium::RelativePermeability>>
-				_nonwet_relative_permeability_models;
-			std::vector<std::unique_ptr<MaterialLib::PorousMedium::RelativePermeability>>
-				_wet_relative_permeability_models;
+				_relative_permeability_models;
 		private:
 			/// Calculates the 18x1 residual vector.
 			void calculateResidual(double const PG, double const X, double Sw, double X_m,

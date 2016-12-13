@@ -68,10 +68,7 @@ CreateTwoPhaseFlowPrhoMaterialProperties(
         _capillary_pressure_models;
     std::vector<
         std::unique_ptr<MaterialLib::PorousMedium::RelativePermeability>>
-        _nonwet_relative_permeability_models;
-    std::vector<
-        std::unique_ptr<MaterialLib::PorousMedium::RelativePermeability>>
-        _wet_relative_permeability_models;
+        _relative_permeability_models;
 
     //! \ogs_file_param{prj__material_property__porous_medium}
     auto const& poro_config = config.getConfigSubtree("porous_medium");
@@ -119,34 +116,11 @@ CreateTwoPhaseFlowPrhoMaterialProperties(
             auto krel_n =
                 MaterialLib::PorousMedium::createRelativePermeabilityModel(
                     krel_conf);
-            /*if (krel_n->getName().find("Non-wetting phase") ==
-            std::string::npos)
-            {
-                OGS_FATAL(
-                    "This relative permeability model is not for non-wetting "
-                    "phase");
-            }*/
 
-            _nonwet_relative_permeability_models.emplace_back(
+			_relative_permeability_models.emplace_back(
                 std::move(krel_n));
-
-            //! \ogs_file_param{prj__material_property__porous_medium__porous_medium__re}
-            /*auto const& wet_krel_conf =
-                krel_config.getConfigSubtree("relative_permeability");
-            auto krel_w =
-            MaterialLib::PorousMedium::createRelativePermeabilityModel(
-                wet_krel_conf);
-            if (krel_w->getName().find("Non-wetting phase") !=
-            std::string::npos)
-            {
-                OGS_FATAL(
-                    "This relative permeability model is not for wetting
-            phase");
-            }
-            _wet_relative_permeability_models.emplace_back(std::move(krel_w));
-            */
         }
-		BaseLib::reorderVector(_nonwet_relative_permeability_models, mat_krel_ids);
+		BaseLib::reorderVector(_relative_permeability_models, mat_krel_ids);
     }
 
     BaseLib::reorderVector(_intrinsic_permeability_models, mat_ids);
@@ -160,8 +134,7 @@ CreateTwoPhaseFlowPrhoMaterialProperties(
             std::move(_gas_viscosity), _intrinsic_permeability_models,
             std::move(_porosity_models), std::move(_storage_models),
             std::move(_capillary_pressure_models),
-            std::move(_nonwet_relative_permeability_models),
-            std::move(_wet_relative_permeability_models)}};
+            std::move(_relative_permeability_models)}};
 }
 
 }  // end namespace

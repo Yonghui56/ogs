@@ -12,7 +12,6 @@
 
 #include "MathLib/InterpolationAlgorithms/PiecewiseLinearInterpolation.h"
 #include "NumLib/DOF/LocalToGlobalIndexMap.h"
-#include "EoSBase.h"
 #include "ProcessLib/Process.h"
 #include "TwoPhaseFlowWithPrhoLocalAssembler.h"
 

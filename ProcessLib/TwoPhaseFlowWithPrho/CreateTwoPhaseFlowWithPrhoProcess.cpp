@@ -14,11 +14,8 @@
 #include "ProcessLib/Utils/ProcessUtils.h"
 #include "ProcessLib/TwoPhaseFlowWithPrho/TwoPhaseFlowWithPrhoMaterialProperties.h"
 #include "ProcessLib/TwoPhaseFlowWithPrho/CreateTwoPhaseFlowPrhoMaterialProperties.h"
-#include "ProcessLib/TwoPhaseFlowWithPrho/CreateEoS_IdealMix.h"
 #include "TwoPhaseFlowWithPrhoProcess.h"
 #include "TwoPhaseFlowWithPrhoProcessData.h"
-#include "EoS_IdealMix.h"
-#include "EoSBase.h"
 
 namespace ProcessLib
 {
@@ -48,32 +45,6 @@ std::unique_ptr<Process> CreateTwoPhaseFlowWithPrhoProcess(
 			"gas_pressure",
 			//! \ogs_file_param_special{prj__processes__process__TWOPHASE_FLOW_PRHO__process_variables__overall_mass_density}
 			"overall_mass_density" });
-
-	// Constitutive relation.
-	// read type;
-	auto const constitutive_relation_config =
-		//! \ogs_file_param{process__TWOPHASE_FLOW_Prho__constitutive_relation}
-		config.getConfigSubtree("constitutive_relation");
-
-	auto const type =
-		//! \ogs_file_param{process__SMALL_DEFORMATION__constitutive_relation__type}
-		constitutive_relation_config.peekConfigParameter<std::string>("type");
-
-	std::unique_ptr<EoSBase>
-		eosbase = nullptr;
-	
-	if (type == "EoS_IdealMix")
-	{
-		eosbase = ProcessLib::TwoPhaseFlowWithPrho::CreateEoS_IdealMix(
-			parameters, constitutive_relation_config);
-	}
-	else
-	{
-		OGS_FATAL(
-			"Cannot construct constitutive relation of given type \'%s\'.",
-			type.c_str());
-	}
-
 
     SecondaryVariableCollection secondary_variables;
 
@@ -128,8 +99,7 @@ std::unique_ptr<Process> CreateTwoPhaseFlowWithPrhoProcess(
             mass_lump,
             diff_coeff_b,
             diff_coeff_a,
-            std::move(material),
-			std::move(eosbase) };
+            std::move(material)};
         return std::unique_ptr<Process>{new TwoPhaseFlowWithPrhoProcess{
             mesh, std::move(jacobian_assembler), parameters, integration_order,
             std::move(process_variables), std::move(process_data),
@@ -158,8 +128,7 @@ std::unique_ptr<Process> CreateTwoPhaseFlowWithPrhoProcess(
             mass_lump,
             diff_coeff_b,
             diff_coeff_a,
-            std::move(material),
-            std::move(eosbase)};
+            std::move(material)};
         return std::unique_ptr<Process>{new TwoPhaseFlowWithPrhoProcess{
             mesh, std::move(jacobian_assembler), parameters, integration_order,
             std::move(process_variables), std::move(process_data),

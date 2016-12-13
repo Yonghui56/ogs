@@ -22,7 +22,7 @@
 #include "MeshLib/PropertyVector.h"
 #include "ProcessLib/Parameter/Parameter.h"
 #include "ProcessLib/Parameter/SpatialPosition.h"
-#include "NewtonRaphson.h"
+#include "NumLib\NewtonRaphson.h"
 namespace ProcessLib
 {
 	namespace TwoPhaseFlowWithPrho
@@ -47,9 +47,7 @@ namespace ProcessLib
 			std::vector<std::unique_ptr<MaterialLib::PorousMedium::CapillaryPressureSaturation>>&&
 			capillary_pressure_models,
 			std::vector<std::unique_ptr<MaterialLib::PorousMedium::RelativePermeability>>&&
-			nonwet_relative_permeability_models,
-			std::vector<std::unique_ptr<MaterialLib::PorousMedium::RelativePermeability>>&&
-			wet_relative_permeability_models)
+			relative_permeability_models)
 			: _has_material_ids(has_material_ids),
 			_liquid_density(std::move(liquid_density)),
 			_viscosity(std::move(viscosity)),
@@ -60,8 +58,7 @@ namespace ProcessLib
 			_porosity_models(std::move(porosity_models)),
 			_storage_models(std::move(storage_models)),
 			_capillary_pressure_models(std::move(capillary_pressure_models)),
-			_nonwet_relative_permeability_models(std::move(nonwet_relative_permeability_models)),
-			_wet_relative_permeability_models(std::move(wet_relative_permeability_models))
+			_relative_permeability_models(std::move(relative_permeability_models))
 
 		{
 			DBUG("Create material properties for Two-Phase flow with PP model.");
@@ -147,7 +144,7 @@ namespace ProcessLib
 			const double /*t*/, const ProcessLib::SpatialPosition& /*pos*/,
 			const double /*p*/, const double /*T*/, const double saturation) const
 		{
-			const double nonwet_krel = _nonwet_relative_permeability_models[0]->getValue(saturation);
+			const double nonwet_krel = _relative_permeability_models[0]->getValue(saturation);
 				 
 
 			return nonwet_krel;
@@ -157,7 +154,7 @@ namespace ProcessLib
 			const double /*t*/, const ProcessLib::SpatialPosition& /*pos*/,
 			const double /*p*/, const double /*T*/, const double saturation) const
 		{
-			const double wet_krel = _nonwet_relative_permeability_models[1]->getValue(saturation);
+			const double wet_krel = _relative_permeability_models[1]->getValue(saturation);
 
 
 			return wet_krel;
@@ -200,25 +197,12 @@ namespace ProcessLib
 			// same matrix. This saves one decomposition.
 			Eigen::PartialPivLU<LocalJacobianMatrix> linear_solver(2);
 
-			// Different solvers are available for the solution of the local system.
-			// TODO Make the following choice of linear solvers available from the
-			// input file configuration:
-			//      K_loc.partialPivLu().solve(-res_loc);
-			//      K_loc.fullPivLu().solve(-res_loc);
-			//      K_loc.householderQr().solve(-res_loc);
-			//      K_loc.colPivHouseholderQr().solve(res_loc);
-			//      K_loc.fullPivHouseholderQr().solve(-res_loc);
-			//      K_loc.llt().solve(-res_loc);
-			//      K_loc.ldlt().solve(-res_loc);
-
 			{  // Local Newton solver
 				using LocalResidualVector =
 					Eigen::Matrix<double, 2, 1>;
 				using LocalUnknownVector = Eigen::Matrix<double, 2, 1>;
 				LocalJacobianMatrix J_loc;
-				//LocalUnknownVector sec_var_unknown;
-				//sec_var_unknown(0) = Sw;
-				//sec_var_unknown(1) = X_m;
+
 				auto const update_residual = [&](LocalResidualVector& residual) {
 					calculateResidual(PG, X, Sw, X_m, residual);
 				};
@@ -240,7 +224,7 @@ namespace ProcessLib
 				const double tolerance(1.e-14);
 
 				auto newton_solver =
-					NewtonRaphson<decltype(linear_solver), LocalJacobianMatrix,
+					NumLib::NewtonRaphson<decltype(linear_solver), LocalJacobianMatrix,
 					decltype(update_jacobian), LocalResidualVector,
 					decltype(update_residual), decltype(update_solution)>(
 						linear_solver, update_jacobian, update_residual,
@@ -266,7 +250,6 @@ namespace ProcessLib
 		void TwoPhaseFlowWithPrhoMaterialProperties::calculateResidual(double const PL, double const X, double Sw, double rho_h2_wet,
 			ResidualVector& res)
 		{
-			// getting unknowns
 			const double PG = PL + _capillary_pressure_models[_current_material_id]->getCapillaryPressure(Sw);
 			const double rho_h2_nonwet = PG*molar_mass_h2 / R / 303.15;
 
@@ -301,10 +284,8 @@ namespace ProcessLib
 				Jac(0, 1) = -1;
 			}
 
-			Jac(1, 0) = rho_h2_nonwet - rho_h2_wet;// -(1 - Sw)*drhoh2nonwet_dpg*dPC_dSw;
-			//Jac(1, 1) = -Sw*N_L + Sw*(X - X_m)*rho_mol_h2o / std::pow(1 - X_m, 2);
+			Jac(1, 0) = rho_h2_nonwet - rho_h2_wet;
 			Jac(1, 1) = -Sw;
-			//std::cout << Jac << std::endl;
 		}
 	}  // end of namespace
 }  // end of namespace

@@ -58,10 +58,6 @@ void TwoPhaseFlowWithPrhoLocalAssembler<
     NodalMatrixType laplace_operator;
     laplace_operator.setZero(ShapeFunction::NPOINTS, ShapeFunction::NPOINTS);
 
-    // NodalMatrixType laplace_diffusion_operator;
-    // laplace_diffusion_operator.setZero(ShapeFunction::NPOINTS,
-    // ShapeFunction::NPOINTS);
-
     auto Kgp =
         local_K.template block<nonwet_pressure_size, nonwet_pressure_size>(
             nonwet_pressure_matrix_index, nonwet_pressure_matrix_index);
@@ -141,10 +137,8 @@ void TwoPhaseFlowWithPrhoLocalAssembler<
             _process_data._material->getCapillaryPressure(t, pos, pl_int_pt,
            _temperature, Sw);
 		double const rho_wet = rho_h2o + rho_h2_wet;
-        /*double const pc =
-            _process_data._material->getRegularizedCapillaryPressure(
-                t, pos, pl_int_pt, _temperature, Sw);*/
-        _saturation[ip] = Sw;  // there is no need
+        
+        _saturation[ip] = Sw;
         _pressure_wetting[ip] = pl_int_pt - pc;
 
         // Assemble M matrix
@@ -185,22 +179,14 @@ void TwoPhaseFlowWithPrhoLocalAssembler<
         double const k_rel_L =
             _process_data._material->getWetRelativePermeability(
                 t, pos, pl_int_pt, _temperature,
-                Sw);  // interpolated_Kr_wet.getValue(Sw);
+                Sw); 
         double const mu_liquid = _process_data._material->getLiquidViscosity(
             _pressure_wetting[ip], _temperature);
         double const lambda_L = k_rel_L / mu_liquid;
 
         laplace_operator.noalias() =
             sm.dNdx.transpose() * permeability * sm.dNdx * integration_factor;
-		double const test1 = (rho_gas * X_h2_nonwet * lambda_G *(1 + dPC_dSw_gp * dSwdP_gp) +
-			rho_h2_wet * lambda_L)*5e-20 + (Sw * porosity * diffusion_coeff_componenth2 * (rho_h2o / rho_wet) *
-				drhoh2wet_dp);
-		double const test2 = (rho_gas * X_h2_nonwet * lambda_G * dPC_dSw_gp * dSwdrho_gp)*5e-20
-			+ (Sw * porosity * diffusion_coeff_componenth2 * (rho_h2o / rho_wet) *
-				drhoh2wet_drho);
-		double const test3 = (rho_gas * lambda_G * (1 + dPC_dSw_gp * dSwdP_gp) +
-			rho_wet * lambda_L)*5e-20;
-		double const test4= (rho_gas * lambda_G  * dPC_dSw_gp * dSwdrho_gp)*5e-20;
+
         Kgp.noalias() +=
             (rho_gas * X_h2_nonwet * lambda_G *(1+ dPC_dSw_gp * dSwdP_gp)+
              rho_h2_wet * lambda_L ) *

@@ -30,16 +30,13 @@ struct TwoPhaseFlowWithPrhoProcessData
         bool const has_mass_lumping_,
 		Parameter<double> const& diffusion_coeff_componentb_,
 		Parameter<double> const& diffusion_coeff_componenta_,
-        std::unique_ptr<TwoPhaseFlowWithPrhoMaterialProperties>&& material_,
-		std::unique_ptr<EoSBase>&& eos_)
+        std::unique_ptr<TwoPhaseFlowWithPrhoMaterialProperties>&& material_)
         : _specific_body_force(specific_body_force_),
           _has_gravity(has_gravity_),
           _has_mass_lumping(has_mass_lumping_),
 		  _diffusion_coeff_componentb(diffusion_coeff_componentb_),
 		  _diffusion_coeff_componenta(diffusion_coeff_componenta_),
-          _material(std::move(material_)),
-          _eos(std::move(eos_))
-
+          _material(std::move(material_))
     {
     }
 
@@ -49,8 +46,7 @@ struct TwoPhaseFlowWithPrhoProcessData
           _has_mass_lumping(other._has_mass_lumping),
 		  _diffusion_coeff_componentb(other._diffusion_coeff_componentb),
 		  _diffusion_coeff_componenta(other._diffusion_coeff_componenta),
-          _material(std::move(other._material)),
-          _eos(std::move(other._eos))
+          _material(std::move(other._material))
     {
     }
 
@@ -71,8 +67,6 @@ struct TwoPhaseFlowWithPrhoProcessData
 	Parameter<double> const& _diffusion_coeff_componenta;
     std::unique_ptr<TwoPhaseFlowWithPrhoMaterialProperties>
         _material;
-	std::unique_ptr<EoSBase>
-		_eos;
 };
 
 }  // namespace TwoPhaseFlowWithPP
