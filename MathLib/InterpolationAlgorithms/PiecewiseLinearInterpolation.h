@@ -48,7 +48,6 @@ public:
     PiecewiseLinearInterpolation(std::vector<double>&& supporting_points,
                                  std::vector<double>&& values_at_supp_pnts,
                                  bool supp_pnts_sorted = false);
-
     /**
      * \brief Calculates the interpolation value.
      * @param pnt_to_interpolate The point should be located within the range

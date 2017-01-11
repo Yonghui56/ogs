@@ -46,7 +46,7 @@
 #include "ProcessLib/TES/CreateTESProcess.h"
 #include "ProcessLib/TwoPhaseFlowWithPP/CreateTwoPhaseFlowWithPPProcess.h"
 #include "ProcessLib/TwoPhaseFlowWithPrho/CreateTwoPhaseFlowWithPrhoProcess.h"
-
+#include "ProcessLib/TwoPhaseComponentialFlow/CreateTwoPhaseComponentialFlowProcess.h"
 namespace detail
 {
 static void readGeometry(std::string const& fname,
@@ -451,6 +451,14 @@ void ProjectData::parseProcesses(BaseLib::ConfigTree const& processes_config,
                     _process_variables, _parameters, integration_order,
                     process_config, _curves);
         }
+		else if (type == "TWOPHASE_COMPONENTIAL_FLOW")
+		{
+			process =
+				ProcessLib::TwoPhaseComponentialFlow::CreateTwoPhaseComponentialFlowProcess(
+					*_mesh_vec[0], std::move(jacobian_assembler),
+					_process_variables, _parameters, integration_order,
+					process_config, _curves);
+		}
 
         else
         {
