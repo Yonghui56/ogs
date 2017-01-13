@@ -46,9 +46,9 @@ public:
      * one can set the switch to true
      */
     PiecewiseBiLinearInterpolation(std::vector<double>&& supporting_points_x,
-		                          std::vector<double>&& supporting_points_y,
-                                 std::vector<double>&& values_at_supp_pnts,
-                                 bool supp_pnts_sorted = true);
+                                   std::vector<double>&& supporting_points_y,
+                                   std::vector<double>&& values_at_supp_pnts,
+                                   bool supp_pnts_sorted = true);
 
     /**
      * \brief Calculates the interpolation value.
@@ -59,7 +59,8 @@ public:
      * @return The interpolated value.
      */
 
-	double getBiValue(double pnt_x_to_interpolate, double pnt_y_to_interpolate) const;
+    double getBiValue(double pnt_x_to_interpolate,
+                      double pnt_y_to_interpolate) const;
     /**
      * \brief Calculates derivative using quadratic interpolation
      * and central difference quotient.
@@ -73,16 +74,19 @@ public:
      * using linear interpolation.
      */
 
-	double getBiDerivativeDx(double pnt_x_to_interpolate, double pnt_y_to_interpolate) const;
-	double getBiDerivativeDy(double pnt_x_to_interpolate, double pnt_y_to_interpolate) const;
+    double getBiDerivativeDx(double pnt_x_to_interpolate,
+                             double pnt_y_to_interpolate) const;
+    double getBiDerivativeDy(double pnt_x_to_interpolate,
+                             double pnt_y_to_interpolate) const;
 
-	double getSupportMaxX() const;
-	double getSupportMinX() const;
-	double getSupportMaxY() const;
-	double getSupportMinY() const;
+    double getSupportMaxX() const;
+    double getSupportMinX() const;
+    double getSupportMaxY() const;
+    double getSupportMinY() const;
+
 protected:
-	std::vector<double> _supp_pnts_x;
-	std::vector<double> _supp_pnts_y;
-	std::vector<double> _values_at_supp_pnts;
+    std::vector<double> _supp_pnts_x;
+    std::vector<double> _supp_pnts_y;
+    std::vector<double> _values_at_supp_pnts;
 };
 }  // end namespace MathLib
