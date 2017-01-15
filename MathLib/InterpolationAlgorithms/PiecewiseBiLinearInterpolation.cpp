@@ -1,8 +1,5 @@
 /**
- * \file
- * \author Thomas Fischer
- * \date   2010-09-07
- * \brief  Implementation of the PiecewiseLinearInterpolation class.
+ * \brief  Implementation of the PiecewiseBilinearInterpolation class.
  *
  * \copyright
  * Copyright (c) 2012-2017, OpenGeoSys Community (http://www.opengeosys.org)
@@ -18,11 +15,11 @@
 #include "BaseLib/Error.h"
 #include "BaseLib/quicksort.h"
 
-#include "PiecewiseBiLinearInterpolation.h"
+#include "PiecewiseBilinearInterpolation.h"
 
 namespace MathLib
 {
-PiecewiseBiLinearInterpolation::PiecewiseBiLinearInterpolation(
+PiecewiseBilinearInterpolation::PiecewiseBilinearInterpolation(
     std::vector<double>&& supporting_points_x,
     std::vector<double>&& supporting_points_y,
     std::vector<double>&& values_at_supp_pnts,
@@ -37,7 +34,7 @@ PiecewiseBiLinearInterpolation::PiecewiseBiLinearInterpolation(
     {
         const std::size_t ix = std::distance(_supp_pnts_x.begin(), it_x);
         OGS_FATAL(
-            "Variable %d and variable %d are the same. "
+            "Variable %d and variable %d in x-direction are the same. "
             "Piecewise bi-linear interpolation is not possible\n",
             ix, ix + 1);
     }
@@ -47,15 +44,22 @@ PiecewiseBiLinearInterpolation::PiecewiseBiLinearInterpolation(
     {
         const std::size_t iy = std::distance(_supp_pnts_y.begin(), it_y);
         OGS_FATAL(
-            "Variable %d and variable %d are the same. "
+            "Variable %d and variable %d in y-direction are the same. "
             "Piecewise bi-linear interpolation is not possible\n",
             iy, iy + 1);
     }
 }
 
-double PiecewiseBiLinearInterpolation::getBiValue(
+double PiecewiseBilinearInterpolation::getValue(
     double pnt_x_to_interpolate, double pnt_y_to_interpolate) const
 {
+    if (pnt_x_to_interpolate < _supp_pnts_x.front() ||
+        _supp_pnts_x.back() < pnt_x_to_interpolate ||
+        pnt_y_to_interpolate < _supp_pnts_y.front() ||
+        _supp_pnts_y.back() < pnt_y_to_interpolate)
+    {
+        return 0;
+    }
     auto const& it_X(std::lower_bound(_supp_pnts_x.begin(), _supp_pnts_x.end(),
                                       pnt_x_to_interpolate));
     std::size_t const x_interval_idx =
@@ -122,7 +126,7 @@ double PiecewiseBiLinearInterpolation::getBiValue(
     return f_val_11 + f_val_21 + f_val_12 + f_val_22;
 }
 
-double PiecewiseBiLinearInterpolation::getBiDerivativeDx(
+double PiecewiseBilinearInterpolation::getDerivativeDx(
     double pnt_x_to_interpolate, double pnt_y_to_interpolate) const
 {
     auto const& it_X(std::lower_bound(_supp_pnts_x.begin(), _supp_pnts_x.end(),
@@ -134,16 +138,12 @@ double PiecewiseBiLinearInterpolation::getBiDerivativeDx(
     std::size_t const y_interval_idx =
         std::distance(_supp_pnts_y.begin(), it_Y) - 1;
     const double x_supp_pnt_size = _supp_pnts_x.size();
-    const double a00 =
-        _values_at_supp_pnts[x_interval_idx + x_supp_pnt_size * y_interval_idx];
+
     const double a10 =
         _values_at_supp_pnts[x_interval_idx + 1 +
                              x_supp_pnt_size * y_interval_idx] -
         _values_at_supp_pnts[x_interval_idx + x_supp_pnt_size * y_interval_idx];
-    const double a01 =
-        _values_at_supp_pnts[x_interval_idx +
-                             x_supp_pnt_size * (y_interval_idx + 1)] -
-        _values_at_supp_pnts[x_interval_idx + x_supp_pnt_size * y_interval_idx];
+
     const double a11 =
         _values_at_supp_pnts[x_interval_idx + 1 +
                              x_supp_pnt_size * (y_interval_idx + 1)] +
@@ -155,7 +155,7 @@ double PiecewiseBiLinearInterpolation::getBiDerivativeDx(
                               x_supp_pnt_size * (y_interval_idx + 1)]);
     return a10 + a11 * pnt_y_to_interpolate;
 }
-double PiecewiseBiLinearInterpolation::getBiDerivativeDy(
+double PiecewiseBilinearInterpolation::getDerivativeDy(
     double pnt_x_to_interpolate, double pnt_y_to_interpolate) const
 {
     auto const& it_X(std::lower_bound(_supp_pnts_x.begin(), _supp_pnts_x.end(),
@@ -167,12 +167,7 @@ double PiecewiseBiLinearInterpolation::getBiDerivativeDy(
     std::size_t const y_interval_idx =
         std::distance(_supp_pnts_y.begin(), it_Y) - 1;
     const double x_supp_pnt_size = _supp_pnts_x.size();
-    const double a00 =
-        _values_at_supp_pnts[x_interval_idx + x_supp_pnt_size * y_interval_idx];
-    const double a10 =
-        _values_at_supp_pnts[x_interval_idx + 1 +
-                             x_supp_pnt_size * y_interval_idx] -
-        _values_at_supp_pnts[x_interval_idx + x_supp_pnt_size * y_interval_idx];
+
     const double a01 =
         _values_at_supp_pnts[x_interval_idx +
                              x_supp_pnt_size * (y_interval_idx + 1)] -
@@ -189,22 +184,22 @@ double PiecewiseBiLinearInterpolation::getBiDerivativeDy(
     return a01 + a11 * pnt_x_to_interpolate;
 }
 
-double PiecewiseBiLinearInterpolation::getSupportMaxX() const
+double PiecewiseBilinearInterpolation::getSupportMaxX() const
 {
     assert(!_supp_pnts_x.empty());
     return _supp_pnts_x.front();
 }
-double PiecewiseBiLinearInterpolation::getSupportMinX() const
+double PiecewiseBilinearInterpolation::getSupportMinX() const
 {
     assert(!_supp_pnts_x.empty());
     return _supp_pnts_x.back();
 }
-double PiecewiseBiLinearInterpolation::getSupportMaxY() const
+double PiecewiseBilinearInterpolation::getSupportMaxY() const
 {
     assert(!_supp_pnts_y.empty());
     return _supp_pnts_y.front();
 }
-double PiecewiseBiLinearInterpolation::getSupportMinY() const
+double PiecewiseBilinearInterpolation::getSupportMinY() const
 {
     assert(!_supp_pnts_y.empty());
     return _supp_pnts_y.back();

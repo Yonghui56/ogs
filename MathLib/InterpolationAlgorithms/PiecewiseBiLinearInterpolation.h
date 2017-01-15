@@ -1,8 +1,5 @@
 /**
- * \file
- * \author Thomas Fischer
- * \date   2010-09-07
- * \brief  Definition of the PiecewiseLinearInterpolation class.
+ * \brief  Definition of the PiecewiseBilinearInterpolation class.
  *
  * \copyright
  * Copyright (c) 2012-2017, OpenGeoSys Community (http://www.opengeosys.org)
@@ -22,10 +19,11 @@ namespace MathLib
  * This class implements a one dimensional piecewise bi-linear interpolation
  * algorithm.
  */
-class PiecewiseBiLinearInterpolation
+class PiecewiseBilinearInterpolation final
 {
 public:
     /**
+     * TODO update the document
      * The constructor copies the entries of the vector of supporting points
      * \f$(x_0, x_1, \dots, x_n)\f$ and the entries of the vector of values at
      * the supporting points \f$(y_0, y_1, \dots, y_n)\f$ where \f$n\f$
@@ -45,7 +43,7 @@ public:
      * points are sorted
      * one can set the switch to true
      */
-    PiecewiseBiLinearInterpolation(std::vector<double>&& supporting_points_x,
+    PiecewiseBilinearInterpolation(std::vector<double>&& supporting_points_x,
                                    std::vector<double>&& supporting_points_y,
                                    std::vector<double>&& values_at_supp_pnts,
                                    bool supp_pnts_sorted = true);
@@ -59,8 +57,8 @@ public:
      * @return The interpolated value.
      */
 
-    double getBiValue(double pnt_x_to_interpolate,
-                      double pnt_y_to_interpolate) const;
+    double getValue(double pnt_x_to_interpolate,
+                    double pnt_y_to_interpolate) const;
     /**
      * \brief Calculates derivative using quadratic interpolation
      * and central difference quotient.
@@ -74,10 +72,10 @@ public:
      * using linear interpolation.
      */
 
-    double getBiDerivativeDx(double pnt_x_to_interpolate,
-                             double pnt_y_to_interpolate) const;
-    double getBiDerivativeDy(double pnt_x_to_interpolate,
-                             double pnt_y_to_interpolate) const;
+    double getDerivativeDx(double pnt_x_to_interpolate,
+                           double pnt_y_to_interpolate) const;
+    double getDerivativeDy(double pnt_x_to_interpolate,
+                           double pnt_y_to_interpolate) const;
 
     double getSupportMaxX() const;
     double getSupportMinX() const;
