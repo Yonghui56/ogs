@@ -27,18 +27,18 @@ struct TwoPhaseFlowWithPPProcessData
         Eigen::VectorXd const specific_body_force_,
         bool const has_gravity_,
         bool const has_mass_lumping_,
-        std::unique_ptr<MaterialLib::TwoPhaseFlowWithPP::
-                            TwoPhaseFlowWithPPMaterialProperties>&& material_,
-        MathLib::PiecewiseLinearInterpolation const& interpolated_Pc_,
-        MathLib::PiecewiseLinearInterpolation const& interpolated_Kr_wet_,
-        MathLib::PiecewiseLinearInterpolation const& interpolated_Kr_nonwet_)
+        Parameter<double> const& diffusion_coeff_component_b_,
+        Parameter<double> const& diffusion_coeff_component_a_,
+        Parameter<double> const& temperature_,
+        std::unique_ptr<TwoPhaseFlowWithPPMaterialProperties>&& material_)
         : _specific_body_force(specific_body_force_),
           _has_gravity(has_gravity_),
           _has_mass_lumping(has_mass_lumping_),
-          _material(std::move(material_)),
-          _interpolated_Pc(interpolated_Pc_),
-          _interpolated_Kr_wet(interpolated_Kr_wet_),
-          _interpolated_Kr_nonwet(interpolated_Kr_nonwet_)
+          _diffusion_coeff_component_b(diffusion_coeff_component_b_),
+          _diffusion_coeff_component_a(diffusion_coeff_component_a_),
+          _temperature(temperature_),
+          _material(std::move(material_))
+
     {
     }
 
@@ -46,10 +46,10 @@ struct TwoPhaseFlowWithPPProcessData
         : _specific_body_force(other._specific_body_force),
           _has_gravity(other._has_gravity),
           _has_mass_lumping(other._has_mass_lumping),
-          _material(std::move(other._material)),
-          _interpolated_Pc(other._interpolated_Pc),
-          _interpolated_Kr_wet(other._interpolated_Kr_wet),
-          _interpolated_Kr_nonwet(other._interpolated_Kr_nonwet)
+          _diffusion_coeff_component_b(other._diffusion_coeff_component_b),
+          _diffusion_coeff_component_a(other._diffusion_coeff_component_a),
+          _temperature(other._temperature),
+          _material(std::move(other._material))
     {
     }
 
@@ -72,12 +72,10 @@ struct TwoPhaseFlowWithPPProcessData
 
     //! Enables lumping of the mass matrix.
     bool const _has_mass_lumping;
-    std::unique_ptr<
-        MaterialLib::TwoPhaseFlowWithPP::TwoPhaseFlowWithPPMaterialProperties>
-        _material;
-    MathLib::PiecewiseLinearInterpolation const& _interpolated_Pc;
-    MathLib::PiecewiseLinearInterpolation const& _interpolated_Kr_wet;
-    MathLib::PiecewiseLinearInterpolation const& _interpolated_Kr_nonwet;
+    Parameter<double> const& _diffusion_coeff_component_b;
+    Parameter<double> const& _diffusion_coeff_component_a;
+    Parameter<double> const& _temperature;
+    std::unique_ptr<TwoPhaseFlowWithPPMaterialProperties> _material;
 };
 
 }  // namespace TwoPhaseFlowWithPP

@@ -35,7 +35,7 @@ TwoPhaseFlowWithPPProcess::TwoPhaseFlowWithPPProcess(
     BaseLib::ConfigTree const& /*config*/,
     std::map<std::string,
              std::unique_ptr<MathLib::PiecewiseLinearInterpolation>> const&
-        /*curves*/)
+    /*curves*/)
     : Process(mesh, std::move(jacobian_assembler), parameters,
               integration_order, std::move(process_variables),
               std::move(secondary_variables), std::move(named_function_caller)),

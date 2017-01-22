@@ -20,9 +20,24 @@
 #include "ProcessLib/Parameter/Parameter.h"
 #include "ProcessLib/Utils/InitShapeMatrices.h"
 
-#include "MaterialLib/TwoPhaseModels/TwoPhaseFlowWithPPMaterialProperties.h"
+#include "TwoPhaseFlowWithPPMaterialProperties.h"
 #include "TwoPhaseFlowWithPPProcessData.h"
 
+template <typename NodalMatrixType>
+struct IntegrationPointData final
+{
+    explicit IntegrationPointData(
+        ProcessLib::TwoPhaseFlowWithPP::TwoPhaseFlowWithPPMaterialProperties&
+            material_property_)
+        : mat_property(material_property_)
+    {
+    }
+    ProcessLib::TwoPhaseFlowWithPP::TwoPhaseFlowWithPPMaterialProperties&
+        mat_property;
+
+    double integration_weight;
+    NodalMatrixType massOperator;
+};
 namespace ProcessLib
 {
 namespace TwoPhaseFlowWithPP
@@ -77,6 +92,21 @@ public:
           _pressure_wetting(
               std::vector<double>(_integration_method.getNumberOfPoints()))
     {
+        unsigned const n_integration_points =
+            _integration_method.getNumberOfPoints();
+        _ip_data.reserve(n_integration_points);
+        for (unsigned ip = 0; ip < n_integration_points; ip++)
+        {
+            _ip_data.emplace_back(*_process_data._material);
+            auto const& sm = _shape_matrices[ip];
+            _ip_data[ip].integration_weight =
+                sm.integralMeasure * sm.detJ *
+                _integration_method.getWeightedPoint(ip).getWeight();
+            _ip_data[ip].massOperator.setZero(ShapeFunction::NPOINTS,
+                                              ShapeFunction::NPOINTS);
+            _ip_data[ip].massOperator.noalias() =
+                sm.N.transpose() * sm.N * _ip_data[ip].integration_weight;
+        }
     }
 
     void assemble(double const t, std::vector<double> const& local_x,
@@ -114,11 +144,8 @@ private:
     std::vector<ShapeMatrices> _shape_matrices;
 
     TwoPhaseFlowWithPPProcessData const& _process_data;
+    std::vector<IntegrationPointData<NodalMatrixType>> _ip_data;
 
-    // Note: currently only isothermal case is considered, so the temperature is
-    // assumed to be const
-    // the variation of temperature will be taken into account in future
-    double _temperature = 293.15;
     std::vector<double> _saturation;
     std::vector<double> _pressure_wetting;
     static const int nonwet_pressure_coeff_index = 0;
