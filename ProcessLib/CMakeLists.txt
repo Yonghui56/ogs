@@ -48,6 +48,9 @@ APPEND_SOURCE_FILES(SOURCES RichardsFlow)
 add_subdirectory(HT)
 APPEND_SOURCE_FILES(SOURCES HT)
 
+add_subdirectory(ThermalTwoPhaseFlowWithPP)
+APPEND_SOURCE_FILES(SOURCES ThermalTwoPhaseFlowWithPP)
+
 add_subdirectory(CalculateSurfaceFlux)
 APPEND_SOURCE_FILES(SOURCES CalculateSurfaceFlux)
 
