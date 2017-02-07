@@ -82,9 +82,6 @@ void TwoPhaseFlowWithPPLocalAssembler<
         local_K.template block<nonwet_pressure_size, nonwet_pressure_size>(
             nonwet_pressure_matrix_index, nonwet_pressure_matrix_index);
 
-    auto Kgpc = local_K.template block<nonwet_pressure_size, cap_pressure_size>(
-        nonwet_pressure_matrix_index, cap_pressure_matrix_index);
-
     auto Klp = local_K.template block<cap_pressure_size, nonwet_pressure_size>(
         cap_pressure_matrix_index, nonwet_pressure_matrix_index);
 
@@ -106,7 +103,7 @@ void TwoPhaseFlowWithPPLocalAssembler<
         _process_data._material->getMaterialID(pos.getElementID().get());
 
     const Eigen::MatrixXd& perm = _process_data._material->getPermeability(
-        t, pos, _element.getDimension());
+        material_id, t, pos, _element.getDimension());
     assert(perm.rows() == _element.getDimension() || perm.rows() == 1);
     GlobalDimMatrixType permeability = GlobalDimMatrixType::Zero(
         _element.getDimension(), _element.getDimension());
@@ -133,18 +130,19 @@ void TwoPhaseFlowWithPPLocalAssembler<
         double const rho_wet = _process_data._material->getLiquidDensity(
             _pressure_wetting[ip], temperature);
 
-        double const Sw = (pc_int_pt < 0)
-                              ? 1.0
-                              : _process_data._material->getSaturation(
-                                    t, pos, pn_int_pt, temperature, pc_int_pt);
+        double const Sw =
+            (pc_int_pt < 0)
+                ? 1.0
+                : _process_data._material->getSaturation(
+                      material_id, t, pos, pn_int_pt, temperature, pc_int_pt);
 
         _saturation[ip] = Sw;
 
         double dSw_dpc = _process_data._material->getSaturationDerivative(
-            t, pos, pn_int_pt, temperature, Sw);
+            material_id, t, pos, pn_int_pt, temperature, Sw);
 
         double const porosity = _process_data._material->getPorosity(
-            t, pos, pn_int_pt, temperature, 0);
+            material_id, t, pos, pn_int_pt, temperature, 0);
 
         // Assemble M matrix
         // nonwetting

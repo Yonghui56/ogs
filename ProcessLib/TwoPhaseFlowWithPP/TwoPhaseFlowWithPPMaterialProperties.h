@@ -65,13 +65,14 @@ public:
     int getMaterialID(const std::size_t element_id);
 
     Eigen::MatrixXd const& getPermeability(
+        const int material_id,
         const double t,
         const ProcessLib::SpatialPosition& pos,
         const int dim) const;
 
-    double getPorosity(const double t, const ProcessLib::SpatialPosition& pos,
-                       const double p, const double T,
-                       const double porosity_variable) const;
+    double getPorosity(const int material_id, const double t,
+                       const ProcessLib::SpatialPosition& pos, const double p,
+                       const double T, const double porosity_variable) const;
 
     double getNonwetRelativePermeability(const double t,
                                          const ProcessLib::SpatialPosition& pos,
@@ -81,9 +82,10 @@ public:
                                       const ProcessLib::SpatialPosition& pos,
                                       const double p, const double T,
                                       const double saturation) const;
-    double getSaturation(const double t, const ProcessLib::SpatialPosition& pos,
-                         const double p, const double T, const double pc) const;
-    double getSaturationDerivative(const double t,
+    double getSaturation(const int material_id, const double t,
+                         const ProcessLib::SpatialPosition& pos, const double p,
+                         const double T, const double pc) const;
+    double getSaturationDerivative(const int material_id, const double t,
                                    const ProcessLib::SpatialPosition& pos,
                                    const double p, const double T,
                                    const double saturation) const;
