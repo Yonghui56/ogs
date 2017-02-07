@@ -2,25 +2,25 @@ AddTest(
     NAME 2D_TwoPhase_PP_Lia_quad
     PATH Parabolic/TwoPhaseFlowPP/Liakopoulos
     EXECUTABLE ogs
-    EXECUTABLE_ARGS Twophase_Lia_quad2_short.prj
+    EXECUTABLE_ARGS Twophase_Lia_quad_short.prj
     TESTER vtkdiff
     REQUIREMENTS NOT OGS_USE_MPI
-    ABSTOL 1e-8 RELTOL 1e-12
+    ABSTOL 1e-1 RELTOL 1e-2
     DIFF_DATA
-    Lia_20.vtu twophaseflow_pcs_0_ts_119_t_20.000000.vtu capillary_pressure capillary_pressure
-    Lia_20.vtu twophaseflow_pcs_0_ts_119_t_20.000000.vtu gas_pressure gas_pressure
-    Lia_20.vtu twophaseflow_pcs_0_ts_119_t_20.000000.vtu saturation saturation
+    Lia_20.vtu twophaseflow_pcs_0_ts_218_t_20.000000.vtu capillary_pressure capillary_pressure
+    Lia_20.vtu twophaseflow_pcs_0_ts_218_t_20.000000.vtu gas_pressure gas_pressure
+    Lia_20.vtu twophaseflow_pcs_0_ts_218_t_20.000000.vtu saturation saturation
 )
 AddTest(
     NAME LARGE_2D_TwoPhase_PP_Lia_quad
     PATH Parabolic/TwoPhaseFlowPP/Liakopoulos
     EXECUTABLE ogs
-    EXECUTABLE_ARGS Twophase_Lia_quad2_large.prj
+    EXECUTABLE_ARGS Twophase_Lia_quad_large.prj
     TESTER vtkdiff
     REQUIREMENTS NOT OGS_USE_MPI
-    ABSTOL 1e-8 RELTOL 1e-12
+    ABSTOL 1e-1 RELTOL 1e-2
     DIFF_DATA
-    Lia_200.vtu twophaseflow_pcs_0_ts_1000_t_200.000000.000000.vtu capillary_pressure capillary_pressure
-    Lia_200.vtu twophaseflow_pcs_0_ts_1000_t_200.000000.000000.vtu gas_pressure gas_pressure
-    Lia_200.vtu twophaseflow_pcs_0_ts_1000_t_200.000000.000000.vtu saturation saturation
+    h2_Liako_1198.vtu twophaseflow_pcs_0_ts_1198_t_1000.000000.vtu capillary_pressure capillary_pressure
+    h2_Liako_1198.vtu twophaseflow_pcs_0_ts_1198_t_1000.000000.vtu gas_pressure gas_pressure
+    h2_Liako_1198.vtu twophaseflow_pcs_0_ts_1198_t_1000.000000.vtu saturation saturation
 )

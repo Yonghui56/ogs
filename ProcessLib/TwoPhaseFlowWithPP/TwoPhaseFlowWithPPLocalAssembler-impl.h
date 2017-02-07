@@ -19,14 +19,15 @@
 * to capillary pressure
 * rho_nonwet               density of nonwetting phase
 * drhononwet_dpn           derivative of nonwetting phase density with respect
-* to nonwetting phase pressure
+*to nonwetting phase pressure
+* rho_wet                  density of wetting phase
 * k_rel_nonwet             relative permeability of nonwetting phase
 * mu_nonwet                viscosity of nonwetting phase
 * lambda_nonwet            mobility of nonwetting phase
 * k_rel_wet                relative permeability of wetting phase
 * mu_wet                   viscosity of wetting phase
 * lambda_wet               mobility of wetting phase
-* _pressure_wetting        output vector for wetting phase pressure with respect
+* _pressure_wet            output vector for wetting phase pressure with respect
 * to each integration point
 * _saturation              output vector for wetting phase saturation with
 * respect to each integration point
@@ -68,9 +69,6 @@ void TwoPhaseFlowWithPPLocalAssembler<
             nonwet_pressure_matrix_index, nonwet_pressure_matrix_index);
     auto Mgpc = local_M.template block<nonwet_pressure_size, cap_pressure_size>(
         nonwet_pressure_matrix_index, cap_pressure_matrix_index);
-
-    auto Mlp = local_M.template block<cap_pressure_size, nonwet_pressure_size>(
-        cap_pressure_matrix_index, nonwet_pressure_matrix_index);
 
     auto Mlpc = local_M.template block<cap_pressure_size, cap_pressure_size>(
         cap_pressure_matrix_index, cap_pressure_matrix_index);
@@ -120,7 +118,7 @@ void TwoPhaseFlowWithPPLocalAssembler<
         double pn_int_pt = 0.;
         NumLib::shapeFunctionInterpolate(local_x, sm.N, pn_int_pt, pc_int_pt);
 
-        _pressure_wetting[ip] = pn_int_pt - pc_int_pt;
+        _pressure_wet[ip] = pn_int_pt - pc_int_pt;
 
         auto const& wp = _integration_method.getWeightedPoint(ip);
 
@@ -128,7 +126,7 @@ void TwoPhaseFlowWithPPLocalAssembler<
         double const rho_nonwet =
             _process_data._material->getGasDensity(pn_int_pt, temperature);
         double const rho_wet = _process_data._material->getLiquidDensity(
-            _pressure_wetting[ip], temperature);
+            _pressure_wet[ip], temperature);
 
         double const Sw =
             (pc_int_pt < 0)
@@ -169,9 +167,9 @@ void TwoPhaseFlowWithPPLocalAssembler<
         // wet
         double const k_rel_wet =
             _process_data._material->getWetRelativePermeability(
-                t, pos, _pressure_wetting[ip], temperature, Sw);
+                t, pos, _pressure_wet[ip], temperature, Sw);
         double const mu_wet = _process_data._material->getLiquidViscosity(
-            _pressure_wetting[ip], temperature);
+            _pressure_wet[ip], temperature);
         double const lambda_wet = k_rel_wet / mu_wet;
 
         laplace_operator.noalias() = sm.dNdx.transpose() * permeability *
@@ -207,8 +205,6 @@ void TwoPhaseFlowWithPPLocalAssembler<
                     Mgp(row, column) = 0.0;
                     Mlpc(row, row) += Mlpc(row, column);
                     Mlpc(row, column) = 0.0;
-                    Mlp(row, row) += Mlp(row, column);
-                    Mlp(row, column) = 0.0;
                 }
             }
         }

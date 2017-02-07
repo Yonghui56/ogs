@@ -52,7 +52,7 @@ public:
     virtual std::vector<double> const& getIntPtSaturation(
         std::vector<double>& /*cache*/) const = 0;
 
-    virtual std::vector<double> const& getIntPtWettingPressure(
+    virtual std::vector<double> const& getIntPtWetPressure(
         std::vector<double>& /*cache*/) const = 0;
 };
 
@@ -89,7 +89,7 @@ public:
           _process_data(process_data),
           _saturation(
               std::vector<double>(_integration_method.getNumberOfPoints())),
-          _pressure_wetting(
+          _pressure_wet(
               std::vector<double>(_integration_method.getNumberOfPoints()))
     {
         unsigned const n_integration_points =
@@ -130,11 +130,11 @@ public:
         return _saturation;
     }
 
-    std::vector<double> const& getIntPtWettingPressure(
+    std::vector<double> const& getIntPtWetPressure(
         std::vector<double>& /*cache*/) const override
     {
-        assert(_pressure_wetting.size() > 0);
-        return _pressure_wetting;
+        assert(_pressure_wet.size() > 0);
+        return _pressure_wet;
     }
 
 private:
@@ -147,7 +147,7 @@ private:
     std::vector<IntegrationPointData<NodalMatrixType>> _ip_data;
 
     std::vector<double> _saturation;
-    std::vector<double> _pressure_wetting;
+    std::vector<double> _pressure_wet;
     static const int nonwet_pressure_coeff_index = 0;
     static const int cap_pressure_coeff_index = 1;
 

@@ -62,10 +62,10 @@ void TwoPhaseFlowWithPPProcess::initializeConcreteProcess(
             &TwoPhaseFlowWithPPLocalAssemblerInterface::getIntPtSaturation));
 
     _secondary_variables.addSecondaryVariable(
-        "pressure_wetting", 1,
+        "pressure_wet", 1,
         makeExtrapolator(getExtrapolator(), _local_assemblers,
                          &TwoPhaseFlowWithPPLocalAssemblerInterface::
-                             getIntPtWettingPressure));
+                             getIntPtWetPressure));
 }
 
 void TwoPhaseFlowWithPPProcess::assembleConcreteProcess(const double t,
