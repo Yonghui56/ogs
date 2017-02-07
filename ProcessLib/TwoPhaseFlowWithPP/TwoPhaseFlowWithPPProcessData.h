@@ -8,7 +8,7 @@
  */
 
 #pragma once
-
+#include "TwoPhaseFlowWithPPMaterialProperties.h"
 namespace MeshLib
 {
 class Element;
