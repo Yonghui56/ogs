@@ -106,7 +106,6 @@ protected:
     */
     boost::optional<MeshLib::PropertyVector<int> const&> const _material_ids;
 
-    int _current_material_id = 0;
     std::vector<Eigen::MatrixXd> _intrinsic_permeability_models;
     std::vector<std::unique_ptr<MaterialLib::PorousMedium::Porosity>>
         _porosity_models;
