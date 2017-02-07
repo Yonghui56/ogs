@@ -9,8 +9,8 @@
 
 #pragma once
 
-#include <memory>
-#include "ProcessLib/TwoPhaseFlowWithPP/TwoPhaseFlowWithPPMaterialProperties.h"
+
+#include "TwoPhaseFlowWithPPMaterialProperties.h"
 namespace BaseLib
 {
 class ConfigTree;

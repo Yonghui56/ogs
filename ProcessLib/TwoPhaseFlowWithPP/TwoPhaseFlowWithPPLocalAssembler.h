@@ -23,6 +23,10 @@
 #include "TwoPhaseFlowWithPPMaterialProperties.h"
 #include "TwoPhaseFlowWithPPProcessData.h"
 
+namespace ProcessLib
+{
+namespace TwoPhaseFlowWithPP
+{
 template <typename NodalMatrixType>
 struct IntegrationPointData final
 {
@@ -38,10 +42,6 @@ struct IntegrationPointData final
     double integration_weight;
     NodalMatrixType massOperator;
 };
-namespace ProcessLib
-{
-namespace TwoPhaseFlowWithPP
-{
 const unsigned NUM_NODAL_DOF = 2;
 
 class TwoPhaseFlowWithPPLocalAssemblerInterface
