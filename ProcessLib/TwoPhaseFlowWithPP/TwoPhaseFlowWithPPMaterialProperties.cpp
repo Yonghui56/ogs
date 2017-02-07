@@ -122,18 +122,18 @@ double TwoPhaseFlowWithPPMaterialProperties::getGasViscosity(
 }
 
 Eigen::MatrixXd const& TwoPhaseFlowWithPPMaterialProperties::getPermeability(
-    const double /*t*/, const ProcessLib::SpatialPosition& /*pos*/,
-    const int /*dim*/) const
+    const int material_id, const double /*t*/,
+    const ProcessLib::SpatialPosition& /*pos*/, const int /*dim*/) const
 {
-    return _intrinsic_permeability_models[_current_material_id];
+    return _intrinsic_permeability_models[material_id];
 }
 
 double TwoPhaseFlowWithPPMaterialProperties::getPorosity(
-    const double /*t*/, const ProcessLib::SpatialPosition& /*pos*/,
-    const double /*p*/, const double T, const double porosity_variable) const
+    const int material_id, const double /*t*/,
+    const ProcessLib::SpatialPosition& /*pos*/, const double /*p*/,
+    const double T, const double porosity_variable) const
 {
-    return _porosity_models[_current_material_id]->getValue(porosity_variable,
-                                                            T);
+    return _porosity_models[material_id]->getValue(porosity_variable, T);
 }
 
 double TwoPhaseFlowWithPPMaterialProperties::getNonwetRelativePermeability(
@@ -151,14 +151,16 @@ double TwoPhaseFlowWithPPMaterialProperties::getWetRelativePermeability(
 }
 
 double TwoPhaseFlowWithPPMaterialProperties::getSaturation(
-    const double /*t*/, const ProcessLib::SpatialPosition& /*pos*/,
-    const double /*p*/, const double /*T*/, const double pc) const
+    const int material_id, const double /*t*/,
+    const ProcessLib::SpatialPosition& /*pos*/, const double /*p*/,
+    const double /*T*/, const double pc) const
 {
     return _capillary_pressure_models[_current_material_id]->getSaturation(pc);
 }
 double TwoPhaseFlowWithPPMaterialProperties::getSaturationDerivative(
-    const double /*t*/, const ProcessLib::SpatialPosition& /*pos*/,
-    const double /*p*/, const double /*T*/, const double saturation) const
+    const int material_id, const double /*t*/,
+    const ProcessLib::SpatialPosition& /*pos*/, const double /*p*/,
+    const double /*T*/, const double saturation) const
 {
     const double dpcdsw =
         _capillary_pressure_models[_current_material_id]->getdPcdS(saturation);
