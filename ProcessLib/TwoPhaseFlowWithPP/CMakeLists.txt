@@ -25,7 +25,7 @@ AddTest(
     NAME LARGE_2D_TwoPhase_PP_Lia_quad_1
     PATH Parabolic/TwoPhaseFlowPP/Liakopoulos
     EXECUTABLE ogs
-    EXECUTABLE_ARGS Twophase_Lia_quad_large.prj
+    EXECUTABLE_ARGS TwoPhase_Lia_quad_large.prj
     TESTER vtkdiff
     REQUIREMENTS NOT OGS_USE_MPI
     ABSTOL 1e-2 RELTOL 1e-3
@@ -36,7 +36,7 @@ AddTest(
     NAME LARGE_2D_TwoPhase_PP_Lia_quad_2
     PATH Parabolic/TwoPhaseFlowPP/Liakopoulos
     EXECUTABLE ogs
-    EXECUTABLE_ARGS Twophase_Lia_quad_large.prj
+    EXECUTABLE_ARGS TwoPhase_Lia_quad_large.prj
     TESTER vtkdiff
     REQUIREMENTS NOT OGS_USE_MPI
     ABSTOL 20 RELTOL 1e-2

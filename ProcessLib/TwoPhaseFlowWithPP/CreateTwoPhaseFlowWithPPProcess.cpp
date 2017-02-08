@@ -8,7 +8,7 @@
  */
 #include "CreateTwoPhaseFlowWithPPProcess.h"
 #include <cassert>
-#include "BaseLib/Functional.h"
+
 #include "MeshLib/MeshGenerators/MeshGenerator.h"
 #include "ProcessLib/Parameter/ConstantParameter.h"
 #include "ProcessLib/Utils/ParseSecondaryVariables.h"
