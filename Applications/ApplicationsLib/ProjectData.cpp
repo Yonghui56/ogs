@@ -44,6 +44,7 @@
 #include "ProcessLib/RichardsFlow/CreateRichardsFlowProcess.h"
 #include "ProcessLib/SmallDeformation/CreateSmallDeformationProcess.h"
 #include "ProcessLib/TES/CreateTESProcess.h"
+#include "ProcessLib/TwoPhaseCarbonation/CreateTwoPhaseCarbonationProcess.h"
 #include "ProcessLib/TwoPhaseFlowWithPP/CreateTwoPhaseFlowWithPPProcess.h"
 #include "ProcessLib/TwoPhaseFlowWithPrho/CreateTwoPhaseFlowWithPrhoProcess.h"
 
@@ -451,7 +452,14 @@ void ProjectData::parseProcesses(BaseLib::ConfigTree const& processes_config,
                     _process_variables, _parameters, integration_order,
                     process_config, _curves);
         }
-
+        else if (type == "TWOPHASE_CARBONATION")
+        {
+            process =
+                ProcessLib::TwoPhaseCarbonation::createTwoPhaseCarbonationProcess(
+                    *_mesh_vec[0], std::move(jacobian_assembler),
+                    _process_variables, _parameters, integration_order,
+                    process_config, _curves);
+        }
         else
         {
             OGS_FATAL("Unknown process type: %s", type.c_str());
