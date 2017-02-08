@@ -30,13 +30,12 @@ namespace TwoPhaseFlowWithPP
 template <typename NodalMatrixType>
 struct IntegrationPointData final
 {
-    explicit IntegrationPointData(
-        ProcessLib::TwoPhaseFlowWithPP::TwoPhaseFlowWithPPMaterialProperties&
+    explicit IntegrationPointData(TwoPhaseFlowWithPPMaterialProperties&
             material_property_)
         : mat_property(material_property_)
     {
     }
-    ProcessLib::TwoPhaseFlowWithPP::TwoPhaseFlowWithPPMaterialProperties&
+    TwoPhaseFlowWithPPMaterialProperties&
         mat_property;
 
     double integration_weight;

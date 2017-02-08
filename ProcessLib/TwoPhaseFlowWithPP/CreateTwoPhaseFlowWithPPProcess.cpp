@@ -78,8 +78,7 @@ std::unique_ptr<Process> createTwoPhaseFlowWithPPProcess(
     auto const& mat_ids =
         mesh.getProperties().getPropertyVector<int>("MaterialIDs");
 
-    std::unique_ptr<
-        ProcessLib::TwoPhaseFlowWithPP::TwoPhaseFlowWithPPMaterialProperties>
+    std::unique_ptr<TwoPhaseFlowWithPPMaterialProperties>
         material = nullptr;
 
     boost::optional<MeshLib::PropertyVector<int> const&> material_ids;
@@ -93,8 +92,7 @@ std::unique_ptr<Process> createTwoPhaseFlowWithPPProcess(
         INFO("The twophase flow is in homogeneous porous media.");
     }
 
-    material = ProcessLib::TwoPhaseFlowWithPP::
-        createTwoPhaseFlowWithPPMaterialProperties(mat_config, material_ids);
+    material = createTwoPhaseFlowWithPPMaterialProperties(mat_config, material_ids);
 
     TwoPhaseFlowWithPPProcessData process_data{
         specific_body_force, has_gravity, mass_lumping, temperature, std::move(material)};
