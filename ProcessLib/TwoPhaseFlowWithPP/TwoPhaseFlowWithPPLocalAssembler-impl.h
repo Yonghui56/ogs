@@ -128,11 +128,8 @@ void TwoPhaseFlowWithPPLocalAssembler<
         double const rho_wet = _process_data._material->getLiquidDensity(
             _pressure_wet[ip], temperature);
 
-        double const Sw =
-            (pc_int_pt < 0)
-                ? 1.0
-                : _process_data._material->getSaturation(
-                      material_id, t, pos, pn_int_pt, temperature, pc_int_pt);
+        double const Sw = _process_data._material->getSaturation(
+            material_id, t, pos, pn_int_pt, temperature, pc_int_pt);
 
         _saturation[ip] = Sw;
 
@@ -183,12 +180,13 @@ void TwoPhaseFlowWithPPLocalAssembler<
         if (_process_data._has_gravity)
         {
             auto const& b = _process_data._specific_body_force;
-            Bg.noalias() += rho_nonwet * rho_nonwet * lambda_nonwet *
-                            sm.dNdx.transpose() * permeability * b *
-                            _ip_data[ip].integration_weight;
-            Bl.noalias() += rho_wet * rho_wet * lambda_wet *
-                            sm.dNdx.transpose() * permeability * b *
-                            _ip_data[ip].integration_weight;
+
+            NodalVectorType gravity_operator = sm.dNdx.transpose() *
+                                               permeability * b *
+                                               _ip_data[ip].integration_weight;
+            Bg.noalias() +=
+                rho_nonwet * rho_nonwet * lambda_nonwet * gravity_operator;
+            Bl.noalias() += rho_wet * rho_wet * lambda_wet * gravity_operator;
         }  // end of has gravity
     }
     if (_process_data._has_mass_lumping)
