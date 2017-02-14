@@ -47,6 +47,7 @@
 #include "ProcessLib/TwoPhaseCarbonation/CreateTwoPhaseCarbonationProcess.h"
 #include "ProcessLib/TwoPhaseFlowWithPP/CreateTwoPhaseFlowWithPPProcess.h"
 #include "ProcessLib/TwoPhaseFlowWithPrho/CreateTwoPhaseFlowWithPrhoProcess.h"
+#include "ProcessLib/TwoPhaseNCompCarbonation/CreateTwoPhaseNCompCarbonationProcess.h"
 
 namespace detail
 {
@@ -456,6 +457,14 @@ void ProjectData::parseProcesses(BaseLib::ConfigTree const& processes_config,
         {
             process =
                 ProcessLib::TwoPhaseCarbonation::createTwoPhaseCarbonationProcess(
+                    *_mesh_vec[0], std::move(jacobian_assembler),
+                    _process_variables, _parameters, integration_order,
+                    process_config, _curves);
+        }
+        else if (type == "TWOPHASE_NCOMP_CARBONATION")
+        {
+            process =
+                ProcessLib::TwoPhaseNCompCarbonation::createTwoPhaseNCompCarbonationProcess(
                     *_mesh_vec[0], std::move(jacobian_assembler),
                     _process_variables, _parameters, integration_order,
                     process_config, _curves);
