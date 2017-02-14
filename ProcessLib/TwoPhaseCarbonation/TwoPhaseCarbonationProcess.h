@@ -64,6 +64,7 @@ private:
         const double t, GlobalVector const& x, GlobalVector const& xdot,
         const double dxdot_dx, const double dx_dx, GlobalMatrix& M,
         GlobalMatrix& K, GlobalVector& b, GlobalMatrix& Jac) override;
+
     void preTimestepConcreteProcess(GlobalVector const& x, double const t,
         double const dt) override
     {
@@ -72,8 +73,17 @@ private:
         _process_data._dt = dt;
 
         GlobalExecutor::executeMemberOnDereferenced(
-            &TwoPhaseCarbonationLocalAssemblerInterface::preTimestep,
+            &LocalAssemblerInterface::preTimestep,
             _local_assemblers, *_local_to_global_index_map, x, t, dt);
+    }
+
+    void postTimestepConcreteProcess(GlobalVector const& x) override
+    {
+        DBUG("PostTimestep TwoPhaseCarbonation.");
+
+        GlobalExecutor::executeMemberOnDereferenced(
+            &LocalAssemblerInterface::postTimestep, _local_assemblers,
+            *_local_to_global_index_map, x);
     }
 
     TwoPhaseCarbonationProcessData _process_data;

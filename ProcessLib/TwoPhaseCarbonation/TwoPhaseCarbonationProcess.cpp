@@ -66,6 +66,11 @@ void TwoPhaseCarbonationProcess::initializeConcreteProcess(
         makeExtrapolator(getExtrapolator(), _local_assemblers,
                          &TwoPhaseCarbonationLocalAssemblerInterface::
                              getIntPtWetPressure));
+    _secondary_variables.addSecondaryVariable(
+        "pH_value", 1,
+        makeExtrapolator(getExtrapolator(), _local_assemblers,
+            &TwoPhaseCarbonationLocalAssemblerInterface::getIntPtpHValue
+            ));
 }
 
 void TwoPhaseCarbonationProcess::assembleConcreteProcess(const double t,
