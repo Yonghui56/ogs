@@ -30,16 +30,19 @@ namespace TwoPhaseFlowWithPP
 template <typename NodalMatrixType>
 struct IntegrationPointData final
 {
-    explicit IntegrationPointData(TwoPhaseFlowWithPPMaterialProperties&
-            material_property_)
-        : mat_property(material_property_)
+    explicit IntegrationPointData(
+        TwoPhaseFlowWithPPMaterialProperties& material_property_,
+        double const& integration_weight_, NodalMatrixType const massOperator_)
+        : mat_property(material_property_),
+          integration_weight(integration_weight_),
+          massOperator(massOperator_)
+
     {
     }
-    TwoPhaseFlowWithPPMaterialProperties&
-        mat_property;
+    TwoPhaseFlowWithPPMaterialProperties const& mat_property;
 
-    double integration_weight;
-    NodalMatrixType massOperator;
+    const double integration_weight;
+    NodalMatrixType const massOperator;
 };
 const unsigned NUM_NODAL_DOF = 2;
 
@@ -96,15 +99,13 @@ public:
         _ip_data.reserve(n_integration_points);
         for (unsigned ip = 0; ip < n_integration_points; ip++)
         {
-            _ip_data.emplace_back(*_process_data._material);
             auto const& sm = _shape_matrices[ip];
-            _ip_data[ip].integration_weight =
+            _ip_data.emplace_back(
+                *_process_data._material,
                 sm.integralMeasure * sm.detJ *
-                _integration_method.getWeightedPoint(ip).getWeight();
-            _ip_data[ip].massOperator.setZero(ShapeFunction::NPOINTS,
-                                              ShapeFunction::NPOINTS);
-            _ip_data[ip].massOperator.noalias() =
-                sm.N.transpose() * sm.N * _ip_data[ip].integration_weight;
+                    _integration_method.getWeightedPoint(ip).getWeight(),
+                sm.N.transpose() * sm.N  * sm.integralMeasure * sm.detJ *
+                _integration_method.getWeightedPoint(ip).getWeight());
         }
     }
 
@@ -146,7 +147,11 @@ private:
     TwoPhaseFlowWithPPProcessData const& _process_data;
     std::vector<IntegrationPointData<NodalMatrixType>> _ip_data;
 
+    // output vector for wetting phase saturation with
+    // respect to each integration point
     std::vector<double> _saturation;
+    // output vector for wetting phase pressure with respect
+    // to each integration point
     std::vector<double> _pressure_wet;
     static const int nonwet_pressure_coeff_index = 0;
     static const int cap_pressure_coeff_index = 1;

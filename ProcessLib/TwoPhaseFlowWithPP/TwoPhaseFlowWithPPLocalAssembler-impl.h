@@ -27,10 +27,6 @@
 * k_rel_wet                relative permeability of wetting phase
 * mu_wet                   viscosity of wetting phase
 * lambda_wet               mobility of wetting phase
-* _pressure_wet            output vector for wetting phase pressure with respect
-* to each integration point
-* _saturation              output vector for wetting phase saturation with
-* respect to each integration point
 */
 #pragma once
 

@@ -28,7 +28,10 @@ namespace MeshLib
 template <typename PROP_VAL_TYPE>
 class PropertyVector;
 }
-
+/**
+* \brief
+* The material properties class is extended to two-phase condition
+*/
 namespace ProcessLib
 {
 class SpatialPosition;
