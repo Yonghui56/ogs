@@ -71,12 +71,13 @@ public:
 
     int getMaterialID(const std::size_t element_id);
 
-    Eigen::MatrixXd const& getPermeability(
+    Eigen::MatrixXd const& getPermeability(const int material_id,
         const double t,
         const ProcessLib::SpatialPosition& pos,
         const int dim) const;
 
-    double getPorosity(const double t, const ProcessLib::SpatialPosition& pos,
+    double getPorosity(const int material_id,
+        const double t, const ProcessLib::SpatialPosition& pos,
                        const double p, const double T,
                        const double porosity_variable) const;
 
@@ -88,13 +89,14 @@ public:
                                       const ProcessLib::SpatialPosition& pos,
                                       const double p, const double T,
                                       const double saturation) const;
-    double getSaturation(const double t, const ProcessLib::SpatialPosition& pos,
+    double getSaturation(const int material_id, 
+        const double t, const ProcessLib::SpatialPosition& pos,
                          const double p, const double T, const double pc) const;
-    double getSaturationDerivative(const double t,
+    double getSaturationDerivative(const int material_id, const double t,
                                    const ProcessLib::SpatialPosition& pos,
                                    const double p, const double T,
                                    const double saturation) const;
-    double getCapillaryPressure(const double t,
+    double getCapillaryPressure(const int material_id, const double t,
                                 const ProcessLib::SpatialPosition& pos,
                                 const double p, const double T,
                                 const double saturation) const;
@@ -102,7 +104,7 @@ public:
     double getGasDensity(const double p, const double T) const;
     double getGasViscosity(const double p, const double T) const;
     double getLiquidViscosity(const double p, const double T) const;
-    double getDerivGasDensity(double const p, double const T) const;
+    double getDerivativeGasDensity(double const p, double const T) const;
     /// Calculates the unsaturated heat conductivity
     double calculateUnsatHeatConductivity(double const t,
                                           ProcessLib::SpatialPosition const& x,
@@ -113,17 +115,17 @@ public:
     double calculateSaturatedVaporPressure(const double T) const;
     /// partial water vapor pressure in nonwetting phase
     /// Kelvin equation
-    double calculateVaporPressureNonwet(const double pc, const double T) const;
+    double calculateVaporPressureNonwet(const double pc, const double T, const double rho_mass_h2o) const;
     /// Derivative of SaturatedVaporPressure in terms of T
     double calculateDerivativedPsatdT(const double T) const;
     /// Derivative of partial vapor pressure in terms of T
-    double calculateDerivativedPgwdT(const double pc, const double T) const;
+    double calculateDerivativedPgwdT(const double pc, const double T, const double rho_mass_h2o) const;
     /// Derivative of partial vapor pressure in terms of PC
-    double calculateDerivativedPgwdPC(const double pc, const double T) const;
+    double calculateDerivativedPgwdPC(const double pc, const double T, const double rho_mass_h2o) const;
     ///
     double calculatedRhoNonwetdT(const double p_air_nonwet,
                                  const double p_vapor_nonwetconst, double pc,
-                                 const double T) const;
+                                 const double T, const double rho_mass_h2o) const;
 
 protected:
 
@@ -137,7 +139,6 @@ protected:
     */
     boost::optional<MeshLib::PropertyVector<int> const&> const _material_ids;
 
-    int _current_material_id = 0;
     std::vector<Eigen::MatrixXd> _intrinsic_permeability_models;
     std::vector<std::unique_ptr<MaterialLib::PorousMedium::Porosity>>
         _porosity_models;
@@ -150,11 +151,6 @@ protected:
         std::unique_ptr<MaterialLib::PorousMedium::RelativePermeability>>
         _relative_permeability_models;
 
-private:
-    /**
-    * mass density of water
-    */
-    double const rho_mass_h20 = 1000;
 };
 
 }  // end of namespace
