@@ -71,17 +71,17 @@ std::unique_ptr<Process> createThermalTwoPhaseFlowWithPPProcess(
     // diffusion coeff
     auto& diff_coeff_b = findParameter<double>(
         config,
-        //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__diffusion_coeff_component_b}
+        //! \ogs_file_param_special{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__diffusion_coeff_component_b}
         "diffusion_coeff_component_b", parameters, 1);
     auto& diff_coeff_a = findParameter<double>(
         config,
-        //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__diffusion_coeff_component_a}
+        //! \ogs_file_param_special{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__diffusion_coeff_component_a}
         "diffusion_coeff_component_a", parameters, 1);
 
     // Parameter for the specific heat capacity of the solid.
     auto& specific_heat_capacity_solid = findParameter<double>(
         config,
-        //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__specific_heat_capacity_solid}
+        //! \ogs_file_param_special{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__specific_heat_capacity_solid}
         "specific_heat_capacity_solid", parameters, 1);
     DBUG("Use \'%s\' as specific_heat_capacity_solid parameter.",
          specific_heat_capacity_solid.name.c_str());
@@ -89,7 +89,7 @@ std::unique_ptr<Process> createThermalTwoPhaseFlowWithPPProcess(
     // Parameter for the specific heat capacity of the solid.
     auto& specific_heat_capacity_water = findParameter<double>(
         config,
-        //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__specific_heat_capacity_water}
+        //! \ogs_file_param_special{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__specific_heat_capacity_water}
         "specific_heat_capacity_water", parameters, 1);
     DBUG("Use \'%s\' as specific_heat_capacity_water parameter.",
          specific_heat_capacity_water.name.c_str());
@@ -97,7 +97,7 @@ std::unique_ptr<Process> createThermalTwoPhaseFlowWithPPProcess(
     // Parameter for the specific heat capacity of the dry air.
     auto& specific_heat_capacity_dry_air = findParameter<double>(
         config,
-        //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__specific_heat_capacity_dry_air}
+        //! \ogs_file_param_special{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__specific_heat_capacity_dry_air}
         "specific_heat_capacity_dry_air", parameters, 1);
     DBUG("Use \'%s\' as specific_heat_capacity_dry_air parameter.",
          specific_heat_capacity_dry_air.name.c_str());
@@ -105,7 +105,7 @@ std::unique_ptr<Process> createThermalTwoPhaseFlowWithPPProcess(
     // Parameter for the specific heat capacity of the water vapor.
     auto& specific_heat_capacity_water_vapor = findParameter<double>(
         config,
-        //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__specific_heat_capacity_water_vapor}
+        //! \ogs_file_param_special{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__specific_heat_capacity_water_vapor}
         "specific_heat_capacity_water_vapor", parameters, 1);
     DBUG("Use \'%s\' as specific_heat_capacity_water_vapor parameter.",
          specific_heat_capacity_water_vapor.name.c_str());
@@ -113,7 +113,7 @@ std::unique_ptr<Process> createThermalTwoPhaseFlowWithPPProcess(
     // Parameter for the heat conductivity of the dry solid
     auto& heat_conductivity_dry_solid = findParameter<double>(
         config,
-        //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__heat_conductivity_dry_solid}
+        //! \ogs_file_param_special{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__heat_conductivity_dry_solid}
         "heat_conductivity_dry_solid", parameters, 1);
     DBUG("Use \'%s\' as heat_conductivity_dry_solid parameter.",
         heat_conductivity_dry_solid.name.c_str());
@@ -121,7 +121,7 @@ std::unique_ptr<Process> createThermalTwoPhaseFlowWithPPProcess(
     // Parameter for the heat conductivity of the wet solid
     auto& heat_conductivity_wet_solid = findParameter<double>(
         config,
-        //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__heat_conductivity_wet_solid}
+        //! \ogs_file_param_special{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__heat_conductivity_wet_solid}
         "heat_conductivity_wet_solid", parameters, 1);
     DBUG("Use \'%s\' as heat_conductivity_wet_solid parameter.",
         heat_conductivity_wet_solid.name.c_str());
@@ -137,7 +137,7 @@ std::unique_ptr<Process> createThermalTwoPhaseFlowWithPPProcess(
     // Parameter for the latent heat of evaporation.
     auto& latent_heat_evaporation = findParameter<double>(
         config,
-        //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__latent_heat_evaporation}
+        //! \ogs_file_param_special{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__latent_heat_evaporation}
         "latent_heat_evaporation", parameters, 1);
     DBUG("Use \'%s\' as latent_heat_evaporation parameter.",
          latent_heat_evaporation.name.c_str());

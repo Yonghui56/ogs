@@ -22,27 +22,31 @@
 
 #include "ThermalTwoPhaseFlowWithPPProcessData.h"
 
-template <typename NodalMatrixType>
-struct IntegrationPointData final
-{
-    explicit IntegrationPointData(
-        ProcessLib::ThermalTwoPhaseFlowWithPP::
-            ThermalTwoPhaseFlowWithPPMaterialProperties& material_property)
-        : _mat_property(material_property)
-    {
-    }
-
-    // ProcessLib::ThermalTwoPhaseFlowWithPP::EoSBase& _EoS_material;
-    ProcessLib::ThermalTwoPhaseFlowWithPP::
-        ThermalTwoPhaseFlowWithPPMaterialProperties& _mat_property;
-    double integration_weight;
-    NodalMatrixType massOperator;
-    NodalMatrixType diffusionOperator;
-};
 namespace ProcessLib
 {
 namespace ThermalTwoPhaseFlowWithPP
 {
+    template <typename NodalMatrixType>
+    struct IntegrationPointData final
+    {
+        explicit IntegrationPointData(
+            ThermalTwoPhaseFlowWithPPMaterialProperties& material_property_,
+            double const& integration_weight_,
+            NodalMatrixType const mass_operator_,
+            NodalMatrixType const diffusion_operator_
+            )
+            : mat_property(material_property_),
+            integration_weight(integration_weight_),
+            mass_operator(mass_operator_),
+            diffusion_operator(diffusion_operator_)
+        {
+        }
+
+        ThermalTwoPhaseFlowWithPPMaterialProperties const& mat_property;
+        double const integration_weight;
+        NodalMatrixType const mass_operator;
+        NodalMatrixType const diffusion_operator;
+    };
 const unsigned NUM_NODAL_DOF = 3;
 
 class ThermalTwoPhaseFlowWithPPLocalAssemblerInterface
@@ -98,19 +102,15 @@ public:
         _ip_data.reserve(n_integration_points);
         for (unsigned ip = 0; ip < n_integration_points; ip++)
         {
-            _ip_data.emplace_back(*_process_data._material);
             auto const& sm = _shape_matrices[ip];
-            _ip_data[ip].integration_weight =
+            _ip_data.emplace_back(
+                *_process_data._material,
                 sm.integralMeasure * sm.detJ *
-                _integration_method.getWeightedPoint(ip).getWeight();
-            _ip_data[ip].massOperator.setZero(ShapeFunction::NPOINTS,
-                                              ShapeFunction::NPOINTS);
-            _ip_data[ip].diffusionOperator.setZero(ShapeFunction::NPOINTS,
-                                                   ShapeFunction::NPOINTS);
-            _ip_data[ip].massOperator.noalias() =
-                sm.N.transpose() * sm.N * _ip_data[ip].integration_weight;
-            _ip_data[ip].diffusionOperator.noalias() =
-                sm.dNdx.transpose() * sm.dNdx * _ip_data[ip].integration_weight;
+                _integration_method.getWeightedPoint(ip).getWeight(),
+                sm.N.transpose() * sm.N  * sm.integralMeasure * sm.detJ *
+                _integration_method.getWeightedPoint(ip).getWeight(),
+                sm.dNdx.transpose() * sm.dNdx * sm.integralMeasure * sm.detJ *
+                _integration_method.getWeightedPoint(ip).getWeight());
         }
     }
 
@@ -146,7 +146,8 @@ private:
     MeshLib::Element const& _element;
 
     IntegrationMethod const _integration_method;
-    std::vector<ShapeMatrices> _shape_matrices;
+    std::vector<ShapeMatrices, Eigen::aligned_allocator<ShapeMatrices>>
+        _shape_matrices;
 
     ThermalTwoPhaseFlowWithPPProcessData const& _process_data;
     std::vector<IntegrationPointData<NodalMatrixType>> _ip_data;
