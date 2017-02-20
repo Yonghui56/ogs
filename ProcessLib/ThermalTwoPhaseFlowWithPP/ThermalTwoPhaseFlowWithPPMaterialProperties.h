@@ -102,7 +102,7 @@ public:
     double getGasDensity(const double p, const double T) const;
     double getGasViscosity(const double p, const double T) const;
     double getLiquidViscosity(const double p, const double T) const;
-    double getDerivGasDensity(double const p, double const T) const;
+    double getDerivativeGasDensity(double const p, double const T) const;
     /// Calculates the unsaturated heat conductivity
     double calculateUnsatHeatConductivity(double const t,
                                           ProcessLib::SpatialPosition const& x,
@@ -113,17 +113,17 @@ public:
     double calculateSaturatedVaporPressure(const double T) const;
     /// partial water vapor pressure in nonwetting phase
     /// Kelvin equation
-    double calculateVaporPressureNonwet(const double pc, const double T) const;
+    double calculateVaporPressureNonwet(const double pc, const double T, const double rho_mass_h2o) const;
     /// Derivative of SaturatedVaporPressure in terms of T
     double calculateDerivativedPsatdT(const double T) const;
     /// Derivative of partial vapor pressure in terms of T
-    double calculateDerivativedPgwdT(const double pc, const double T) const;
+    double calculateDerivativedPgwdT(const double pc, const double T, const double rho_mass_h2o) const;
     /// Derivative of partial vapor pressure in terms of PC
-    double calculateDerivativedPgwdPC(const double pc, const double T) const;
+    double calculateDerivativedPgwdPC(const double pc, const double T, const double rho_mass_h2o) const;
     ///
     double calculatedRhoNonwetdT(const double p_air_nonwet,
                                  const double p_vapor_nonwetconst, double pc,
-                                 const double T) const;
+                                 const double T, const double rho_mass_h2o) const;
 
 protected:
 
@@ -150,11 +150,6 @@ protected:
         std::unique_ptr<MaterialLib::PorousMedium::RelativePermeability>>
         _relative_permeability_models;
 
-private:
-    /**
-    * mass density of water
-    */
-    double const rho_mass_h20 = 1000;
 };
 
 }  // end of namespace

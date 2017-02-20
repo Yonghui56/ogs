@@ -22,27 +22,26 @@
 
 #include "ThermalTwoPhaseFlowWithPPProcessData.h"
 
-template <typename NodalMatrixType>
-struct IntegrationPointData final
-{
-    explicit IntegrationPointData(
-        ProcessLib::ThermalTwoPhaseFlowWithPP::
-            ThermalTwoPhaseFlowWithPPMaterialProperties& material_property)
-        : _mat_property(material_property)
-    {
-    }
-
-    // ProcessLib::ThermalTwoPhaseFlowWithPP::EoSBase& _EoS_material;
-    ProcessLib::ThermalTwoPhaseFlowWithPP::
-        ThermalTwoPhaseFlowWithPPMaterialProperties& _mat_property;
-    double integration_weight;
-    NodalMatrixType massOperator;
-    NodalMatrixType diffusionOperator;
-};
 namespace ProcessLib
 {
 namespace ThermalTwoPhaseFlowWithPP
 {
+    template <typename NodalMatrixType>
+    struct IntegrationPointData final
+    {
+        explicit IntegrationPointData(
+            ProcessLib::ThermalTwoPhaseFlowWithPP::
+            ThermalTwoPhaseFlowWithPPMaterialProperties& material_property)
+            : _mat_property(material_property)
+        {
+        }
+
+        ProcessLib::ThermalTwoPhaseFlowWithPP::
+            ThermalTwoPhaseFlowWithPPMaterialProperties& _mat_property;
+        double integration_weight;
+        NodalMatrixType massOperator;
+        NodalMatrixType diffusionOperator;
+    };
 const unsigned NUM_NODAL_DOF = 3;
 
 class ThermalTwoPhaseFlowWithPPLocalAssemblerInterface
@@ -146,7 +145,8 @@ private:
     MeshLib::Element const& _element;
 
     IntegrationMethod const _integration_method;
-    std::vector<ShapeMatrices> _shape_matrices;
+    std::vector<ShapeMatrices, Eigen::aligned_allocator<ShapeMatrices>>
+        _shape_matrices;
 
     ThermalTwoPhaseFlowWithPPProcessData const& _process_data;
     std::vector<IntegrationPointData<NodalMatrixType>> _ip_data;

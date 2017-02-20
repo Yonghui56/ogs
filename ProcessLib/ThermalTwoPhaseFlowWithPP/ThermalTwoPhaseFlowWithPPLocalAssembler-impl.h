@@ -142,9 +142,7 @@ void ThermalTwoPhaseFlowWithPPLocalAssembler<
         double const rho_water =
             _process_data._material->getLiquidDensity(pg_int_pt, T_int_pt);
 
-        double const Sw = (pc_int_pt < 0)
-                              ? 1.0
-                              : _process_data._material->getSaturation(
+        double const Sw = _process_data._material->getSaturation(
                                     t, pos, pg_int_pt, T_int_pt, pc_int_pt);
 
         _saturation[ip] = Sw;
@@ -158,7 +156,7 @@ void ThermalTwoPhaseFlowWithPPLocalAssembler<
         /// calculate the water vapor pressure
         double const p_vapor_nonwet =
             _process_data._material->calculateVaporPressureNonwet(pc_int_pt,
-                                                                  T_int_pt);
+                                                                  T_int_pt,rho_water);
         /// partial pressure of air
         double const p_air_nonwet = pg_int_pt - p_vapor_nonwet;
         /// molar fraction of air in nonwet phase
@@ -179,10 +177,10 @@ void ThermalTwoPhaseFlowWithPPLocalAssembler<
         double const dRhoMolAirNonwetdPg = dRhoMolNonwetdPg;
         double const dPvaporNonwetdT =
             _process_data._material->calculateDerivativedPgwdT(pc_int_pt,
-                                                               T_int_pt);
+                                                               T_int_pt,rho_water);
         double const dPvaporNonwetdPc =
             _process_data._material->calculateDerivativedPgwdPC(pc_int_pt,
-                                                                T_int_pt);
+                                                                T_int_pt,rho_water);
         /// Derivative
         double const dRhoMolNonwetdT =
             -pg_int_pt / IdealGasConstant / T_int_pt / T_int_pt;
@@ -201,7 +199,7 @@ void ThermalTwoPhaseFlowWithPPLocalAssembler<
         /// Derivative of nonwet phase density in terms of T
         double const dRhoNonwetdT =
             _process_data._material->calculatedRhoNonwetdT(
-                p_air_nonwet, p_vapor_nonwet, pc_int_pt, T_int_pt);
+                p_air_nonwet, p_vapor_nonwet, pc_int_pt, T_int_pt,rho_water);
         /// Derivative of nonwet phase density in terms of Pc
         double const dRhoNonwetdPc =
             Water * dPvaporNonwetdPc / IdealGasConstant / T_int_pt;

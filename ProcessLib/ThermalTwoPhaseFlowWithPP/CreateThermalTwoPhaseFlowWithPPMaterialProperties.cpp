@@ -41,18 +41,18 @@ createThermalTwoPhaseFlowWithPPMaterialProperties(
     // Get fluid properties
     //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__material_property__liquid_density}
     auto const& rho_conf = fluid_config.getConfigSubtree("liquid_density");
-    auto _liquid_density =
+    auto liquid_density =
         MaterialLib::Fluid::createFluidDensityModel(rho_conf);
     //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__material_property__gas_density}
     auto const& rho_gas_conf = fluid_config.getConfigSubtree("gas_density");
-    auto _gas_density =
+    auto gas_density =
         MaterialLib::Fluid::createFluidDensityModel(rho_gas_conf);
     //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__material_property__liquid_viscosity}
     auto const& mu_conf = fluid_config.getConfigSubtree("liquid_viscosity");
-    auto _viscosity = MaterialLib::Fluid::createViscosityModel(mu_conf);
+    auto viscosity = MaterialLib::Fluid::createViscosityModel(mu_conf);
     //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__material_property__gas_viscosity}
     auto const& mu_gas_conf = fluid_config.getConfigSubtree("gas_viscosity");
-    auto _gas_viscosity = MaterialLib::Fluid::createViscosityModel(mu_gas_conf);
+    auto gas_viscosity = MaterialLib::Fluid::createViscosityModel(mu_gas_conf);
 
     // Get porous properties
     std::vector<int> mat_ids;
@@ -127,9 +127,9 @@ createThermalTwoPhaseFlowWithPPMaterialProperties(
 
     return std::unique_ptr<ThermalTwoPhaseFlowWithPPMaterialProperties>{
         new ThermalTwoPhaseFlowWithPPMaterialProperties{
-            material_ids, std::move(_liquid_density),
-            std::move(_viscosity), std::move(_gas_density),
-            std::move(_gas_viscosity), _intrinsic_permeability_models,
+            material_ids, std::move(liquid_density),
+            std::move(viscosity), std::move(gas_density),
+            std::move(gas_viscosity), _intrinsic_permeability_models,
             std::move(_porosity_models), std::move(_storage_models),
             std::move(_capillary_pressure_models),
             std::move(_relative_permeability_models)}};

@@ -105,7 +105,7 @@ double ThermalTwoPhaseFlowWithPPMaterialProperties::getGasDensity(
     return _gas_density->getValue(vars);
 }
 
-double ThermalTwoPhaseFlowWithPPMaterialProperties::getDerivGasDensity(
+double ThermalTwoPhaseFlowWithPPMaterialProperties::getDerivativeGasDensity(
     const double p, const double T) const
 {
     ArrayType vars;
@@ -145,10 +145,8 @@ double ThermalTwoPhaseFlowWithPPMaterialProperties::getPorosity(
     const double /*t*/, const ProcessLib::SpatialPosition& /*pos*/,
     const double /*p*/, const double T, const double porosity_variable) const
 {
-    const double porosity =
+    return
         _porosity_models[_current_material_id]->getValue(porosity_variable, T);
-
-    return porosity;
 }
 
 double
@@ -228,11 +226,11 @@ ThermalTwoPhaseFlowWithPPMaterialProperties::calculateSaturatedVaporPressure(
 }
 double
 ThermalTwoPhaseFlowWithPPMaterialProperties::calculateVaporPressureNonwet(
-    const double pc, const double T) const
+    const double pc, const double T, const double rho_mass_h2o) const
 {
     const double p_sat = calculateSaturatedVaporPressure(T);
-    const double C_w = Water / IdealGasConstant / T;
-    return p_sat * exp(-pc * C_w / rho_mass_h20);
+    const double c_w = Water / IdealGasConstant / T;
+    return p_sat * exp(-pc * c_w / rho_mass_h2o);
 }
 double ThermalTwoPhaseFlowWithPPMaterialProperties::calculateDerivativedPsatdT(
     const double T) const
@@ -244,28 +242,28 @@ double ThermalTwoPhaseFlowWithPPMaterialProperties::calculateDerivativedPsatdT(
            exp(((1. / T_0) - (1. / T)) * Water * h_wg / IdealGasConstant);
 }
 double ThermalTwoPhaseFlowWithPPMaterialProperties::calculateDerivativedPgwdT(
-    const double pc, const double T) const
+    const double pc, const double T, const double rho_mass_h2o) const
 {
-    const double C_w = Water / IdealGasConstant / T;
+    const double c_w = Water / IdealGasConstant / T;
     const double p_sat = calculateSaturatedVaporPressure(T);
     const double dPsatdT = calculateDerivativedPsatdT(T);
-    return dPsatdT * exp(-pc * C_w / rho_mass_h20) +
-           p_sat * exp(-pc * C_w / rho_mass_h20) *
-               (pc * Water / rho_mass_h20 / IdealGasConstant / T / T);
+    return dPsatdT * exp(-pc * c_w / rho_mass_h2o) +
+           p_sat * exp(-pc * c_w / rho_mass_h2o) *
+               (pc * Water / rho_mass_h2o / IdealGasConstant / T / T);
 }
 double ThermalTwoPhaseFlowWithPPMaterialProperties::calculateDerivativedPgwdPC(
-    const double pc, const double T) const
+    const double pc, const double T, const double rho_mass_h2o) const
 {
-    const double C_w = Water / IdealGasConstant / T;
+    const double c_w = Water / IdealGasConstant / T;
     const double p_sat = calculateSaturatedVaporPressure(T);
-    return p_sat * exp(-pc * C_w / rho_mass_h20) * (-C_w / rho_mass_h20);
+    return p_sat * exp(-pc * c_w / rho_mass_h2o) * (-c_w / rho_mass_h2o);
 }
 double ThermalTwoPhaseFlowWithPPMaterialProperties::calculatedRhoNonwetdT(
     const double p_air_nonwet, const double p_vapor_nonwet, const double PC,
-    const double T) const
+    const double T, const double rho_mass_h2o) const
 {
     const double C_v = Air / IdealGasConstant / T;
-    const double dPgwdT = calculateDerivativedPgwdT(PC, T);
+    const double dPgwdT = calculateDerivativedPgwdT(PC, T, rho_mass_h2o);
     return -((p_air_nonwet * Air + p_vapor_nonwet * Water) / IdealGasConstant /
              T / T) +
            (Water - Air) * dPgwdT / IdealGasConstant / T;
