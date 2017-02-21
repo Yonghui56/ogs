@@ -7,8 +7,7 @@
  *
  */
 
-#ifndef OGS_TWOPHASECOMPONENTIALFLOWLOCALASSEMBLER_H
-#define OGS_TWOPHASECOMPONENTIALFLOWLOCALASSEMBLER_H
+#pragma once
 
 #include <vector>
 
@@ -112,7 +111,8 @@ private:
     MeshLib::Element const& _element;
 
     IntegrationMethod const _integration_method;
-    std::vector<ShapeMatrices> _shape_matrices;
+    std::vector<ShapeMatrices, Eigen::aligned_allocator<ShapeMatrices>>
+        _shape_matrices;
 
     TwoPhaseComponentialFlowProcessData const& _process_data;
 
@@ -128,11 +128,11 @@ private:
     const double Hen_L_co2 = 0.163e+9;  // Henry constant in [Pa]
     const double rho_l_std = 1000.0;
 
-    const double M_H = MaterialLib::PhysicalConstant::MolarMass::H2;
+    const double M_H = 0.002;// MaterialLib::PhysicalConstant::MolarMass::H2;
     const double M_L = MaterialLib::PhysicalConstant::MolarMass::Water;
-    const double M_C = MaterialLib::PhysicalConstant::MolarMass::CH4;
+    const double M_C = 0.016;// MaterialLib::PhysicalConstant::MolarMass::CH4;
     const double M_AIR = MaterialLib::PhysicalConstant::MolarMass::Air;
-    const double M_CO2 = MaterialLib::PhysicalConstant::MolarMass::CO2;
+    const double M_CO2 = 0.044;// MaterialLib::PhysicalConstant::MolarMass::CO2;
 
     const double mu_L = 3.171e-11;
     const double mu_G = 2.8539e-13;  // viscosity
@@ -316,5 +316,3 @@ private:
 }  // end of namespace
 
 #include "TwoPhaseComponentialFlowLocalAssembler-impl.h"
-
-#endif /* TWOPHASECOMPONENTIALFLOWLOCALASSEMBLER_H */

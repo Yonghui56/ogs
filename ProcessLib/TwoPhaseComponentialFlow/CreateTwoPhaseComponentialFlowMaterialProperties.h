@@ -7,8 +7,7 @@
 *
 */
 
-#ifndef OGS_CREATETWOPHASECOMPONENTIALFLOWMATERIALPROPERTIES_H
-#define OGS_CREATETWOPHASECOMPONENTIALFLOWMATERIALPROPERTIES_H
+#pragma once
 
 #include <memory>
 #include "MaterialLib/Fluid/FluidPropertyHeaders.h"
@@ -34,5 +33,3 @@ namespace ProcessLib
 
 	}  // end namespace
 }  // end namespace
-
-#endif /* CREATETWOPHASEFLOWPRHOMATERIALPROPERTIES_H */

@@ -7,8 +7,7 @@
 *
 */
 
-#ifndef OGS_TWOPHASECOMPONENTIALFLOWMATERIALPROPERTIES_H
-#define OGS_TWOPHASECOMPONENTIALFLOWMATERIALPROPERTIES_H
+#pragma once
 
 #include <iostream>
 #include <memory>
@@ -147,4 +146,3 @@ namespace ProcessLib
 
 	}  // end of namespace
 }  // end of namespace
-#endif /* TWOPHASEFLOWWITHPPMATERIALPROPERTIES_H */

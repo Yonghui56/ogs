@@ -7,8 +7,7 @@
  *
  */
 
-#ifndef OGS_TWOPHASECOMPONENTIALFLOWLOCALASSEMBLER_IMPL_H
-#define OGS_TWOPHASECOMPONENTIALFLOWLOCALASSEMBLER_IMPL_H
+#pragma once
 
 #include "TwoPhaseComponentialFlowLocalAssembler.h"
 
@@ -510,7 +509,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
                              (1 - Sw) * rho_mol_nonwet * d_x_nonwet_air_d_pg +
                              Sw * rho_mol_wet * d_x_nonwet_air_d_pg * K_G_air +
                              Sw * rho_mol_wet * x_nonwet_air / Hen_L_air +
-                             Sw * x_wet_air * d_rho_mol_nonwet_d_pg) *
+                             Sw * x_wet_air * d_rho_mol_wet_d_pg) *
                             mass_operator;  // dPG
         Mairmolh2.noalias() +=
             porosity * ((1 - Sw) * rho_mol_nonwet * d_x_nonwet_air_d_x1 +
@@ -663,7 +662,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
               (X1_int_pt / Hen_L_h + X2_int_pt / Hen_L_c +
                X3_int_pt / Hen_L_co2)) +
              porosity * D_L * Sw * rho_mol_wet * d_x_nonwet_air_d_pg * K_G_air +
-             porosity * D_L * Sw * rho_mol_wet * x_nonwet_air / Hen_L_air -
+             porosity * D_L * Sw * rho_mol_wet * x_nonwet_air / Hen_L_air +
              porosity * D_G * (1 - Sw) * rho_mol_nonwet * d_x_nonwet_air_d_pg) *
             diffusive_operator;
 
@@ -682,11 +681,11 @@ void TwoPhaseComponentialFlowLocalAssembler<
                  K_G_air) *
             diffusive_operator;
         Kh2omolco2.noalias() +=
-            (-porosity * D_G * S_G_gp * rho_mol_nonwet -
-             porosity * D_G * S_G_gp * rho_mol_nonwet * d_x_nonwet_air_d_x3 -
-             porosity * D_L * (1 - S_G_gp) * rho_mol_wet * pg_int_pt /
+            (-porosity * D_G * (1 - Sw) * rho_mol_nonwet -
+             porosity * D_G * (1 - Sw) * rho_mol_nonwet * d_x_nonwet_air_d_x3 -
+             porosity * D_L * Sw * rho_mol_wet * pg_int_pt /
                  Hen_L_co2 -
-             porosity * D_L * (1 - S_G_gp) * rho_mol_wet * d_x_nonwet_air_d_x3 *
+             porosity * D_L * Sw * rho_mol_wet * d_x_nonwet_air_d_x3 *
                  K_G_air) *
             diffusive_operator;
         Kh2opc.noalias() +=
@@ -846,5 +845,3 @@ void TwoPhaseComponentialFlowLocalAssembler<
 
 }  // end of namespace
 }  // end of namespace
-
-#endif

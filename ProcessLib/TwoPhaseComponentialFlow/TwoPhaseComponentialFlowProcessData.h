@@ -7,8 +7,7 @@
  *
  */
 
-#ifndef PROCESSLIB_TWOPHASECOMPONENTIALFLOW_TWOPHASECOMPONENTIALFLOWPROCESSDATA_H
-#define PROCESSLIB_TWOPHASECOMPONENTIALFLOW_TWOPHASECOMPONENTIALFLOWPROCESSDATA_H
+#pragma once
 #include "TwoPhaseComponentialFlowMaterialProperties.h"
 namespace MeshLib
 {
@@ -87,5 +86,3 @@ struct TwoPhaseComponentialFlowProcessData
 
 }  // namespace TwoPhaseComponentialFlow
 }  // namespace ProcessLib
-
-#endif  // PROCESSLIB_TwoPhaseComponentialFlow_TwoPhaseComponentialFlowPROCESSDATA_H

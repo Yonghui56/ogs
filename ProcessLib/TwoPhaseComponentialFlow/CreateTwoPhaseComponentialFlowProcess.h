@@ -7,8 +7,7 @@
  *
  */
 
-#ifndef OGS_CREATETWOPHASECOMPONENTIALFLOWPROCESS_H
-#define OGS_CREATETWOPHASECOMPONENTIALFLOWPROCESS_H
+#pragma once
 
 #include <memory>
 #include "ProcessLib/Process.h"
@@ -29,5 +28,3 @@ std::unique_ptr<Process> CreateTwoPhaseComponentialFlowProcess(
         curves);
 }  // end of namespace
 }  // end of namespace
-
-#endif /* CREATETWOPHASEFLOWWITHPPPROCESS_H */
