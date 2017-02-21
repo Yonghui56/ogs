@@ -67,6 +67,18 @@ private:
         const double dxdot_dx, const double dx_dx, GlobalMatrix& M,
         GlobalMatrix& K, GlobalVector& b, GlobalMatrix& Jac) override;
 
+    void preTimestepConcreteProcess(GlobalVector const& x, double const t,
+        double const dt) override
+    {
+        DBUG("PreTimestep TwoPhaseCarbonation.");
+
+        _process_data._dt = dt;
+
+        GlobalExecutor::executeMemberOnDereferenced(
+            &TwoPhaseComponentialFlowLocalAssemblerInterface::preTimestep,
+            _local_assemblers, *_local_to_global_index_map, x, t, dt);
+    }
+
 	TwoPhaseComponentialFlowProcessData _process_data;
 
     std::vector<std::unique_ptr<TwoPhaseComponentialFlowLocalAssemblerInterface>>

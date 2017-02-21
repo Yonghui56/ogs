@@ -24,41 +24,43 @@ namespace TwoPhaseComponentialFlow
 {
 struct TwoPhaseComponentialFlowProcessData
 {
-	TwoPhaseComponentialFlowProcessData(
+    TwoPhaseComponentialFlowProcessData(
         Eigen::VectorXd const specific_body_force_,
         bool const has_gravity_,
         bool const has_mass_lumping_,
         std::unique_ptr<TwoPhaseComponentialFlowMaterialProperties>&& material_,
-		Parameter<double> const& diffusion_coeff_componentb_,
-		Parameter<double> const& diffusion_coeff_componenta_,
-		MathLib::PiecewiseLinearInterpolation const& interpolated_Q_slow_,
-		MathLib::PiecewiseLinearInterpolation const& interpolated_Q_fast_)
+        Parameter<double> const& diffusion_coeff_componentb_,
+        Parameter<double> const& diffusion_coeff_componenta_,
+        MathLib::PiecewiseLinearInterpolation const& interpolated_Q_slow_,
+        MathLib::PiecewiseLinearInterpolation const& interpolated_Q_fast_)
         : _specific_body_force(specific_body_force_),
           _has_gravity(has_gravity_),
           _has_mass_lumping(has_mass_lumping_),
           _material(std::move(material_)),
-		  _diffusion_coeff_componentb(diffusion_coeff_componentb_),
-		  _diffusion_coeff_componenta(diffusion_coeff_componenta_),
-		  _interpolated_Q_slow(interpolated_Q_slow_),
-		  _interpolated_Q_fast(interpolated_Q_fast_)
+          _diffusion_coeff_componentb(diffusion_coeff_componentb_),
+          _diffusion_coeff_componenta(diffusion_coeff_componenta_),
+          _interpolated_Q_slow(interpolated_Q_slow_),
+          _interpolated_Q_fast(interpolated_Q_fast_)
     {
     }
 
-	TwoPhaseComponentialFlowProcessData(TwoPhaseComponentialFlowProcessData&& other)
+    TwoPhaseComponentialFlowProcessData(
+        TwoPhaseComponentialFlowProcessData&& other)
         : _specific_body_force(other._specific_body_force),
           _has_gravity(other._has_gravity),
           _has_mass_lumping(other._has_mass_lumping),
           _material(std::move(other._material)),
-		  _diffusion_coeff_componentb(other._diffusion_coeff_componentb),
-		  _diffusion_coeff_componenta(other._diffusion_coeff_componenta),
-		  _interpolated_Q_slow(other._interpolated_Q_slow),
-		  _interpolated_Q_fast(other._interpolated_Q_fast)
+          _diffusion_coeff_componentb(other._diffusion_coeff_componentb),
+          _diffusion_coeff_componenta(other._diffusion_coeff_componenta),
+          _interpolated_Q_slow(other._interpolated_Q_slow),
+          _interpolated_Q_fast(other._interpolated_Q_fast),
+          _dt{other._dt}
     {
     }
 
     //! Copies are forbidden.
-	TwoPhaseComponentialFlowProcessData(TwoPhaseComponentialFlowProcessData const&) =
-        delete;
+    TwoPhaseComponentialFlowProcessData(
+        TwoPhaseComponentialFlowProcessData const&) = delete;
 
     //! Assignments are not needed.
     void operator=(TwoPhaseComponentialFlowProcessData const&) = delete;
@@ -75,12 +77,12 @@ struct TwoPhaseComponentialFlowProcessData
 
     //! Enables lumping of the mass matrix.
     bool const _has_mass_lumping;
-    std::unique_ptr<TwoPhaseComponentialFlowMaterialProperties>
-        _material;
-	Parameter<double> const& _diffusion_coeff_componentb;
-	Parameter<double> const& _diffusion_coeff_componenta;
+    std::unique_ptr<TwoPhaseComponentialFlowMaterialProperties> _material;
+    Parameter<double> const& _diffusion_coeff_componentb;
+    Parameter<double> const& _diffusion_coeff_componenta;
     MathLib::PiecewiseLinearInterpolation const& _interpolated_Q_slow;
     MathLib::PiecewiseLinearInterpolation const& _interpolated_Q_fast;
+    double _dt = 0;
 };
 
 }  // namespace TwoPhaseComponentialFlow
