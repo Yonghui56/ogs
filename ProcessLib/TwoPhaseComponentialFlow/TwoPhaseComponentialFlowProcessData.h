@@ -81,6 +81,7 @@ struct TwoPhaseComponentialFlowProcessData
 	Parameter<double> const& _diffusion_coeff_componenta;
     MathLib::PiecewiseLinearInterpolation const& _interpolated_Q_slow;
     MathLib::PiecewiseLinearInterpolation const& _interpolated_Q_fast;
+    double dt = 0;
 };
 
 }  // namespace TwoPhaseComponentialFlow
