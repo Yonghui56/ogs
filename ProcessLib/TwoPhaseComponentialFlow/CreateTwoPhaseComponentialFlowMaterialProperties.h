@@ -1,38 +1,29 @@
 /**
-* \copyright
-* Copyright (c) 2012-2016, OpenGeoSys Community (http://www.opengeosys.org)
-*            Distributed under a Modified BSD License.
-*              See accompanying file LICENSE.txt or
-*              http://www.opengeosys.org/project/license
-*
-*/
+ * \copyright
+ * Copyright (c) 2012-2017, OpenGeoSys Community (http://www.opengeosys.org)
+ *            Distributed under a Modified BSD License.
+ *              See accompanying file LICENSE.txt or
+ *              http://www.opengeosys.org/project/license
+ *
+ */
 
-#ifndef OGS_CREATETWOPHASECOMPONENTIALFLOWMATERIALPROPERTIES_H
-#define OGS_CREATETWOPHASECOMPONENTIALFLOWMATERIALPROPERTIES_H
+#pragma once
 
 #include <memory>
-#include "MaterialLib/Fluid/FluidPropertyHeaders.h"
-#include "MaterialLib/PorousMedium/Porosity/Porosity.h"
-#include "MaterialLib/PorousMedium/PorousPropertyHeaders.h"
-#include "MaterialLib/PorousMedium/Storage/Storage.h"
-#include "ProcessLib/TwoPhaseComponentialFlow/TwoPhaseComponentialFlowMaterialProperties.h"
-
+#include "TwoPhaseComponentialFlowMaterialProperties.h"
 namespace BaseLib
 {
-	class ConfigTree;
+class ConfigTree;
 }
 
 namespace ProcessLib
 {
-	namespace TwoPhaseComponentialFlow
-	{
-		std::unique_ptr<TwoPhaseComponentialFlowMaterialProperties>
-			CreateTwoPhaseComponentialFlowMaterialProperties(
-				BaseLib::ConfigTree const& config,
-				bool const has_material_ids,
-				MeshLib::PropertyVector<int> const& material_ids);
+namespace TwoPhaseComponentialFlow
+{
+std::unique_ptr<TwoPhaseComponentialFlowMaterialProperties>
+createTwoPhaseComponentialFlowMaterialProperties(
+    BaseLib::ConfigTree const& config,
+    boost::optional<MeshLib::PropertyVector<int> const&> material_ids);
 
-	}  // end namespace
 }  // end namespace
-
-#endif /* CREATETWOPHASEFLOWPRHOMATERIALPROPERTIES_H */
+}  // end namespace

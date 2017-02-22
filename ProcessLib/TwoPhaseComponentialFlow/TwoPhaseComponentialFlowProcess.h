@@ -1,16 +1,14 @@
 /**
  * \copyright
- * Copyright (c) 2012-2016, OpenGeoSys Community (http://www.opengeosys.org)
+ * Copyright (c) 2012-2017, OpenGeoSys Community (http://www.opengeosys.org)
  *            Distributed under a Modified BSD License.
  *              See accompanying file LICENSE.txt or
  *              http://www.opengeosys.org/project/license
  *
  */
 
-#ifndef OGS_TWOPHASECOMPONENTIALFLOWPROCESS_H
-#define OGS_TWOPHASECOMPONENTIALFLOWPROCESS_H
+#pragma once
 
-#include "MaterialLib/TwoPhaseModels/TwoPhaseFlowWithPPMaterialProperties.h"
 #include "MathLib/InterpolationAlgorithms/PiecewiseLinearInterpolation.h"
 #include "NumLib/DOF/LocalToGlobalIndexMap.h"
 #include "ProcessLib/Process.h"
@@ -29,22 +27,20 @@ namespace ProcessLib
 namespace TwoPhaseComponentialFlow
 {
 /**
- * \brief A class to simulate the isothermal two-phase flow process with P-P
- * model in porous media.
- *
- * The gas and capillary pressure are used as primary variables.
+ * \brief A class to simulate the two-phase flow process with P-rho model in
+ * porous media
  */
 class TwoPhaseComponentialFlowProcess final : public Process
 {
 public:
-	TwoPhaseComponentialFlowProcess(
+    TwoPhaseComponentialFlowProcess(
         MeshLib::Mesh& mesh,
         std::unique_ptr<AbstractJacobianAssembler>&& jacobian_assembler,
         std::vector<std::unique_ptr<ParameterBase>> const& parameters,
         unsigned const integration_order,
         std::vector<std::reference_wrapper<ProcessVariable>>&&
             process_variables,
-		TwoPhaseComponentialFlowProcessData&& process_data,
+        TwoPhaseComponentialFlowProcessData&& process_data,
         SecondaryVariableCollection&& secondary_variables,
         NumLib::NamedFunctionCaller&& named_function_caller,
         BaseLib::ConfigTree const& config,
@@ -60,14 +56,28 @@ private:
 
     void assembleConcreteProcess(const double t, GlobalVector const& x,
                                  GlobalMatrix& M, GlobalMatrix& K,
-                                 GlobalVector& b, StaggeredCouplingTerm const& coupling_term) override;
+                                 GlobalVector& b,
+                                 StaggeredCouplingTerm const& coupling_term) override;
 
     void assembleWithJacobianConcreteProcess(
         const double t, GlobalVector const& x, GlobalVector const& xdot,
         const double dxdot_dx, const double dx_dx, GlobalMatrix& M,
-        GlobalMatrix& K, GlobalVector& b, GlobalMatrix& Jac, StaggeredCouplingTerm const& coupling_term) override;
+        GlobalMatrix& K, GlobalVector& b, GlobalMatrix& Jac,
+        StaggeredCouplingTerm const& coupling_term) override;
 
-	TwoPhaseComponentialFlowProcessData _process_data;
+    void preTimestepConcreteProcess(GlobalVector const& x, double const t,
+        double const dt) override
+    {
+        DBUG("PreTimestep TwoPhaseCarbonation.");
+
+        _process_data._dt = dt;
+
+        GlobalExecutor::executeMemberOnDereferenced(
+            &TwoPhaseComponentialFlowLocalAssemblerInterface::preTimestep,
+            _local_assemblers, *_local_to_global_index_map, x, t, dt);
+    }
+
+    TwoPhaseComponentialFlowProcessData _process_data;
 
     std::vector<std::unique_ptr<TwoPhaseComponentialFlowLocalAssemblerInterface>>
         _local_assemblers;
@@ -75,5 +85,3 @@ private:
 
 }  // end of namespace
 }  // end of namespace
-
-#endif /* TWOPHASEFLOWWITHPPPROCESS_H */

@@ -1,26 +1,26 @@
 AddTest(
-    NAME 2D_TwoPhase_PP_Lia_quad
-    PATH Parabolic/TwoPhaseFlowPP/Liakopoulos
+    NAME LARGE_2D_TwoPhase_Prho_MoMaS
+    PATH Parabolic/TwoPhaseFlowPrho/MoMaS
     EXECUTABLE ogs
-    EXECUTABLE_ARGS Twophase_Lia_quad2_short.prj
+    EXECUTABLE_ARGS Twophase_MoMaS_quad.prj
     TESTER vtkdiff
     REQUIREMENTS NOT OGS_USE_MPI
     ABSTOL 1e-8 RELTOL 1e-12
     DIFF_DATA
-    Lia_20.vtu twophaseflow_pcs_0_ts_119_t_20.000000.vtu capillary_pressure capillary_pressure
-    Lia_20.vtu twophaseflow_pcs_0_ts_119_t_20.000000.vtu gas_pressure gas_pressure
-    Lia_20.vtu twophaseflow_pcs_0_ts_119_t_20.000000.vtu saturation saturation
+    ref_ts_10_t_10000.000000.vtu twophaseflow_pcs_0_ts_10_t_10000.000000.vtu liquid_pressure liquid_pressure
+    ref_ts_10_t_10000.000000.vtu twophaseflow_pcs_0_ts_10_t_10000.000000.vtu overall_mass_density overall_mass_density
+    ref_ts_10_t_10000.000000.vtu twophaseflow_pcs_0_ts_10_t_10000.000000.vtu saturation saturation
 )
 AddTest(
-    NAME LARGE_2D_TwoPhase_PP_Lia_quad
-    PATH Parabolic/TwoPhaseFlowPP/Liakopoulos
+    NAME 2D_TwoPhase_Prho_MoMaS
+    PATH Parabolic/TwoPhaseFlowPrho/MoMaS
     EXECUTABLE ogs
-    EXECUTABLE_ARGS Twophase_Lia_quad2_large.prj
+    EXECUTABLE_ARGS Twophase_MoMaS_small.prj
     TESTER vtkdiff
     REQUIREMENTS NOT OGS_USE_MPI
-    ABSTOL 1e-8 RELTOL 1e-12
+    ABSTOL 1e-6 RELTOL 1e-10
     DIFF_DATA
-    Lia_1000.vtu twophaseflow_pcs_0_ts_1180_t_1000.000000.vtu capillary_pressure capillary_pressure
-    Lia_1000.vtu twophaseflow_pcs_0_ts_1180_t_1000.000000.vtu gas_pressure gas_pressure
-    Lia_1000.vtu twophaseflow_pcs_0_ts_1180_t_1000.000000.vtu saturation saturation
+    ref_t_10000.000000.vtu twophaseflow_small_pcs_0_ts_10_t_10000.000000.vtu liquid_pressure liquid_pressure
+    ref_t_10000.000000.vtu twophaseflow_small_pcs_0_ts_10_t_10000.000000.vtu overall_mass_density overall_mass_density
+    ref_t_10000.000000.vtu twophaseflow_small_pcs_0_ts_10_t_10000.000000.vtu saturation saturation
 )

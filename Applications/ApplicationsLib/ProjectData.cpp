@@ -454,7 +454,7 @@ void ProjectData::parseProcesses(BaseLib::ConfigTree const& processes_config,
 		else if (type == "TWOPHASE_COMPONENTIAL_FLOW")
 		{
 			process =
-				ProcessLib::TwoPhaseComponentialFlow::CreateTwoPhaseComponentialFlowProcess(
+				ProcessLib::TwoPhaseComponentialFlow::createTwoPhaseComponentialFlowProcess(
 					*_mesh_vec[0], std::move(jacobian_assembler),
 					_process_variables, _parameters, integration_order,
 					process_config, _curves);
