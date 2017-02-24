@@ -551,12 +551,182 @@ public:
         }
         if (true)
         {
-            for (int idx_ml = 0; idx_ml < local_M.cols(); idx_ml++)
+            auto Mhpg =
+                local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                    nonwet_pressure_matrix_index, nonwet_pressure_matrix_index);
+
+            auto Mhmolh2 =
+                local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                    nonwet_pressure_matrix_index,
+                    nonwet_pressure_size * mol_fraction_h_coeff_index);
+
+            auto Mhmolch4 =
+                local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                    nonwet_pressure_matrix_index,
+                    nonwet_pressure_size * mol_fraction_ch4_coeff_index);
+            auto Mhmolco2 =
+                local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                    nonwet_pressure_matrix_index,
+                    nonwet_pressure_size * mol_fraction_co2_coeff_index);
+
+            auto Mhpc =
+                local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                    nonwet_pressure_matrix_index,
+                    nonwet_pressure_size * cap_pressure_coeff_index);
+
+            auto Mch4pg =
+                local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                    nonwet_pressure_size, nonwet_pressure_matrix_index);
+
+            auto Mch4molh2 =
+                local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                    nonwet_pressure_size,
+                    nonwet_pressure_size * mol_fraction_h_coeff_index);
+
+            auto Mch4molch4 =
+                local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                    nonwet_pressure_size,
+                    nonwet_pressure_size * mol_fraction_ch4_coeff_index);
+            auto Mch4molco2 =
+                local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                    nonwet_pressure_size,
+                    nonwet_pressure_size * mol_fraction_co2_coeff_index);
+
+            auto Mch4pc =
+                local_M.block<nonwet_pressure_size, cap_pressure_size>(
+                    nonwet_pressure_size,
+                    nonwet_pressure_size * cap_pressure_coeff_index);
+
+            auto Mco2pg =
+                local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                    2 * nonwet_pressure_size, nonwet_pressure_matrix_index);
+
+            auto Mco2molh2 =
+                local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                    2 * nonwet_pressure_size,
+                    nonwet_pressure_size * mol_fraction_h_coeff_index);
+
+            auto Mco2molch4 =
+                local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                    2 * nonwet_pressure_size,
+                    nonwet_pressure_size * mol_fraction_ch4_coeff_index);
+            auto Mco2molco2 =
+                local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                    2 * nonwet_pressure_size,
+                    nonwet_pressure_size * mol_fraction_co2_coeff_index);
+
+            auto Mco2pc =
+                local_M.block<nonwet_pressure_size, cap_pressure_size>(
+                    2 * nonwet_pressure_size,
+                    nonwet_pressure_size * cap_pressure_coeff_index);
+
+            auto Mairpg =
+                local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                    3 * nonwet_pressure_size, nonwet_pressure_matrix_index);
+
+            auto Mairmolh2 =
+                local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                    3 * nonwet_pressure_size,
+                    nonwet_pressure_size * mol_fraction_h_coeff_index);
+
+            auto Mairmolch4 =
+                local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                    3 * nonwet_pressure_size,
+                    nonwet_pressure_size * mol_fraction_ch4_coeff_index);
+            auto Mairmolco2 =
+                local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                    3 * nonwet_pressure_size,
+                    nonwet_pressure_size * mol_fraction_co2_coeff_index);
+
+            auto Mairpc =
+                local_M.block<nonwet_pressure_size, cap_pressure_size>(
+                    3 * nonwet_pressure_size,
+                    nonwet_pressure_size * cap_pressure_coeff_index);
+
+            auto Mh2opg =
+                local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                    4 * nonwet_pressure_size, nonwet_pressure_matrix_index);
+
+            auto Mh2omolh2 =
+                local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                    4 * nonwet_pressure_size,
+                    nonwet_pressure_size * mol_fraction_h_coeff_index);
+
+            auto Mh2omolch4 =
+                local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                    4 * nonwet_pressure_size,
+                    nonwet_pressure_size * mol_fraction_ch4_coeff_index);
+            auto Mh2omolco2 =
+                local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                    4 * nonwet_pressure_size,
+                    nonwet_pressure_size * mol_fraction_co2_coeff_index);
+
+            auto Mh2opc =
+                local_M.block<nonwet_pressure_size, cap_pressure_size>(
+                    4 * nonwet_pressure_size,
+                    nonwet_pressure_size * cap_pressure_coeff_index);
+            for (unsigned row = 0; row < Mhpg.cols(); row++)
             {
-                double mass_lump_val;
-                mass_lump_val = local_M.col(idx_ml).sum();
-                local_M.col(idx_ml).setZero();
-                local_M(idx_ml, idx_ml) = mass_lump_val;
+                for (unsigned column = 0; column < Mhpg.cols(); column++)
+                {
+                    if (row != column)
+                    {
+                        Mhpg(row, row) += Mhpg(row, column);
+                        Mhpg(row, column) = 0.0;
+                        Mhmolh2(row, row) += Mhmolh2(row, column);
+                        Mhmolh2(row, column) = 0.0;
+                        Mhmolch4(row, row) += Mhmolch4(row, column);
+                        Mhmolch4(row, column) = 0.0;
+                        Mhmolco2(row, row) += Mhmolco2(row, column);
+                        Mhmolco2(row, column) = 0.0;
+                        Mhpc(row, row) += Mhpc(row, column);
+                        Mhpc(row, column) = 0.0;
+
+                        Mch4pg(row, row) += Mch4pg(row, column);
+                        Mch4pg(row, column) = 0.0;
+                        Mch4molh2(row, row) += Mch4molh2(row, column);
+                        Mch4molh2(row, column) = 0.0;
+                        Mch4molch4(row, row) += Mch4molch4(row, column);
+                        Mch4molch4(row, column) = 0.0;
+                        Mch4molco2(row, row) += Mch4molco2(row, column);
+                        Mch4molco2(row, column) = 0.0;
+                        Mch4pc(row, row) += Mch4pc(row, column);
+                        Mch4pc(row, column) = 0.0;
+
+                        Mco2pg(row, row) += Mco2pg(row, column);
+                        Mco2pg(row, column) = 0.0;
+                        Mco2molh2(row, row) += Mco2molh2(row, column);
+                        Mco2molh2(row, column) = 0.0;
+                        Mco2molch4(row, row) += Mco2molch4(row, column);
+                        Mco2molch4(row, column) = 0.0;
+                        Mco2molco2(row, row) += Mco2molco2(row, column);
+                        Mco2molco2(row, column) = 0.0;
+                        Mco2pc(row, row) += Mco2pc(row, column);
+                        Mco2pc(row, column) = 0.0;
+
+                        Mairpg(row, row) += Mairpg(row, column);
+                        Mairpg(row, column) = 0.0;
+                        Mairmolh2(row, row) += Mairmolh2(row, column);
+                        Mairmolh2(row, column) = 0.0;
+                        Mairmolch4(row, row) += Mairmolch4(row, column);
+                        Mairmolch4(row, column) = 0.0;
+                        Mairmolco2(row, row) += Mairmolco2(row, column);
+                        Mairmolco2(row, column) = 0.0;
+                        Mairpc(row, row) += Mairpc(row, column);
+                        Mairpc(row, column) = 0.0;
+
+                        Mh2opg(row, row) += Mh2opg(row, column);
+                        Mh2opg(row, column) = 0.0;
+                        Mh2omolh2(row, row) += Mh2omolh2(row, column);
+                        Mh2omolh2(row, column) = 0.0;
+                        Mh2omolch4(row, row) += Mh2omolch4(row, column);
+                        Mh2omolch4(row, column) = 0.0;
+                        Mh2omolco2(row, row) += Mh2omolco2(row, column);
+                        Mh2omolco2(row, column) = 0.0;
+                        Mh2opc(row, row) += Mh2opc(row, column);
+                        Mh2opc(row, column) = 0.0;
+                    }
+                }
             }
         }
     }
@@ -632,6 +802,21 @@ private:
 
     const double para_slow = 401.55;
     const double para_fast = 191.47286;
+
+    static const int nonwet_pressure_coeff_index = 0;
+    static const int mol_fraction_h_coeff_index = 1;
+    static const int mol_fraction_ch4_coeff_index = 2;
+    static const int mol_fraction_co2_coeff_index = 3;
+    static const int cap_pressure_coeff_index = 4;
+
+    static const int nonwet_pressure_matrix_index = 0;
+    static const int mol_fraction_h2_matrix_index = ShapeFunction::NPOINTS;
+    static const int mol_fraction_ch4_matrix_index = 2 * ShapeFunction::NPOINTS;
+    static const int mol_fraction_co2_matrix_index = 3 * ShapeFunction::NPOINTS;
+    static const int cap_pressure_matrix_index = 4 * ShapeFunction::NPOINTS;
+
+    static const int nonwet_pressure_size = ShapeFunction::NPOINTS;
+    static const int cap_pressure_size = ShapeFunction::NPOINTS;
 };
 
 }  // namespace TwoPhaseComponential
