@@ -144,7 +144,6 @@ void TwoPhaseComponentialFlowLocalAssembler<
             rho_mol_nonwet *
             (X1_int_pt * M_H + X2_int_pt * M_C + X3_int_pt * M_CO2 +
                 x_nonwet_air * M_AIR + x_nonwet_h2o * M_L);
-        const double rho_mass_L_gp = rho_l_std;
 
         double dLdPG =
             -X1_int_pt / Hen_L_h - X2_int_pt / Hen_L_c - X3_int_pt / Hen_L_co2;
@@ -198,7 +197,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
         double const d_rho_mol_wet_d_pg = 
             -rho_mol_water * (x_nonwet_h2o / P_sat_gp +
                 pg_int_pt * d_x_nonwet_h2o_d_pg / P_sat_gp) /
-            x_wet_h2o / x_wet_h2o;*/
+            x_wet_h2o / x_wet_h2o;
         double const d_rho_mol_wet_d_x1 = 
             -rho_mol_water * (pg_int_pt * d_x_nonwet_h2o_d_x1 / P_sat_gp) /
             x_wet_h2o / x_wet_h2o;
@@ -263,7 +262,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
             (1 - Sw) * rho_mol_nonwet * d_x_nonwet_air_d_pg +
                 Sw * rho_mol_wet * d_x_nonwet_air_d_pg * K_G_air +
                 Sw * rho_mol_wet * x_nonwet_air / Hen_L_air +
-                Sw * x_wet_air * d_rho_mol_nonwet_d_pg);
+                Sw * x_wet_air * d_rho_mol_wet_d_pg);
         mass_mat_coeff(3, 1) =
             porosity * ((1 - Sw) * rho_mol_nonwet * d_x_nonwet_air_d_x1 +
                 Sw * rho_mol_wet * K_G_air * d_x_nonwet_air_d_x1 +
@@ -282,21 +281,17 @@ void TwoPhaseComponentialFlowLocalAssembler<
 
                             // h2o
         mass_mat_coeff(4, 0) = porosity *
-            ((1 - Sw) * x_nonwet_h2o * d_rho_mol_nonwet_d_pg +
-            (1 - Sw) * rho_mol_nonwet * d_x_nonwet_h2o_d_pg);
-        mass_mat_coeff(4, 1) = porosity *
-            ((1 - Sw) * rho_mol_nonwet * d_x_nonwet_h2o_d_x1
-                );
-        mass_mat_coeff(4, 2) =
-            porosity * ((1 - Sw) * rho_mol_nonwet * d_x_nonwet_h2o_d_x2);
-        mass_mat_coeff(4, 3) =
-            porosity * ((1 - Sw) * rho_mol_nonwet * d_x_nonwet_h2o_d_x3);
+            ((1 - Sw) * d_rho_mol_nonwet_d_pg
+                + Sw * d_rho_mol_wet_d_pg);
+        mass_mat_coeff(4, 1) = porosity * Sw * d_rho_mol_wet_d_x1;
+        mass_mat_coeff(4, 2) = porosity * Sw * d_rho_mol_wet_d_x2;
+        mass_mat_coeff(4, 3) = porosity * Sw * d_rho_mol_wet_d_x3;
         mass_mat_coeff(4, 4) = porosity *
-            (rho_mol_nonwet * x_nonwet_h2o * dSgdPC -
-                rho_mol_water * dSgdPC);
+            (rho_mol_nonwet * dSgdPC -
+                rho_mol_wet * dSgdPC);
         //-------------debugging------------------------
         // std::cout << "mass_mat_coeff=" << std::endl;
-        //std::cout << mass_mat_coeff << std::endl;
+        // std::cout << mass_mat_coeff << std::endl;
         //--------------end debugging-------------------
         for (int ii = 0; ii < NUM_NODAL_DOF; ii++)
         {
@@ -390,37 +385,15 @@ void TwoPhaseComponentialFlowLocalAssembler<
             (-lambda_L * rho_mol_wet * K_G_air * x_nonwet_air) * permeability(0,0);
         // h2o
         K_mat_coeff(4, 0) =
-            (lambda_G * rho_mol_nonwet * x_nonwet_h2o +
-                lambda_L * rho_mol_water) *
-            permeability(0, 0) -
-            ((porosity * D_L * Sw * rho_mol_wet *
-            (X1_int_pt / Hen_L_h + X2_int_pt / Hen_L_c +
-                X3_int_pt / Hen_L_co2)) +
-                porosity * D_L * Sw * rho_mol_wet * d_x_nonwet_air_d_pg * K_G_air +
-                porosity * D_L * Sw * rho_mol_wet * x_nonwet_air / Hen_L_air -
-                porosity * D_G * (1 - Sw) * rho_mol_nonwet * d_x_nonwet_air_d_pg);
+            (lambda_G * rho_mol_nonwet +
+                lambda_L * rho_mol_wet) *
+            permeability(0, 0);
 
-        K_mat_coeff(4, 1) =
-            (-porosity * D_G * (1 - Sw) * rho_mol_nonwet -
-                porosity * D_G * (1 - Sw) * rho_mol_nonwet * d_x_nonwet_air_d_x1 -
-                porosity * D_L * Sw * rho_mol_wet * pg_int_pt / Hen_L_h -
-                porosity * D_L * Sw * rho_mol_wet * d_x_nonwet_air_d_x1 *
-                K_G_air);
-        K_mat_coeff(4, 2) =
-            (-porosity * D_G * (1 - Sw) * rho_mol_nonwet -
-                porosity * D_G * (1 - Sw) * rho_mol_nonwet * d_x_nonwet_air_d_x2 -
-                porosity * D_L * Sw * rho_mol_wet * pg_int_pt / Hen_L_c -
-                porosity * D_L * Sw * rho_mol_wet * d_x_nonwet_air_d_x2 *
-                K_G_air);
-        K_mat_coeff(4, 3) =
-            (-porosity * D_G * S_G_gp * rho_mol_nonwet -
-                porosity * D_G * S_G_gp * rho_mol_nonwet * d_x_nonwet_air_d_x3 -
-                porosity * D_L * (1 - S_G_gp) * rho_mol_wet * pg_int_pt /
-                Hen_L_co2 -
-                porosity * D_L * (1 - S_G_gp) * rho_mol_wet * d_x_nonwet_air_d_x3 *
-                K_G_air);
+        K_mat_coeff(4, 1) = 0.0;
+        K_mat_coeff(4, 2) = 0.0;
+        K_mat_coeff(4, 3) = 0.0;
         K_mat_coeff(4, 4) =
-            (-lambda_L * rho_mol_water) * permeability(0,0);
+            (-lambda_L * rho_mol_wet) * permeability(0,0);
 
         //-------------debugging------------------------
         // std::cout << "K_mat_coeff=" << std::endl;
@@ -454,17 +427,16 @@ void TwoPhaseComponentialFlowLocalAssembler<
                     lambda_L * rho_mol_wet * X2_int_pt * pg_int_pt * rho_mass_wet /
                     Hen_L_c);
             H_vec_coeff(2) =
-                (-lambda_G * rho_mol_nonwet * X2_int_pt * rho_mass_G_gp -
-                    lambda_L * rho_mol_wet * X2_int_pt * pg_int_pt * rho_mass_wet /
-                    Hen_L_c);
-            H_vec_coeff(3) =
                 (-lambda_G * rho_mol_nonwet * X3_int_pt * rho_mass_G_gp -
                     lambda_L * rho_mol_wet * X3_int_pt * pg_int_pt * rho_mass_wet /
                     Hen_L_co2);
+            H_vec_coeff(3) =
+                (-lambda_G * rho_mol_nonwet * x_nonwet_air * rho_mass_G_gp -
+                    lambda_L * rho_mol_wet * x_nonwet_air* pg_int_pt * rho_mass_wet /
+                    Hen_L_air);
             H_vec_coeff(4) =
-                (-lambda_G * rho_mol_nonwet * x_nonwet_h2o * rho_mass_G_gp -
-                    lambda_L * rho_mol_water *
-                    rho_mass_wet);
+                (-lambda_G * rho_mol_nonwet  * rho_mass_G_gp
+                    - lambda_L * rho_mol_wet * rho_mass_wet);
             for (int idx = 0; idx < NUM_NODAL_DOF; idx++)
             {
                 // since no primary vairable involved
@@ -477,60 +449,172 @@ void TwoPhaseComponentialFlowLocalAssembler<
             }
         }  // end of hasGravityEffect
            // load the source term
-        /*
-        const double Q_organic_slow_co2_ini =
-            interpolated_Q_slow.getValue(t);  // read from curves
-        const double Q_organic_fast_co2_ini =
-            interpolated_Q_fast.getValue(t);  // read from curves
-        const double Q_organic_slow_co2 =
-            Q_organic_slow_co2_ini * para_slow;
-
-        const double Q_organic_fast_co2 =
-            Q_organic_fast_co2_ini * para_fast;
-        if (_process_data._material->getMaterialID(pos.getElementID().get()) == 1)
+        if (Sw > 0.3 && dt > 0)
         {
-            F_vec_coeff(0) = Q_steel;
-            F_vec_coeff(4) = -Q_steel;
-            // curve_slow->eval(time.getTime(), Q_organic_slow_co2);
-
-            F_vec_coeff(1) = Q_organic_slow_co2 * 31 /
-                19;  // CH4 organic degradation slow
-            F_vec_coeff(2) =
-                Q_organic_slow_co2;  // co2 organic degradation slow
-            F_vec_coeff(4) = -2 * Q_organic_slow_co2;  // h2o consume slow
-            F_vec_coeff(1) =
-                Q_organic_fast_co2;  // co2 organic degradation fast
-            F_vec_coeff(2) =
-                Q_organic_fast_co2;  // ch4 organic degradation fast
-            F_vec_coeff(4) = -Q_organic_fast_co2 / 3;  // h2o consume fast
-        }
-        else if (_process_data._material->getMaterialID(pos.getElementID().get()) == 0)
-        {
-            if (X3_int_pt > 0.01)
+            Eigen::VectorXd F_vec_coeff = Eigen::VectorXd::Zero(NUM_NODAL_DOF);
+            double Q_organic_slow_co2_ini =
+                interpolated_Q_slow.getValue(t);  // read from curves
+            double Q_organic_fast_co2_ini =
+                interpolated_Q_fast.getValue(t);  // read from curves
+            if (_process_data._material->getMaterialID(pos.getElementID().get()) == 1)
             {
-                F_vec_coeff(2) =
-                    -Q_organic_slow_co2;  // carbonation consume co2
-                F_vec_coeff(4) = Q_organic_slow_co2;
-            }
 
-            F_vec_coeff(4) = -2.57635;  // concrete degradation
+                F_vec_coeff(0) = Q_steel;
+
+                const double Q_organic_slow_co2 =
+                    Q_organic_slow_co2_ini * para_slow;
+
+                const double Q_organic_fast_co2 =
+                    Q_organic_fast_co2_ini * para_fast;
+
+                F_vec_coeff(1) += (Q_organic_slow_co2 * 31 / 19);
+                F_vec_coeff(2) += Q_organic_slow_co2;
+
+                F_vec_coeff(1) += Q_organic_fast_co2;
+
+                F_vec_coeff(2) += Q_organic_fast_co2;
+
+                F_vec_coeff(4) = (Q_organic_slow_co2 * 12 / 19) + (Q_organic_fast_co2 * 5 / 3);
+            }
+            else if (_process_data._material->getMaterialID(pos.getElementID().get()) == 0)
+            {
+                const double rho_co2_ele =
+                    porosity * ((1 - Sw) * rho_mol_nonwet * X3_int_pt +
+                        Sw * rho_mol_wet * X_L_co2_gp);
+
+                F_vec_coeff(2) = (-rho_co2_ele / dt);
+
+                F_vec_coeff(4) = -2.57635;
+            }
+            for (int idx = 0; idx < NUM_NODAL_DOF; idx++)
+            {
+                // since no primary vairable involved
+                // directly assemble to the Right-Hand-Side
+                // F += dNp^T * K * gz
+                localSource_tmp.setZero();
+                localSource_tmp.noalias() = sm.N.transpose() * F_vec_coeff(idx) * integration_factor;
+                local_b.block(n_nodes * idx, 0, n_nodes, 1).noalias() +=
+                    localSource_tmp;
+            }
         }
-        // std::cout << F_vec_coeff << std::endl;
-        for (int idx = 0; idx < NUM_NODAL_DOF; idx++)
-        {
-            // tmp(0, 0) = F_vec_coeff(idx);
-            localSource_tmp.setZero();
-            // fe->integrateDWxvec_g(j, tmp, localGravity_tmp, vec_g);
-            localSource_tmp = sm.N.transpose() * F_vec_coeff(idx) *
-                integration_factor;
-            local_b.block(n_nodes * idx, 0, n_nodes, 1).noalias() +=
-                localSource_tmp;
-        }
-        */
     }// end of GP asm
-    /*
+    
     if (_process_data._has_mass_lumping)
     {
+        auto Mhpg =
+            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                nonwet_pressure_matrix_index, nonwet_pressure_matrix_index);
+
+        auto Mhmolh2 =
+            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                nonwet_pressure_matrix_index,
+                nonwet_pressure_size * mol_fraction_h_coeff_index);
+
+        auto Mhmolch4 =
+            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                nonwet_pressure_matrix_index,
+                nonwet_pressure_size * mol_fraction_ch4_coeff_index);
+        auto Mhmolco2 =
+            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                nonwet_pressure_matrix_index,
+                nonwet_pressure_size * mol_fraction_co2_coeff_index);
+
+        auto Mhpc =
+            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                nonwet_pressure_matrix_index,
+                nonwet_pressure_size * cap_pressure_coeff_index);
+
+        auto Mch4pg =
+            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                nonwet_pressure_size, nonwet_pressure_matrix_index);
+
+        auto Mch4molh2 =
+            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                nonwet_pressure_size,
+                nonwet_pressure_size * mol_fraction_h_coeff_index);
+
+        auto Mch4molch4 =
+            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                nonwet_pressure_size,
+                nonwet_pressure_size * mol_fraction_ch4_coeff_index);
+        auto Mch4molco2 =
+            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                nonwet_pressure_size,
+                nonwet_pressure_size * mol_fraction_co2_coeff_index);
+
+        auto Mch4pc =
+            local_M.block<nonwet_pressure_size, cap_pressure_size>(
+                nonwet_pressure_size,
+                nonwet_pressure_size * cap_pressure_coeff_index);
+
+        auto Mco2pg =
+            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                2 * nonwet_pressure_size, nonwet_pressure_matrix_index);
+
+        auto Mco2molh2 =
+            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                2 * nonwet_pressure_size,
+                nonwet_pressure_size * mol_fraction_h_coeff_index);
+
+        auto Mco2molch4 =
+            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                2 * nonwet_pressure_size,
+                nonwet_pressure_size * mol_fraction_ch4_coeff_index);
+        auto Mco2molco2 =
+            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                2 * nonwet_pressure_size,
+                nonwet_pressure_size * mol_fraction_co2_coeff_index);
+
+        auto Mco2pc =
+            local_M.block<nonwet_pressure_size, cap_pressure_size>(
+                2 * nonwet_pressure_size,
+                nonwet_pressure_size * cap_pressure_coeff_index);
+
+        auto Mairpg =
+            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                3 * nonwet_pressure_size, nonwet_pressure_matrix_index);
+
+        auto Mairmolh2 =
+            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                3 * nonwet_pressure_size,
+                nonwet_pressure_size * mol_fraction_h_coeff_index);
+
+        auto Mairmolch4 =
+            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                3 * nonwet_pressure_size,
+                nonwet_pressure_size * mol_fraction_ch4_coeff_index);
+        auto Mairmolco2 =
+            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                3 * nonwet_pressure_size,
+                nonwet_pressure_size * mol_fraction_co2_coeff_index);
+
+        auto Mairpc =
+            local_M.block<nonwet_pressure_size, cap_pressure_size>(
+                3 * nonwet_pressure_size,
+                nonwet_pressure_size * cap_pressure_coeff_index);
+
+        auto Mh2opg =
+            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                4 * nonwet_pressure_size, nonwet_pressure_matrix_index);
+
+        auto Mh2omolh2 =
+            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                4 * nonwet_pressure_size,
+                nonwet_pressure_size * mol_fraction_h_coeff_index);
+
+        auto Mh2omolch4 =
+            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                4 * nonwet_pressure_size,
+                nonwet_pressure_size * mol_fraction_ch4_coeff_index);
+        auto Mh2omolco2 =
+            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+                4 * nonwet_pressure_size,
+                nonwet_pressure_size * mol_fraction_co2_coeff_index);
+
+        auto Mh2opc =
+            local_M.block<nonwet_pressure_size, cap_pressure_size>(
+                4 * nonwet_pressure_size,
+                nonwet_pressure_size * cap_pressure_coeff_index);
         for (unsigned row = 0; row < Mhpg.cols(); row++)
         {
             for (unsigned column = 0; column < Mhpg.cols(); column++)
@@ -595,7 +679,6 @@ void TwoPhaseComponentialFlowLocalAssembler<
             }
         }
     }  // end of mass-lumping
-    */
 }
 
 }  // end of namespace
