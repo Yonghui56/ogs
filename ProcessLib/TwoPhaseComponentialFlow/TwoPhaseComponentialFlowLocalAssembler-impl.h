@@ -484,7 +484,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
 
                 F_vec_coeff(2) = (-rho_co2_ele / dt);
 
-                F_vec_coeff(4) = -2.57635;
+                F_vec_coeff(4) = (rho_co2_ele/dt) -2.57635;
             }
             for (int idx = 0; idx < NUM_NODAL_DOF; idx++)
             {
