@@ -279,7 +279,7 @@ namespace NumLib
                     d1_norm = MathLib::LinAlg::norm(res, MathLib::VecNormType::NORM2);
                     j++;
                 }
-                d1_norm = d_norm;
+                d_norm = d1_norm;
                 switch (sys.postIteration(x_new))
                 {
                 case IterationResult::SUCCESS:
