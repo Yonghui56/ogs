@@ -77,6 +77,15 @@ private:
             _local_assemblers, *_local_to_global_index_map, x, t, dt);
     }
 
+    void postTimestepConcreteProcess(GlobalVector const& x) override
+    {
+        DBUG("PostTimestep TwoPhaseCarbonation.");
+
+        GlobalExecutor::executeMemberOnDereferenced(
+            &LocalAssemblerInterface::postTimestep, _local_assemblers,
+            *_local_to_global_index_map, x);
+    }
+
     TwoPhaseComponentialFlowProcessData _process_data;
 
     std::vector<std::unique_ptr<TwoPhaseComponentialFlowLocalAssemblerInterface>>

@@ -182,7 +182,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
         /// double const d_x_nonwet_h2o_d_x3 =
         /// get_derivative_x_nonwet_h2o_d_x3(pg_int_pt, X1_int_pt, X2_int_pt,
         /// X3_int_pt, P_sat_gp);
-        double const porosity = _process_data._material->getPorosity(material_id,
+        double porosity = _process_data._material->getPorosity(material_id,
             t, pos, pg_int_pt, temperature, 0);
 
         // Assemble M matrix
@@ -208,6 +208,27 @@ void TwoPhaseComponentialFlowLocalAssembler<
             -rho_mol_water * (pg_int_pt * d_x_nonwet_h2o_d_x3 / P_sat_gp) /
             x_wet_h2o / x_wet_h2o;
 
+        //calculate the carbonation and ASR source/sink term
+        double& rho_mol_sio2_wet = _ip_data[ip].rho_mol_sio2;
+        if (_process_data._material->getMaterialID(pos.getElementID().get()) == 0)
+        {
+            porosity = _ip_data[ip].porosity;//should be only valid for material 0
+        }
+        double& rho_mol_co2_cumul_total =
+            _ip_data[ip].rho_mol_co2_cumul_total;  // get cumulative co2
+                                                   // calculate the current ammount of co2
+        double rho_mol_total_co2 =
+            _ip_data[ip].porosity_prev *
+            (rho_mol_nonwet * X3_int_pt * (1 - Sw) +
+                rho_mol_wet * X_L_co2_gp * Sw);
+        porosity =
+            bi_interpolation(_ip_data[ip].rho_mol_sio2_prev,
+                _ip_data[ip].rho_mol_co2_cumul_total_prev, _porosity_at_supp_pnts);
+        //_process_data._material->getPorosity(material_id, t, pos, pn_int_pt, temperature, 0);
+        double const pH = bi_interpolation(_ip_data[ip].rho_mol_sio2_prev,
+            _ip_data[ip].rho_mol_co2_cumul_total_prev, _pH_at_supp_pnt);
+        _pH_value[ip] = pH;
+        //
         // double const d_rho_mol_wet_d_pg=
         mass_operator.noalias() = sm.N.transpose() * sm.N * integration_factor;
         // H2
@@ -449,6 +470,19 @@ void TwoPhaseComponentialFlowLocalAssembler<
             }
         }  // end of hasGravityEffect
            // load the source term
+        double const flag_carbon = bi_interpolation(
+            _ip_data[ip].rho_mol_sio2_prev,
+            _ip_data[ip].rho_mol_co2_cumul_total_prev, _flag_carbon_suppt_pnt);
+        double& fluid_volume = _ip_data[ip].fluid_volume;
+        fluid_volume = bi_interpolation(
+            _ip_data[ip].rho_mol_sio2_prev,
+            _ip_data[ip].rho_mol_co2_cumul_total_prev, _fluid_volume_suppt_pnt);
+        double quartz_dissolute_rate = bi_interpolation(
+            _ip_data[ip].rho_mol_sio2_prev,
+            _ip_data[ip].rho_mol_co2_cumul_total_prev, _quartz_rate_suppt_pnt);
+        // quartz_dissolute_rate is always nonpositive.
+        if (quartz_dissolute_rate > 0)
+            quartz_dissolute_rate = 0;
         if (Sw > 0.3 && dt > 0)
         {
             Eigen::VectorXd F_vec_coeff = Eigen::VectorXd::Zero(NUM_NODAL_DOF);
@@ -482,9 +516,21 @@ void TwoPhaseComponentialFlowLocalAssembler<
                     porosity * ((1 - Sw) * rho_mol_nonwet * X3_int_pt +
                         Sw * rho_mol_wet * X_L_co2_gp);
 
-                F_vec_coeff(2) = (-rho_co2_ele / dt);
-
-                F_vec_coeff(4) = (rho_co2_ele/dt) -2.57635;
+                double const fluid_volume_rate =
+                    (fluid_volume - _ip_data[ip].fluid_volume_prev) / dt;
+                if (_ip_data[ip].rho_mol_co2_cumul_total_prev >= 3800)  // means carbonation stops
+                    rho_mol_total_co2 = 0.0;
+                // update the current cumulated co2 consumption
+                rho_mol_co2_cumul_total =
+                    _ip_data[ip].rho_mol_co2_cumul_total_prev + rho_mol_total_co2;
+                // co2 consumption
+                F_vec_coeff(2) -= (rho_mol_total_co2 / dt);
+                    // water source/sink term
+                    F_vec_coeff(4) += (fluid_volume_rate)-(rho_mol_total_co2 / dt);
+                // update the amount of dissolved sio2
+                rho_mol_sio2_wet =
+                    _ip_data[ip].rho_mol_sio2_prev -
+                    quartz_dissolute_rate * dt;  // cumulative dissolved sio2
             }
             for (int idx = 0; idx < NUM_NODAL_DOF; idx++)
             {
