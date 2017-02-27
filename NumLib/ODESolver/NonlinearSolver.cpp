@@ -196,6 +196,10 @@ namespace NumLib
         sys.assemble(x, coupling_term);
         sys.getResidual(x, res);
         INFO("[time] Assembly took %g s.", time_assembly.elapsed());
+        BaseLib::RunTime time_dirichlet;
+        time_dirichlet.start();
+        sys.applyKnownSolutionsNewton(J, res, minus_delta_x);
+        INFO("[time] Applying Dirichlet BCs took %g s.", time_dirichlet.elapsed());
         d_norm = MathLib::LinAlg::norm(res, MathLib::VecNormType::NORM2);
         _convergence_criterion->preFirstIteration();
 
@@ -246,6 +250,10 @@ namespace NumLib
                 sys.assemble(x_new, coupling_term);
                 sys.getResidual(x_new, res);//calculate R(u_(k+1),0)
                 INFO("[time] Assembly took %g s.", time_assembly_2.elapsed());
+                BaseLib::RunTime time_dirichlet;
+                time_dirichlet.start();
+                sys.applyKnownSolutionsNewton(J, res, minus_delta_x);
+                INFO("[time] Applying Dirichlet BCs took %g s.", time_dirichlet.elapsed());
                 d1_norm = MathLib::LinAlg::norm(res, MathLib::VecNormType::NORM2);
                 if (postIterationCallback)
                     postIterationCallback(iteration, x_new);
@@ -275,6 +283,7 @@ namespace NumLib
                     BaseLib::RunTime time_dirichlet;
                     time_dirichlet.start();
                     sys.applyKnownSolutionsNewton(J, res, minus_delta_x);
+                    INFO("[time] Applying Dirichlet BCs took %g s.", time_dirichlet.elapsed());
                     /*calculate the norm of residual*/
                     d1_norm = MathLib::LinAlg::norm(res, MathLib::VecNormType::NORM2);
                     j++;
