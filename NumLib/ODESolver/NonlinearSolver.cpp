@@ -185,18 +185,12 @@ namespace NumLib
             NumLib::GlobalMatrixProvider::provider.getMatrix(_J_id);
 
         bool error_norms_met = false;
-        double d_norm(9999999.9), d1_norm(9999999.9);
-        std::size_t j(0);
-        // TODO be more efficient  
+        double d_norm(9999999.9), d1_norm(9999999.9), d2_norm(9999999.9);
+        // TODO be more efficient
         // init _minus_delta_x to the right size and 0.0
         LinAlg::copy(x, minus_delta_x);
         minus_delta_x.setZero();
-        BaseLib::RunTime time_assembly;
-        time_assembly.start();
-        sys.assemble(x, coupling_term);
-        sys.getResidual(x, res);
-        INFO("[time] Assembly took %g s.", time_assembly.elapsed());
-        d_norm = MathLib::LinAlg::norm(res, MathLib::VecNormType::NORM2);
+
         _convergence_criterion->preFirstIteration();
 
         unsigned iteration = 1;
@@ -209,19 +203,21 @@ namespace NumLib
             sys.preIteration(iteration, x);
 
             BaseLib::RunTime time_assembly;
-            //time_assembly.start();
-            //sys.assemble(x,coupling_term);
-            //sys.getResidual(x, res);
+            time_assembly.start();
+            sys.assemble(x, coupling_term);
+            sys.getResidual(x, res);
             sys.getJacobian(J);
-            //INFO("[time] Assembly took %g s.", time_assembly.elapsed());
+            INFO("[time] Assembly took %g s.", time_assembly.elapsed());
+
+            d_norm = MathLib::LinAlg::norm(res, MathLib::VecNormType::NORM2);
 
             BaseLib::RunTime time_dirichlet;
             time_dirichlet.start();
-            sys.applyKnownSolutionsNewton(J, res, minus_delta_x);// apply bc
+            sys.applyKnownSolutionsNewton(J, res, minus_delta_x);
             INFO("[time] Applying Dirichlet BCs took %g s.", time_dirichlet.elapsed());
 
-            /*if (!sys.isLinear() && _convergence_criterion->hasResidualCheck())
-                _convergence_criterion->checkResidual(res);*/
+            if (!sys.isLinear() && _convergence_criterion->hasResidualCheck())
+                _convergence_criterion->checkResidual(res);
 
             BaseLib::RunTime time_linear_solver;
             time_linear_solver.start();
@@ -240,46 +236,11 @@ namespace NumLib
                 auto& x_new =
                     NumLib::GlobalVectorProvider::provider.getVector(
                         x, _x_new_id);
-                LinAlg::axpy(x_new, -_alpha, minus_delta_x);//x_new=x_new(x)-_alpha*minus_delta_x
-                BaseLib::RunTime time_assembly_2;
-                time_assembly_2.start();
-                sys.assemble(x_new, coupling_term);
-                sys.getResidual(x_new, res);//calculate R(u_(k+1),0)
-                INFO("[time] Assembly took %g s.", time_assembly_2.elapsed());
-                d1_norm = MathLib::LinAlg::norm(res, MathLib::VecNormType::NORM2);
+                LinAlg::axpy(x_new, -_alpha, minus_delta_x);
+
                 if (postIterationCallback)
                     postIterationCallback(iteration, x_new);
-                j = 0;
-                double _theta = 1;
-                while (j <10)
-                {
-                    if (d1_norm < (1-_theta/4)*d_norm)
-                    {
-                        break;// end of while
-                    }
-                    else
-                    {
-                        INFO("Global Line Search begins!");
-                        _theta *= _beta;
-                        LinAlg::copy(x, x_new);//restore the x_new to be x x_new=x
-                        LinAlg::axpy(x_new, -_theta, minus_delta_x);// u_(k+1,l+1) = u_k - _theta * z_k
-                    }
-                    /*calculate the new residual*/
-                    sys.preIteration(iteration, x);
-                    BaseLib::RunTime time_assembly;
-                    time_assembly.start();
-                    sys.assemble(x_new,coupling_term);
-                    sys.getResidual(x_new, res);
-                    //sys.getJacobian(J);
-                    INFO("[time] Assembly took %g s.", time_assembly.elapsed());
-                    BaseLib::RunTime time_dirichlet;
-                    time_dirichlet.start();
-                    sys.applyKnownSolutionsNewton(J, res, minus_delta_x);
-                    /*calculate the norm of residual*/
-                    d1_norm = MathLib::LinAlg::norm(res, MathLib::VecNormType::NORM2);
-                    j++;
-                }
-                d_norm = d1_norm;
+
                 switch (sys.postIteration(x_new))
                 {
                 case IterationResult::SUCCESS:
@@ -299,10 +260,51 @@ namespace NumLib
                         .releaseVector(x_new);
                     continue;  // That throws the iteration result away.
                 }
-
+                sys.assemble(x_new, coupling_term);
+                sys.getResidual(x_new, res);
+                sys.getJacobian(J);
+                sys.applyKnownSolutionsNewton(J, res, minus_delta_x);
+                auto x_storage = x_new;
+                double damping_factor = 0.01;
+                double beta_storage;
+                _beta = 1.0;
+                d1_norm = MathLib::LinAlg::norm(res, MathLib::VecNormType::NORM2);
+                // if (d1_norm < 0.1 * d_norm || iteration <= 1)
+                if (d1_norm < d_norm)
+                {
+                    d_norm = d1_norm;
+                    x_new = x_storage;
+                }
+                else
+                {
+                    INFO("Global line search begins!");
+                    INFO("Line search Convergence criterion: |r|=%.4e", d1_norm);
+                    for (unsigned i = 0; i < 20; i++)
+                    {
+                        auto& x_new =
+                            NumLib::GlobalVectorProvider::provider.getVector(
+                                x, _x_new_id);
+                        _beta -= (1 - damping_factor) / 20;
+                        LinAlg::axpy(x_new, -(1 - _beta), minus_delta_x);
+                        sys.assemble(x_new, coupling_term);
+                        sys.getResidual(x_new, res);
+                        sys.getJacobian(J);
+                        sys.applyKnownSolutionsNewton(J, res, minus_delta_x);
+                        d2_norm = MathLib::LinAlg::norm(res, MathLib::VecNormType::NORM2);
+                        if (d1_norm > d2_norm)
+                        {
+                            d1_norm = d2_norm;
+                            x_storage = x_new;
+                            beta_storage = _beta;
+                            //std::cout << "damping factor location:" << beta_storage << std::endl;
+                        }
+                    }
+                    d_norm = d1_norm;
+                    x_new = x_storage;
+                }
                 // TODO could be done via swap. Note: that also requires swapping
                 // the ids. Same for the Picard scheme.
-                LinAlg::copy(x_new, x);  // copy new solution to x x=x_new
+                LinAlg::copy(x_new, x);  // copy new solution to x
                 NumLib::GlobalVectorProvider::provider.releaseVector(
                     x_new);
             }
@@ -322,9 +324,7 @@ namespace NumLib
                     // Note: x contains the new solution!
                     _convergence_criterion->checkDeltaX(minus_delta_x, x);
                 }
-                else if (_convergence_criterion->hasResidualCheck()) {
-                    _convergence_criterion->checkResidual(res);
-                }
+
                 error_norms_met = _convergence_criterion->isSatisfied();
             }
 
