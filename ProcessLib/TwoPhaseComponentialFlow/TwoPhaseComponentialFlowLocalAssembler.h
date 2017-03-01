@@ -64,6 +64,9 @@ public:
 
     virtual std::vector<double> const& getIntPtWettingPressure(
         std::vector<double>& /*cache*/) const = 0;
+
+    virtual std::vector<double> const& getIntPtMolFracNonwetVapor(
+        std::vector<double>& /*cache*/) const = 0;
 };
 
 template <typename ShapeFunction, typename IntegrationMethod,
@@ -100,7 +103,8 @@ public:
           _saturation(
               std::vector<double>(_integration_method.getNumberOfPoints())),
           _pressure_wetting(
-              std::vector<double>(_integration_method.getNumberOfPoints()))
+              std::vector<double>(_integration_method.getNumberOfPoints())),
+        _mol_fraction_nonwet_vapor(std::vector<double>(_integration_method.getNumberOfPoints()))
     {
         unsigned const n_integration_points =
             _integration_method.getNumberOfPoints();
@@ -149,6 +153,12 @@ public:
         assert(_pressure_wetting.size() > 0);
         return _pressure_wetting;
     }
+    std::vector<double> const& getIntPtMolFracNonwetVapor(
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(_mol_fraction_nonwet_vapor.size() > 0);
+        return _mol_fraction_nonwet_vapor;
+    }
 
 private:
     MeshLib::Element const& _element;
@@ -164,6 +174,7 @@ private:
 
     std::vector<double> _saturation;  /// used for secondary variable output
     std::vector<double> _pressure_wetting;
+    std::vector<double> _mol_fraction_nonwet_vapor;
     static const int nonwet_pressure_coeff_index = 0;
     static const int mol_fraction_h_coeff_index = 1;
     static const int mol_fraction_ch4_coeff_index = 2;

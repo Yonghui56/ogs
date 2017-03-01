@@ -121,6 +121,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
         X3_int_pt, P_sat_gp);*/
         double const x_nonwet_h2o = get_x_nonwet_h2o(
             pg_int_pt, X1_int_pt, X2_int_pt, X3_int_pt, P_sat_gp);
+        _mol_fraction_nonwet_vapor[ip] = x_nonwet_h2o;
 
         double const x_wet_h2o = pg_int_pt * x_nonwet_h2o / P_sat_gp;
         double const x_wet_air = pg_int_pt * x_nonwet_air / Hen_L_air;

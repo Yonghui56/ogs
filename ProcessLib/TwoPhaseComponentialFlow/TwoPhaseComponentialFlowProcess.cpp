@@ -66,6 +66,11 @@ void TwoPhaseComponentialFlowProcess::initializeConcreteProcess(
         makeExtrapolator(getExtrapolator(), _local_assemblers,
                          &TwoPhaseComponentialFlowLocalAssemblerInterface::
                              getIntPtWettingPressure));
+    _secondary_variables.addSecondaryVariable(
+        "mol_frac_nonwet_vapor", 1,
+        makeExtrapolator(getExtrapolator(), _local_assemblers,
+            &TwoPhaseComponentialFlowLocalAssemblerInterface::
+            getIntPtMolFracNonwetVapor));
 }
 
 void TwoPhaseComponentialFlowProcess::assembleConcreteProcess(const double t,
