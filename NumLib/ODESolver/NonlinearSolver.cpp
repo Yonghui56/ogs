@@ -195,6 +195,7 @@ namespace NumLib
         time_assembly.start();
         sys.assemble(x, coupling_term);
         sys.getResidual(x, res);
+        sys.getJacobian(J);
         INFO("[time] Assembly took %g s.", time_assembly.elapsed());
         BaseLib::RunTime time_dirichlet;
         time_dirichlet.start();
@@ -211,21 +212,6 @@ namespace NumLib
             time_iteration.start();
 
             sys.preIteration(iteration, x);
-
-            BaseLib::RunTime time_assembly;
-            //time_assembly.start();
-            //sys.assemble(x,coupling_term);
-            //sys.getResidual(x, res);
-            sys.getJacobian(J);
-            //INFO("[time] Assembly took %g s.", time_assembly.elapsed());
-
-            BaseLib::RunTime time_dirichlet;
-            time_dirichlet.start();
-            sys.applyKnownSolutionsNewton(J, res, minus_delta_x);// apply bc
-            INFO("[time] Applying Dirichlet BCs took %g s.", time_dirichlet.elapsed());
-
-            /*if (!sys.isLinear() && _convergence_criterion->hasResidualCheck())
-                _convergence_criterion->checkResidual(res);*/
 
             BaseLib::RunTime time_linear_solver;
             time_linear_solver.start();
@@ -249,6 +235,7 @@ namespace NumLib
                 time_assembly_2.start();
                 sys.assemble(x_new, coupling_term);
                 sys.getResidual(x_new, res);//calculate R(u_(k+1),0)
+                sys.getJacobian(J);
                 INFO("[time] Assembly took %g s.", time_assembly_2.elapsed());
                 BaseLib::RunTime time_dirichlet;
                 time_dirichlet.start();
@@ -261,7 +248,7 @@ namespace NumLib
                 double _theta = 1;
                 while (j <10)
                 {
-                    if (d1_norm < (1-_theta/4)*d_norm)
+                    if (d1_norm < (1 - _theta / 4)*d_norm)
                     {
                         break;// end of while
                     }
@@ -276,9 +263,9 @@ namespace NumLib
                     sys.preIteration(iteration, x);
                     BaseLib::RunTime time_assembly;
                     time_assembly.start();
-                    sys.assemble(x_new,coupling_term);
+                    sys.assemble(x_new, coupling_term);
                     sys.getResidual(x_new, res);
-                    //sys.getJacobian(J);
+                    sys.getJacobian(J);
                     INFO("[time] Assembly took %g s.", time_assembly.elapsed());
                     BaseLib::RunTime time_dirichlet;
                     time_dirichlet.start();
