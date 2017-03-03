@@ -201,7 +201,7 @@ private:
     const double M_AIR = MaterialLib::PhysicalConstant::MolarMass::Air;
     const double M_CO2 = 0.044;// MaterialLib::PhysicalConstant::MolarMass::CO2;
     const double& R = MaterialLib::PhysicalConstant::IdealGasConstant;
-    const double Q_steel = 7.8591;           // generate H2
+    const double Q_steel = 7.8591*4/3;           // generate H2
     const double para_slow = 401.55;
     const double para_fast = 191.47286;
 private:
@@ -214,7 +214,7 @@ private:
         return P_0 * exp(((1 / T_0) - (1 / T)) * M_L * h_wg / R);
     }
     const double get_x_nonwet_air_gp(double PG, double X1, double X2, double X3,
-        double P_sat)
+        double P_sat, double kelvin_term)
     {
         double K_G_w = PG / P_sat;
         double K_G_air = PG / Hen_L_air;
@@ -237,48 +237,65 @@ private:
     }
     const double get_x_nonwet_h2o(double const pg, double const x1,
         double const x2, double const x3,
-        double const p_sat)
+        double const p_sat, double const kelvin_term)
     {
         double const A = 1 - x1 - x2 - x3;
         double const B =
             1 - (x1 * pg / Hen_L_h + x2 * pg / Hen_L_c + x3 * pg / Hen_L_co2);
-        return (B / pg - A / Hen_L_air) / (1 / p_sat - 1 / Hen_L_air);
+        return (B / pg - A / Hen_L_air) / (kelvin_term / p_sat - 1 / Hen_L_air);
     }
     const double get_derivative_x_nonwet_h2o_d_pg(double const pg,
         double const /*x1*/,
         double const /*x2*/,
         double const /*x3*/,
-        double const p_sat)
+        double const p_sat,
+        double const kelvin_term)
     {
-        return (1 / (1 / p_sat - 1 / Hen_L_air)) * (-1 / pg / pg);
+        return (1 / (kelvin_term / p_sat - 1 / Hen_L_air)) * (-1 / pg / pg);
     }
 
     const double get_derivative_x_nonwet_h2o_d_x1(double const pg,
         double const /*x1*/,
         double const /*x2*/,
         double const /*x3*/,
-        double const p_sat)
+        double const p_sat,
+        double const kelvin_term)
     {
-        return (1 / (1 / p_sat - 1 / Hen_L_air)) *
+        return (1 / (kelvin_term / p_sat - 1 / Hen_L_air)) *
             (1 / Hen_L_air - 1 / Hen_L_h);
     }
     const double get_derivative_x_nonwet_h2o_d_x2(double const pg,
         double const /*x1*/,
         double const /*x2*/,
         double const /*x3*/,
-        double const p_sat)
+        double const p_sat,
+        double const kelvin_term)
     {
-        return (1 / (1 / p_sat - 1 / Hen_L_air)) *
+        return (1 / (kelvin_term / p_sat - 1 / Hen_L_air)) *
             (1 / Hen_L_air - 1 / Hen_L_c);
     }
     const double get_derivative_x_nonwet_h2o_d_x3(double const pg,
         double const /*x1*/,
         double const /*x2*/,
         double const /*x3*/,
-        double const p_sat)
+        double const p_sat,
+        double const kelvin_term)
     {
-        return (1 / (1 / p_sat - 1 / Hen_L_air)) *
+        return (1 / (kelvin_term / p_sat - 1 / Hen_L_air)) *
             (1 / Hen_L_air - 1 / Hen_L_co2);
+    }
+
+    const double get_derivative_x_nonwet_h2o_d_kelvin(double const pg,
+        double const x1,
+        double const x2,
+        double const x3,
+        double const p_sat,
+        double const kelvin_term)
+    {
+        double const A = 1 - x1 - x2 - x3;
+        double const B =
+            1 - (x1 * pg / Hen_L_h + x2 * pg / Hen_L_c + x3 * pg / Hen_L_co2);
+        return -(B / pg - A / Hen_L_air) / (kelvin_term / p_sat - 1 / Hen_L_air) / (kelvin_term / p_sat - 1 / Hen_L_air) / p_sat;
     }
 
 
