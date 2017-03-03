@@ -77,6 +77,8 @@ public:
         std::vector<double>& /*cache*/) const = 0;
     virtual std::vector<double> const& getIntPtpHValue(
         std::vector<double>& /*cache*/) const = 0;
+    virtual std::vector<double> const& getIntPtPorosityValue(
+        std::vector<double>& /*cache*/) const = 0;
 };
 
 template <typename ShapeFunction, typename IntegrationMethod,
@@ -114,7 +116,11 @@ public:
               std::vector<double>(_integration_method.getNumberOfPoints())),
           _pressure_wetting(
               std::vector<double>(_integration_method.getNumberOfPoints())),
-        _pH_value(
+          _pH_value(
+              std::vector<double>(_integration_method.getNumberOfPoints())),
+          _porosity_value(
+            std::vector<double>(_integration_method.getNumberOfPoints())),
+          _mol_fraction_nonwet_vapor(
             std::vector<double>(_integration_method.getNumberOfPoints()))
     {
         unsigned const n_integration_points =
@@ -183,6 +189,19 @@ public:
         assert(_pH_value.size() > 0);
         return _pH_value;
     }
+    std::vector<double> const& getIntPtPorosityValue(
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(_porosity_value.size() > 0);
+        return _porosity_value;
+    }
+
+    std::vector<double> const& getIntPtMolFracNonwetVapor(
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(_mol_fraction_nonwet_vapor.size() > 0);
+        return _mol_fraction_nonwet_vapor;
+    }
 
 private:
     MeshLib::Element const& _element;
@@ -199,6 +218,8 @@ private:
     std::vector<double> _saturation;  /// used for secondary variable output
     std::vector<double> _pressure_wetting;
     std::vector<double> _pH_value;
+    std::vector<double> _porosity_value;
+    std::vector<double> _mol_fraction_nonwet_vapor;
     static const int nonwet_pressure_coeff_index = 0;
     static const int mol_fraction_h_coeff_index = 1;
     static const int mol_fraction_ch4_coeff_index = 2;
@@ -227,7 +248,7 @@ private:
     const double M_CO2 =
         0.044;  // MaterialLib::PhysicalConstant::MolarMass::CO2;
     const double& R = MaterialLib::PhysicalConstant::IdealGasConstant;
-    const double Q_steel = 7.8591;  // generate H2
+    const double Q_steel = 7.8591 * 4/3;  // generate H2
     const double para_slow = 401.55;
     const double para_fast = 191.47286;
 

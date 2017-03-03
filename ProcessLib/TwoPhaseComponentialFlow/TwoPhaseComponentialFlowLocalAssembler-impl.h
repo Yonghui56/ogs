@@ -212,7 +212,8 @@ void TwoPhaseComponentialFlowLocalAssembler<
         double& rho_mol_sio2_wet = _ip_data[ip].rho_mol_sio2;
         if (_process_data._material->getMaterialID(pos.getElementID().get()) == 0)
         {
-            porosity = _ip_data[ip].porosity;//should be only valid for material 0
+            double& porosity2 = _ip_data[ip].porosity;//should be only valid for material 0
+            double porosity = porosity2;
         }
         double& rho_mol_co2_cumul_total =
             _ip_data[ip].rho_mol_co2_cumul_total;  // get cumulative co2
@@ -221,9 +222,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
             _ip_data[ip].porosity_prev *
             (rho_mol_nonwet * X3_int_pt * (1 - Sw) +
                 rho_mol_wet * X_L_co2_gp * Sw);
-        porosity =
-            bi_interpolation(_ip_data[ip].rho_mol_sio2_prev,
-                _ip_data[ip].rho_mol_co2_cumul_total_prev, _porosity_at_supp_pnts);
+
         //_process_data._material->getPorosity(material_id, t, pos, pn_int_pt, temperature, 0);
         double const pH = bi_interpolation(_ip_data[ip].rho_mol_sio2_prev,
             _ip_data[ip].rho_mol_co2_cumul_total_prev, _pH_at_supp_pnt);
@@ -526,11 +525,15 @@ void TwoPhaseComponentialFlowLocalAssembler<
                 // co2 consumption
                 F_vec_coeff(2) -= (rho_mol_total_co2 / dt);
                     // water source/sink term
-                    F_vec_coeff(4) += (fluid_volume_rate)-(rho_mol_total_co2 / dt);
+                F_vec_coeff(4) += (fluid_volume_rate)-(rho_mol_total_co2 / dt);
                 // update the amount of dissolved sio2
                 rho_mol_sio2_wet =
                     _ip_data[ip].rho_mol_sio2_prev -
                     quartz_dissolute_rate * dt;  // cumulative dissolved sio2
+                //porosity update
+                porosity =
+                    bi_interpolation(_ip_data[ip].rho_mol_sio2_prev,
+                        _ip_data[ip].rho_mol_co2_cumul_total_prev, _porosity_at_supp_pnts);//porosity update
             }
             for (int idx = 0; idx < NUM_NODAL_DOF; idx++)
             {
