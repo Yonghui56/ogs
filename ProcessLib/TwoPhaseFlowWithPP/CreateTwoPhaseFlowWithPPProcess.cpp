@@ -79,9 +79,8 @@ std::unique_ptr<Process> createTwoPhaseFlowWithPPProcess(
     if (mesh.getProperties().existsPropertyVector<int>("MaterialIDs"))
     {
         INFO("The twophase flow is in heterogeneous porous media.");
-        auto const& mat_ids =
-            mesh.getProperties().getPropertyVector<int>("MaterialIDs");
-        material_ids = *mat_ids;
+        material_ids =
+            *mesh.getProperties().getPropertyVector<int>("MaterialIDs");
     }
     else
     {
