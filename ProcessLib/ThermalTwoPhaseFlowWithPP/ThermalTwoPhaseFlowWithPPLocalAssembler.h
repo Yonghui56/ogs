@@ -104,7 +104,7 @@ public:
         {
             auto const& sm = _shape_matrices[ip];
             _ip_data.emplace_back(
-                *_process_data._material,
+                *_process_data.material,
                 sm.integralMeasure * sm.detJ *
                 _integration_method.getWeightedPoint(ip).getWeight(),
                 sm.N.transpose() * sm.N  * sm.integralMeasure * sm.detJ *
