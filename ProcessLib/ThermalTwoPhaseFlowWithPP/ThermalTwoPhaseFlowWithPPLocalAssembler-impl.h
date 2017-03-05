@@ -146,7 +146,7 @@ void ThermalTwoPhaseFlowWithPPLocalAssembler<
                                     t, pos, pg_int_pt, T_int_pt, pc_int_pt);
 
         _saturation[ip] = Sw;
-        double dSwdPc =
+        double dSwdpc =
             (pc_int_pt > _process_data._material->getCapillaryPressure(
                              t, pos, pg_int_pt, T_int_pt, 0.0))
                 ? 0.0
@@ -173,20 +173,18 @@ void ThermalTwoPhaseFlowWithPPLocalAssembler<
         double const rho_mol_nonwet = pg_int_pt / IdealGasConstant / T_int_pt;
         double const rho_mol_water = rho_water / Water;
         /// calculate derivatives
-        double const dRhoMolNonwetdPg = 1 / IdealGasConstant / T_int_pt;
-        double const dRhoMolAirNonwetdPg = dRhoMolNonwetdPg;
-        double const dPvaporNonwetdT =
+        double const d_rho_mol_nonwet_d_pg = 1 / IdealGasConstant / T_int_pt;
+        double const d_p_vapor_nonwet_d_T =
             _process_data._material->calculateDerivativedPgwdT(pc_int_pt,
                                                                T_int_pt,rho_water);
-        double const dPvaporNonwetdPc =
+        double const d_p_vapor_nonwet_d_pc =
             _process_data._material->calculateDerivativedPgwdPC(pc_int_pt,
                                                                 T_int_pt,rho_water);
-        /// Derivative
-        double const dRhoMolNonwetdT =
+        double const d_rho_mol_nonwet_d_T =
             -pg_int_pt / IdealGasConstant / T_int_pt / T_int_pt;
-        double const dxAirNonwetdPg = p_vapor_nonwet / pg_int_pt / pg_int_pt;
-        double const dxAirNonwetdPc = -dPvaporNonwetdPc / pg_int_pt;
-        double const dxAirNonwetdT = -dPvaporNonwetdT / pg_int_pt;
+        double const d_x_air_nonwet_d_pg = p_vapor_nonwet / pg_int_pt / pg_int_pt;
+        double const d_x_air_nonwet_d_pc = -d_p_vapor_nonwet_d_pc / pg_int_pt;
+        double const d_x_air_nonwet_d_T = -d_p_vapor_nonwet_d_T / pg_int_pt;
 
         /// mass density of the nonwet phase
         double const rho_nonwet_air =
@@ -197,25 +195,9 @@ void ThermalTwoPhaseFlowWithPPLocalAssembler<
         double const rho_wet = rho_water;
         double const rho_solid = _process_data._density_solid(t, pos)[0];
         /// Derivative of nonwet phase density in terms of T
-        double const dRhoNonwetdT =
+        double const d_rho_nonwet_d_T =
             _process_data._material->calculatedRhoNonwetdT(
                 p_air_nonwet, p_vapor_nonwet, pc_int_pt, T_int_pt,rho_water);
-        /// Derivative of nonwet phase density in terms of Pc
-        double const dRhoNonwetdPc =
-            Water * dPvaporNonwetdPc / IdealGasConstant / T_int_pt;
-        /// Derivative of mass density of air in nonwet phase
-        double const dRhoNonwetAirdPg = Air / IdealGasConstant / T_int_pt;
-        double const dRhoNonwetAirdPc =
-            -Air * dPvaporNonwetdPc / IdealGasConstant / T_int_pt;
-        double const dRhoNonwetAirdT =
-            -p_air_nonwet * Air / IdealGasConstant / T_int_pt / T_int_pt -
-            Air * dPvaporNonwetdT / IdealGasConstant / T_int_pt;
-        /// Derivative of mass density of water vapor in nonwet phase
-        double const dRhoNonwetVapordPc =
-            Water * dPvaporNonwetdPc / IdealGasConstant / T_int_pt;
-        double const dRhoNonwetVapordT =
-            -p_vapor_nonwet * Water / IdealGasConstant / T_int_pt / T_int_pt +
-            Water * dPvaporNonwetdT / IdealGasConstant / T_int_pt;
 
         _pressure_wetting[ip] = pg_int_pt - pc_int_pt;
         /// heat capacity of nonwet phase
@@ -246,60 +228,60 @@ void ThermalTwoPhaseFlowWithPPLocalAssembler<
             enthalpy_nonwet - pg_int_pt / rho_nonwet;
         double const internal_energy_wet = enthalpy_wet;
         /// Derivative
-        double const dEnthalpyNonwetAirdT =
+        double const d_enthalpy_air_nonwet_d_T =
             heat_capacity_dry_air + IdealGasConstant / Air;
-        double const dEnthalpyNonwetdT =
+        double const d_enthalpy_nonwet_d_T =
             heat_capacity_water * (1 - X_air_nonwet) +
-            dEnthalpyNonwetAirdT * X_air_nonwet;
+            d_enthalpy_air_nonwet_d_T * X_air_nonwet;
         // Assemble M matrix
         // nonwetting
         double const porosity = _process_data._material->getPorosity(
             t, pos, pg_int_pt, T_int_pt, 0);
 
         Mgp.noalias() += porosity *
-                         ((1 - Sw) * (rho_mol_nonwet * dxAirNonwetdPg +
-                                      x_air_nonwet * dRhoMolNonwetdPg)) *
+                         ((1 - Sw) * (rho_mol_nonwet * d_x_air_nonwet_d_pg +
+                                      x_air_nonwet * d_rho_mol_nonwet_d_pg)) *
                          _ip_data[ip].massOperator;
         Mgpc.noalias() += porosity *
-                          ((1 - Sw) * rho_mol_nonwet * dxAirNonwetdPc -
-                           rho_mol_nonwet * x_air_nonwet * dSwdPc) *
+                          ((1 - Sw) * rho_mol_nonwet * d_x_air_nonwet_d_pc -
+                           rho_mol_nonwet * x_air_nonwet * dSwdpc) *
                           _ip_data[ip].massOperator;
         Mgt.noalias() += porosity *
-                         ((1 - Sw) * (rho_mol_nonwet * dxAirNonwetdT +
-                                      x_air_nonwet * dRhoMolNonwetdT)) *
+                         ((1 - Sw) * (rho_mol_nonwet * d_x_air_nonwet_d_T +
+                                      x_air_nonwet * d_rho_mol_nonwet_d_T)) *
                          _ip_data[ip].massOperator;
 
         Mlpc.noalias() +=
             porosity *
-            ((1 - Sw) * dPvaporNonwetdPc / IdealGasConstant / T_int_pt +
-             rho_mol_nonwet * x_vapor_nonwet * (-dSwdPc) +
-             dSwdPc * rho_mol_water) *
+            ((1 - Sw) * d_p_vapor_nonwet_d_pc / IdealGasConstant / T_int_pt +
+             rho_mol_nonwet * x_vapor_nonwet * (-dSwdpc) +
+             dSwdpc * rho_mol_water) *
             _ip_data[ip].massOperator;
         Mlt.noalias() +=
             porosity *
             ((1 - Sw) *
-             (dPvaporNonwetdT / IdealGasConstant / T_int_pt -
+             (d_p_vapor_nonwet_d_T / IdealGasConstant / T_int_pt -
               p_vapor_nonwet / IdealGasConstant / T_int_pt / T_int_pt)) *
             _ip_data[ip].massOperator;
 
         Mep.noalias() +=
             porosity *
-            ((x_air_nonwet * Air + x_vapor_nonwet * Water) * dRhoMolNonwetdPg *
+            ((x_air_nonwet * Air + x_vapor_nonwet * Water) * d_rho_mol_nonwet_d_pg *
                  enthalpy_nonwet -
-             rho_mol_nonwet * (Water - Air) * dxAirNonwetdPg * enthalpy_nonwet -
+             rho_mol_nonwet * (Water - Air) * d_x_air_nonwet_d_pg * enthalpy_nonwet -
              1) *
             (1 - Sw) * _ip_data[ip].massOperator;
         Mepc.noalias() += porosity * (rho_wet * internal_energy_wet -
                                       rho_nonwet * internal_energy_nonwet) *
-                              dSwdPc * _ip_data[ip].massOperator +
+                              dSwdpc * _ip_data[ip].massOperator +
                           porosity * ((Water - Air) * enthalpy_nonwet /
                                       IdealGasConstant / T_int_pt) *
-                              (1 - Sw) * dPvaporNonwetdPc *
+                              (1 - Sw) * d_p_vapor_nonwet_d_pc *
                               _ip_data[ip].massOperator;
         Met.noalias() +=
             ((1 - porosity) * rho_solid * heat_capacity_solid +
-             porosity * ((1 - Sw) * (dRhoNonwetdT * enthalpy_nonwet +
-                                     rho_nonwet * dEnthalpyNonwetdT) +
+             porosity * ((1 - Sw) * (d_rho_nonwet_d_T * enthalpy_nonwet +
+                                     rho_nonwet * d_enthalpy_nonwet_d_T) +
                          Sw * rho_wet * heat_capacity_water)) *
             _ip_data[ip].massOperator;
 
@@ -334,20 +316,20 @@ void ThermalTwoPhaseFlowWithPPLocalAssembler<
             integration_factor * sm.N.transpose() *
                 ((x_air_nonwet * Air +
                   x_vapor_nonwet * Water) *
-                     dRhoMolNonwetdPg * enthalpy_nonwet -
+                     d_rho_mol_nonwet_d_pg * enthalpy_nonwet -
                  rho_mol_nonwet * (Water - Air) *
-                     dxAirNonwetdPg * enthalpy_nonwet) *
+                     d_x_air_nonwet_d_pg * enthalpy_nonwet) *
                 velocity_nonwet.transpose() * sm.dNdx +
             integration_factor * sm.N.transpose() * rho_wet *
                 heat_capacity_water * velocity_wet.transpose() * sm.dNdx;
         Kepc.noalias() += integration_factor * sm.N.transpose() *
                           ((Water - Air) * enthalpy_nonwet /
                           IdealGasConstant/ T_int_pt) *
-                          dPvaporNonwetdPc * velocity_nonwet.transpose() *
+                          d_p_vapor_nonwet_d_pc * velocity_nonwet.transpose() *
                           sm.dNdx;*/
         Ket.noalias() += _ip_data[ip].integration_weight * sm.N.transpose() *
-                             (dRhoNonwetdT * enthalpy_nonwet +
-                              rho_nonwet * dEnthalpyNonwetdT) *
+                             (d_rho_nonwet_d_T * enthalpy_nonwet +
+                              rho_nonwet * d_enthalpy_nonwet_d_T) *
                              velocity_nonwet.transpose() * sm.dNdx +
                          _ip_data[ip].integration_weight * sm.N.transpose() *
                              heat_capacity_water * rho_water *
@@ -365,27 +347,27 @@ void ThermalTwoPhaseFlowWithPPLocalAssembler<
         Kgp.noalias() +=
             (rho_mol_nonwet * x_air_nonwet * lambda_nonwet) * laplace_operator +
             ((1 - Sw) * porosity * diffusion_coeff_component_air *
-             rho_mol_nonwet * dxAirNonwetdPg) *
+             rho_mol_nonwet * d_x_air_nonwet_d_pg) *
                 _ip_data[ip].diffusionOperator;
         Kgpc.noalias() += ((1 - Sw) * porosity * diffusion_coeff_component_air *
-                           rho_mol_nonwet * dxAirNonwetdPc) *
+                           rho_mol_nonwet * d_x_air_nonwet_d_pc) *
                           _ip_data[ip].diffusionOperator;
         Kgt.noalias() += ((1 - Sw) * porosity * diffusion_coeff_component_air *
-                          rho_mol_nonwet * dxAirNonwetdT) *
+                          rho_mol_nonwet * d_x_air_nonwet_d_T) *
                          _ip_data[ip].diffusionOperator;
 
         Klp.noalias() += (rho_mol_nonwet * x_vapor_nonwet * lambda_nonwet) *
                              laplace_operator +
                          rho_mol_water * lambda_wet * laplace_operator -
                          ((1 - Sw) * porosity * diffusion_coeff_component_air *
-                          rho_mol_nonwet * dxAirNonwetdPg) *
+                          rho_mol_nonwet * d_x_air_nonwet_d_pg) *
                              _ip_data[ip].diffusionOperator;
         Klpc.noalias() += (-rho_mol_water * lambda_wet * laplace_operator) -
                           ((1 - Sw) * porosity * diffusion_coeff_component_air *
-                           rho_mol_nonwet * dxAirNonwetdPc) *
+                           rho_mol_nonwet * d_x_air_nonwet_d_pc) *
                               _ip_data[ip].diffusionOperator;
         Klt.noalias() += -((1 - Sw) * porosity * diffusion_coeff_component_air *
-                           rho_mol_nonwet * dxAirNonwetdT) *
+                           rho_mol_nonwet * d_x_air_nonwet_d_T) *
                          _ip_data[ip].diffusionOperator;
 
         Kep.noalias() += (lambda_nonwet * rho_nonwet * enthalpy_nonwet +
@@ -394,19 +376,19 @@ void ThermalTwoPhaseFlowWithPPLocalAssembler<
                          (1 - Sw) * porosity * diffusion_coeff_component_air *
                              rho_mol_nonwet * (Air * enthalpy_nonwet_air -
                                                Water * enthalpy_nonwet_vapor) *
-                             dxAirNonwetdPg * _ip_data[ip].diffusionOperator;
+                             d_x_air_nonwet_d_pg * _ip_data[ip].diffusionOperator;
         Kepc.noalias() +=
             -lambda_wet * enthalpy_wet * rho_wet * laplace_operator +
             (1 - Sw) * porosity * diffusion_coeff_component_air *
                 rho_mol_nonwet *
                 (Air * enthalpy_nonwet_air - Water * enthalpy_nonwet_vapor) *
-                dxAirNonwetdPc * _ip_data[ip].diffusionOperator;
+                d_x_air_nonwet_d_pc * _ip_data[ip].diffusionOperator;
         Ket.noalias() += sm.dNdx.transpose() * heat_conductivity_unsaturated *
                              sm.dNdx * _ip_data[ip].integration_weight +
                          (1 - Sw) * porosity * diffusion_coeff_component_air *
                              rho_mol_nonwet * (Air * enthalpy_nonwet_air -
                                                Water * enthalpy_nonwet_vapor) *
-                             dxAirNonwetdT * _ip_data[ip].diffusionOperator;
+                             d_x_air_nonwet_d_T * _ip_data[ip].diffusionOperator;
 
         if (_process_data._has_gravity)
         {
