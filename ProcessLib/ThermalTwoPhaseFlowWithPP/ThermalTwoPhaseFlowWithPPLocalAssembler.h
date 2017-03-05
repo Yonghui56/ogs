@@ -30,17 +30,15 @@ namespace ThermalTwoPhaseFlowWithPP
     struct IntegrationPointData final
     {
         explicit IntegrationPointData(
-            ProcessLib::ThermalTwoPhaseFlowWithPP::
             ThermalTwoPhaseFlowWithPPMaterialProperties& material_property)
             : _mat_property(material_property)
         {
         }
 
-        ProcessLib::ThermalTwoPhaseFlowWithPP::
-            ThermalTwoPhaseFlowWithPPMaterialProperties& _mat_property;
+        ThermalTwoPhaseFlowWithPPMaterialProperties& _mat_property;
         double integration_weight;
-        NodalMatrixType massOperator;
-        NodalMatrixType diffusionOperator;
+        NodalMatrixType mass_operator;
+        NodalMatrixType diffusion_operator;
     };
 const unsigned NUM_NODAL_DOF = 3;
 
@@ -102,13 +100,13 @@ public:
             _ip_data[ip].integration_weight =
                 sm.integralMeasure * sm.detJ *
                 _integration_method.getWeightedPoint(ip).getWeight();
-            _ip_data[ip].massOperator.setZero(ShapeFunction::NPOINTS,
+            _ip_data[ip].mass_operator.setZero(ShapeFunction::NPOINTS,
                                               ShapeFunction::NPOINTS);
-            _ip_data[ip].diffusionOperator.setZero(ShapeFunction::NPOINTS,
+            _ip_data[ip].diffusion_operator.setZero(ShapeFunction::NPOINTS,
                                                    ShapeFunction::NPOINTS);
-            _ip_data[ip].massOperator.noalias() =
+            _ip_data[ip].mass_operator.noalias() =
                 sm.N.transpose() * sm.N * _ip_data[ip].integration_weight;
-            _ip_data[ip].diffusionOperator.noalias() =
+            _ip_data[ip].diffusion_operator.noalias() =
                 sm.dNdx.transpose() * sm.dNdx * _ip_data[ip].integration_weight;
         }
     }
