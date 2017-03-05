@@ -94,9 +94,9 @@ void TwoPhaseFlowWithPPLocalAssembler<
     SpatialPosition pos;
     pos.setElementID(_element.getID());
     const int material_id =
-        _process_data._material->getMaterialID(pos.getElementID().get());
+        _process_data.material->getMaterialID(pos.getElementID().get());
 
-    const Eigen::MatrixXd& perm = _process_data._material->getPermeability(
+    const Eigen::MatrixXd& perm = _process_data.material->getPermeability(
         material_id, t, pos, _element.getDimension());
     assert(perm.rows() == _element.getDimension() || perm.rows() == 1);
     GlobalDimMatrixType permeability = GlobalDimMatrixType::Zero(
@@ -118,27 +118,27 @@ void TwoPhaseFlowWithPPLocalAssembler<
 
         auto const& wp = _integration_method.getWeightedPoint(ip);
 
-        const double temperature = _process_data._temperature(t, pos)[0];
+        const double temperature = _process_data.temperature(t, pos)[0];
         double const rho_nonwet =
-            _process_data._material->getGasDensity(pn_int_pt, temperature);
-        double const rho_wet = _process_data._material->getLiquidDensity(
+            _process_data.material->getGasDensity(pn_int_pt, temperature);
+        double const rho_wet = _process_data.material->getLiquidDensity(
             _pressure_wet[ip], temperature);
 
-        double const Sw = _process_data._material->getSaturation(
+        double const Sw = _process_data.material->getSaturation(
             material_id, t, pos, pn_int_pt, temperature, pc_int_pt);
 
         _saturation[ip] = Sw;
 
-        double dSw_dpc = _process_data._material->getSaturationDerivative(
+        double dSw_dpc = _process_data.material->getSaturationDerivative(
             material_id, t, pos, pn_int_pt, temperature, Sw);
 
-        double const porosity = _process_data._material->getPorosity(
+        double const porosity = _process_data.material->getPorosity(
             material_id, t, pos, pn_int_pt, temperature, 0);
 
         // Assemble M matrix
         // nonwetting
         double const drhononwet_dpn =
-            _process_data._material->getGasDensityDerivative(pn_int_pt,
+            _process_data.material->getGasDensityDerivative(pn_int_pt,
                                                              temperature);
 
         Mgp.noalias() +=
@@ -151,17 +151,17 @@ void TwoPhaseFlowWithPPLocalAssembler<
 
         // nonwet
         double const k_rel_nonwet =
-            _process_data._material->getNonwetRelativePermeability(
+            _process_data.material->getNonwetRelativePermeability(
                 t, pos, pn_int_pt, temperature, Sw);
         double const mu_nonwet =
-            _process_data._material->getGasViscosity(pn_int_pt, temperature);
+            _process_data.material->getGasViscosity(pn_int_pt, temperature);
         double const lambda_nonwet = k_rel_nonwet / mu_nonwet;
 
         // wet
         double const k_rel_wet =
-            _process_data._material->getWetRelativePermeability(
+            _process_data.material->getWetRelativePermeability(
                 t, pos, _pressure_wet[ip], temperature, Sw);
-        double const mu_wet = _process_data._material->getLiquidViscosity(
+        double const mu_wet = _process_data.material->getLiquidViscosity(
             _pressure_wet[ip], temperature);
         double const lambda_wet = k_rel_wet / mu_wet;
 
@@ -173,9 +173,9 @@ void TwoPhaseFlowWithPPLocalAssembler<
         Klp.noalias() += rho_wet * lambda_wet * laplace_operator;
         Klpc.noalias() += -rho_wet * lambda_wet * laplace_operator;
 
-        if (_process_data._has_gravity)
+        if (_process_data.has_gravity)
         {
-            auto const& b = _process_data._specific_body_force;
+            auto const& b = _process_data.specific_body_force;
 
             NodalVectorType gravity_operator = sm.dNdx.transpose() *
                                                permeability * b *
@@ -185,7 +185,7 @@ void TwoPhaseFlowWithPPLocalAssembler<
             Bl.noalias() += rho_wet * rho_wet * lambda_wet * gravity_operator;
         }  // end of has gravity
     }
-    if (_process_data._has_mass_lumping)
+    if (_process_data.has_mass_lumping)
     {
         for (unsigned row = 0; row < Mgpc.cols(); row++)
         {

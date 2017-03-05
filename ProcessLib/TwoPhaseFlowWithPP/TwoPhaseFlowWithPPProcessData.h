@@ -29,21 +29,21 @@ struct TwoPhaseFlowWithPPProcessData
         bool const has_mass_lumping_,
         Parameter<double> const& temperature_,
         std::unique_ptr<TwoPhaseFlowWithPPMaterialProperties>&& material_)
-        : _specific_body_force(specific_body_force_),
-          _has_gravity(has_gravity_),
-          _has_mass_lumping(has_mass_lumping_),
-          _temperature(temperature_),
-          _material(std::move(material_))
+        : specific_body_force(specific_body_force_),
+          has_gravity(has_gravity_),
+          has_mass_lumping(has_mass_lumping_),
+          temperature(temperature_),
+          material(std::move(material_))
 
     {
     }
 
     TwoPhaseFlowWithPPProcessData(TwoPhaseFlowWithPPProcessData&& other)
-        : _specific_body_force(other._specific_body_force),
-          _has_gravity(other._has_gravity),
-          _has_mass_lumping(other._has_mass_lumping),
-          _temperature(other._temperature),
-          _material(std::move(other._material))
+        : specific_body_force(other.specific_body_force),
+          has_gravity(other.has_gravity),
+          has_mass_lumping(other.has_mass_lumping),
+          temperature(other.temperature),
+          material(std::move(other.material))
     {
     }
 
@@ -60,14 +60,14 @@ struct TwoPhaseFlowWithPPProcessData
     //! Specific body forces applied to solid and fluid.
     //! It is usually used to apply gravitational forces.
     //! A vector of displacement dimension's length.
-    Eigen::VectorXd const _specific_body_force;
+    Eigen::VectorXd const specific_body_force;
 
-    bool const _has_gravity;
+    bool const has_gravity;
 
     //! Enables lumping of the mass matrix.
-    bool const _has_mass_lumping;
-    Parameter<double> const& _temperature;
-    std::unique_ptr<TwoPhaseFlowWithPPMaterialProperties> _material;
+    bool const has_mass_lumping;
+    Parameter<double> const& temperature;
+    std::unique_ptr<TwoPhaseFlowWithPPMaterialProperties> material;
 };
 
 }  // namespace TwoPhaseFlowWithPP
