@@ -134,19 +134,19 @@ double ThermalTwoPhaseFlowWithPPMaterialProperties::getGasViscosity(
 }
 
 Eigen::MatrixXd const&
-ThermalTwoPhaseFlowWithPPMaterialProperties::getPermeability(
+ThermalTwoPhaseFlowWithPPMaterialProperties::getPermeability(const int material_id,
     const double /*t*/, const ProcessLib::SpatialPosition& /*pos*/,
     const int /*dim*/) const
 {
-    return _intrinsic_permeability_models[_current_material_id];
+    return _intrinsic_permeability_models[material_id];
 }
 
-double ThermalTwoPhaseFlowWithPPMaterialProperties::getPorosity(
+double ThermalTwoPhaseFlowWithPPMaterialProperties::getPorosity(const int material_id,
     const double /*t*/, const ProcessLib::SpatialPosition& /*pos*/,
     const double /*p*/, const double T, const double porosity_variable) const
 {
     return
-        _porosity_models[_current_material_id]->getValue(porosity_variable, T);
+        _porosity_models[material_id]->getValue(porosity_variable, T);
 }
 
 double
@@ -176,27 +176,27 @@ double ThermalTwoPhaseFlowWithPPMaterialProperties::getWetRelativePermeability(
     return pow(Se, 3);
 }
 
-double ThermalTwoPhaseFlowWithPPMaterialProperties::getSaturation(
+double ThermalTwoPhaseFlowWithPPMaterialProperties::getSaturation(const int material_id,
     const double /*t*/, const ProcessLib::SpatialPosition& /*pos*/,
     const double /*p*/, const double /*T*/, const double pc) const
 {
-    return _capillary_pressure_models[_current_material_id]->getSaturation(pc);
+    return _capillary_pressure_models[material_id]->getSaturation(pc);
 }
 
-double ThermalTwoPhaseFlowWithPPMaterialProperties::getCapillaryPressure(
+double ThermalTwoPhaseFlowWithPPMaterialProperties::getCapillaryPressure(const int material_id,
     const double /*t*/, const ProcessLib::SpatialPosition& /*pos*/,
     const double /*p*/, const double /*T*/, const double saturation) const
 {
-    return _capillary_pressure_models[_current_material_id]
+    return _capillary_pressure_models[material_id]
         ->getCapillaryPressure(saturation);
 }
 
-double ThermalTwoPhaseFlowWithPPMaterialProperties::getSaturationDerivative(
+double ThermalTwoPhaseFlowWithPPMaterialProperties::getSaturationDerivative(const int material_id,
     const double /*t*/, const ProcessLib::SpatialPosition& /*pos*/,
     const double /*p*/, const double /*T*/, const double saturation) const
 {
     const double dpcdsw =
-        _capillary_pressure_models[_current_material_id]->getdPcdS(saturation);
+        _capillary_pressure_models[material_id]->getdPcdS(saturation);
     const double dswdpc = 1 / dpcdsw;
     return dswdpc;
 }

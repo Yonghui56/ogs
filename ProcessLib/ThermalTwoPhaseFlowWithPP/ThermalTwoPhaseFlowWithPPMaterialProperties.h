@@ -71,12 +71,13 @@ public:
 
     int getMaterialID(const std::size_t element_id);
 
-    Eigen::MatrixXd const& getPermeability(
+    Eigen::MatrixXd const& getPermeability(const int material_id,
         const double t,
         const ProcessLib::SpatialPosition& pos,
         const int dim) const;
 
-    double getPorosity(const double t, const ProcessLib::SpatialPosition& pos,
+    double getPorosity(const int material_id,
+        const double t, const ProcessLib::SpatialPosition& pos,
                        const double p, const double T,
                        const double porosity_variable) const;
 
@@ -88,13 +89,14 @@ public:
                                       const ProcessLib::SpatialPosition& pos,
                                       const double p, const double T,
                                       const double saturation) const;
-    double getSaturation(const double t, const ProcessLib::SpatialPosition& pos,
+    double getSaturation(const int material_id, 
+        const double t, const ProcessLib::SpatialPosition& pos,
                          const double p, const double T, const double pc) const;
-    double getSaturationDerivative(const double t,
+    double getSaturationDerivative(const int material_id, const double t,
                                    const ProcessLib::SpatialPosition& pos,
                                    const double p, const double T,
                                    const double saturation) const;
-    double getCapillaryPressure(const double t,
+    double getCapillaryPressure(const int material_id, const double t,
                                 const ProcessLib::SpatialPosition& pos,
                                 const double p, const double T,
                                 const double saturation) const;
@@ -137,7 +139,6 @@ protected:
     */
     boost::optional<MeshLib::PropertyVector<int> const&> const _material_ids;
 
-    int _current_material_id = 0;
     std::vector<Eigen::MatrixXd> _intrinsic_permeability_models;
     std::vector<std::unique_ptr<MaterialLib::PorousMedium::Porosity>>
         _porosity_models;

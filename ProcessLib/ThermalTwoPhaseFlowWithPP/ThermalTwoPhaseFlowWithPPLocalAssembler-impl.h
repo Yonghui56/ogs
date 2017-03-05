@@ -117,7 +117,7 @@ void ThermalTwoPhaseFlowWithPPLocalAssembler<
     auto pc_nodal_values =
         Eigen::Map<const Eigen::VectorXd>(&local_x[num_nodes], num_nodes);
 
-    const Eigen::MatrixXd& perm = _process_data._material->getPermeability(
+    const Eigen::MatrixXd& perm = _process_data._material->getPermeability(material_id,
         t, pos, _element.getDimension());
     assert(perm.rows() == _element.getDimension() || perm.rows() == 1);
     GlobalDimMatrixType permeability = GlobalDimMatrixType::Zero(
@@ -142,15 +142,15 @@ void ThermalTwoPhaseFlowWithPPLocalAssembler<
         double const rho_water =
             _process_data._material->getLiquidDensity(pg_int_pt, T_int_pt);
 
-        double const Sw = _process_data._material->getSaturation(
+        double const Sw = _process_data._material->getSaturation(material_id,
                                     t, pos, pg_int_pt, T_int_pt, pc_int_pt);
 
         _saturation[ip] = Sw;
         double dSwdpc =
-            (pc_int_pt > _process_data._material->getCapillaryPressure(
+            (pc_int_pt > _process_data._material->getCapillaryPressure(material_id,
                              t, pos, pg_int_pt, T_int_pt, 0.0))
                 ? 0.0
-                : _process_data._material->getSaturationDerivative(
+                : _process_data._material->getSaturationDerivative(material_id,
                       t, pos, pg_int_pt, T_int_pt, Sw);
 
         /// calculate the water vapor pressure
@@ -235,7 +235,7 @@ void ThermalTwoPhaseFlowWithPPLocalAssembler<
             d_enthalpy_air_nonwet_d_T * X_air_nonwet;
         // Assemble M matrix
         // nonwetting
-        double const porosity = _process_data._material->getPorosity(
+        double const porosity = _process_data._material->getPorosity(material_id,
             t, pos, pg_int_pt, T_int_pt, 0);
 
         Mgp.noalias() += porosity *
