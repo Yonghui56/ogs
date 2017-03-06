@@ -262,7 +262,6 @@ double ThermalTwoPhaseFlowWithPPMaterialProperties::calculatedRhoNonwetdT(
     const double p_air_nonwet, const double p_vapor_nonwet, const double PC,
     const double T, const double rho_mass_h2o) const
 {
-    const double C_v = Air / IdealGasConstant / T;
     const double dPgwdT = calculateDerivativedPgwdT(PC, T, rho_mass_h2o);
     return -((p_air_nonwet * Air + p_vapor_nonwet * Water) / IdealGasConstant /
              T / T) +
