@@ -89,7 +89,7 @@ public:
                                       const ProcessLib::SpatialPosition& pos,
                                       const double p, const double T,
                                       const double saturation) const;
-    double getSaturation(const int material_id, 
+    double getSaturation(const int material_id,
         const double t, const ProcessLib::SpatialPosition& pos,
                          const double p, const double T, const double pc) const;
     double getSaturationDerivative(const int material_id, const double t,
