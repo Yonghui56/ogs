@@ -50,58 +50,58 @@ void ThermalTwoPhaseFlowWithPPLocalAssembler<
         local_b_data, local_matrix_size);
 
     auto Mgp =
-        local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+        local_M.template block<nonwet_pressure_size, nonwet_pressure_size>(
             nonwet_pressure_matrix_index, nonwet_pressure_matrix_index);
-    auto Mgpc = local_M.block<nonwet_pressure_size, cap_pressure_size>(
+    auto Mgpc = local_M.template block<nonwet_pressure_size, cap_pressure_size>(
         nonwet_pressure_matrix_index, cap_pressure_matrix_index);
-    auto Mgt = local_M.block<nonwet_pressure_size, temperature_size>(
+    auto Mgt = local_M.template block<nonwet_pressure_size, temperature_size>(
         nonwet_pressure_matrix_index, temperature_matrix_index);
 
-    auto Mlp = local_M.block<cap_pressure_size, nonwet_pressure_size>(
+    auto Mlp = local_M.template block<cap_pressure_size, nonwet_pressure_size>(
         cap_pressure_matrix_index, nonwet_pressure_matrix_index);
-    auto Mlpc = local_M.block<cap_pressure_size, cap_pressure_size>(
+    auto Mlpc = local_M.template block<cap_pressure_size, cap_pressure_size>(
         cap_pressure_matrix_index, cap_pressure_matrix_index);
-    auto Mlt = local_M.block<cap_pressure_size, temperature_size>(
+    auto Mlt = local_M.template block<cap_pressure_size, temperature_size>(
         cap_pressure_matrix_index, temperature_matrix_index);
 
-    auto Mep = local_M.block<temperature_size, nonwet_pressure_size>(
+    auto Mep = local_M.template block<temperature_size, nonwet_pressure_size>(
         temperature_matrix_index, nonwet_pressure_matrix_index);
-    auto Mepc = local_M.block<temperature_size, cap_pressure_size>(
+    auto Mepc = local_M.template block<temperature_size, cap_pressure_size>(
         temperature_matrix_index, cap_pressure_matrix_index);
-    auto Met = local_M.block<temperature_size, temperature_size>(
+    auto Met = local_M.template block<temperature_size, temperature_size>(
         temperature_matrix_index, temperature_matrix_index);
 
     NodalMatrixType laplace_operator;
     laplace_operator.setZero(ShapeFunction::NPOINTS, ShapeFunction::NPOINTS);
 
     auto Kgp =
-        local_K.block<nonwet_pressure_size, nonwet_pressure_size>(
+        local_K.template block<nonwet_pressure_size, nonwet_pressure_size>(
             nonwet_pressure_matrix_index, nonwet_pressure_matrix_index);
-    auto Kgpc = local_K.block<nonwet_pressure_size, cap_pressure_size>(
+    auto Kgpc = local_K.template block<nonwet_pressure_size, cap_pressure_size>(
         nonwet_pressure_matrix_index, cap_pressure_matrix_index);
-    auto Kgt = local_K.block<nonwet_pressure_size, temperature_size>(
+    auto Kgt = local_K.template block<nonwet_pressure_size, temperature_size>(
         nonwet_pressure_matrix_index, temperature_matrix_index);
 
-    auto Klp = local_K.block<cap_pressure_size, nonwet_pressure_size>(
+    auto Klp = local_K.template block<cap_pressure_size, nonwet_pressure_size>(
         cap_pressure_matrix_index, nonwet_pressure_matrix_index);
-    auto Klpc = local_K.block<cap_pressure_size, cap_pressure_size>(
+    auto Klpc = local_K.template block<cap_pressure_size, cap_pressure_size>(
         cap_pressure_matrix_index, cap_pressure_matrix_index);
-    auto Klt = local_K.block<cap_pressure_size, temperature_size>(
+    auto Klt = local_K.template block<cap_pressure_size, temperature_size>(
         cap_pressure_matrix_index, temperature_matrix_index);
 
-    auto Kep = local_K.block<temperature_size, nonwet_pressure_size>(
+    auto Kep = local_K.template block<temperature_size, nonwet_pressure_size>(
         temperature_matrix_index, nonwet_pressure_matrix_index);
-    auto Kepc = local_K.block<temperature_size, cap_pressure_size>(
+    auto Kepc = local_K.template block<temperature_size, cap_pressure_size>(
         temperature_matrix_index, cap_pressure_matrix_index);
-    auto Ket = local_K.block<temperature_size, temperature_size>(
+    auto Ket = local_K.template block<temperature_size, temperature_size>(
         temperature_matrix_index, temperature_matrix_index);
 
-    auto Bg = local_b.segment<nonwet_pressure_size>(
+    auto Bg = local_b.template segment<nonwet_pressure_size>(
         nonwet_pressure_matrix_index);
     auto Bl =
-        local_b.segment<cap_pressure_size>(cap_pressure_matrix_index);
+        local_b.template segment<cap_pressure_size>(cap_pressure_matrix_index);
     auto Be =
-        local_b.segment<temperature_size>(temperature_matrix_index);
+        local_b.template segment<temperature_size>(temperature_matrix_index);
 
     unsigned const n_integration_points =
         _integration_method.getNumberOfPoints();
@@ -137,8 +137,6 @@ void ThermalTwoPhaseFlowWithPPLocalAssembler<
         NumLib::shapeFunctionInterpolate(local_x, sm.N, pg_int_pt, pc_int_pt,
                                          T_int_pt);
 
-        auto const& wp = _integration_method.getWeightedPoint(ip);
-
         double const rho_water =
             _process_data.material->getLiquidDensity(pg_int_pt, T_int_pt);
 
@@ -167,9 +165,7 @@ void ThermalTwoPhaseFlowWithPPLocalAssembler<
         /// mass fraction of air in the nonwet phase
         double const X_air_nonwet =
             x_air_nonwet / (x_air_nonwet + x_vapor_nonwet * Water / Air);
-        /// mass density of air in nonwet phase
-        double const rho_air_nonwet =
-            p_air_nonwet * Air / IdealGasConstant / T_int_pt;
+
         double const rho_mol_nonwet = pg_int_pt / IdealGasConstant / T_int_pt;
         double const rho_mol_water = rho_water / Water;
         /// calculate derivatives
