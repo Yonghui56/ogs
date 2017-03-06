@@ -116,8 +116,6 @@ void TwoPhaseFlowWithPPLocalAssembler<
 
         _pressure_wet[ip] = pn_int_pt - pc_int_pt;
 
-        auto const& wp = _integration_method.getWeightedPoint(ip);
-
         const double temperature = _process_data.temperature(t, pos)[0];
         double const rho_nonwet =
             _process_data.material->getGasDensity(pn_int_pt, temperature);
