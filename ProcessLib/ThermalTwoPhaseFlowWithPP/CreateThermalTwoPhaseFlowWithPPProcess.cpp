@@ -187,7 +187,6 @@ std::unique_ptr<Process> createThermalTwoPhaseFlowWithPPProcess(
         std::move(process_variables), std::move(process_data),
         std::move(secondary_variables), std::move(named_function_caller),
         mat_config, curves }};
-   
 }
 
 }  // end of namespace

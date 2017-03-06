@@ -73,7 +73,7 @@ void ThermalTwoPhaseFlowWithPPProcess::assembleConcreteProcess(
     GlobalVector const& x,
     GlobalMatrix& M,
     GlobalMatrix& K,
-    GlobalVector& b, 
+    GlobalVector& b,
     StaggeredCouplingTerm
     const& coupling_term)
 {
