@@ -36,6 +36,9 @@
 #include "NumLib/Function/Interpolation.h"
 #include "TwoPhaseFlowWithPPProcessData.h"
 
+using MaterialLib::PhysicalConstant::MolarMass::Water;
+using MaterialLib::PhysicalConstant::MolarMass::Air;
+using MaterialLib::PhysicalConstant::IdealGasConstant;
 namespace ProcessLib
 {
 namespace TwoPhaseFlowWithPP
@@ -66,6 +69,8 @@ void TwoPhaseFlowWithPPLocalAssembler<
     auto Mgpc = local_M.template block<nonwet_pressure_size, cap_pressure_size>(
         nonwet_pressure_matrix_index, cap_pressure_matrix_index);
 
+    auto Mlp = local_M.template block<cap_pressure_size, nonwet_pressure_size>(
+        cap_pressure_matrix_index, nonwet_pressure_matrix_index);
     auto Mlpc = local_M.template block<cap_pressure_size, cap_pressure_size>(
         cap_pressure_matrix_index, cap_pressure_matrix_index);
 
@@ -75,6 +80,9 @@ void TwoPhaseFlowWithPPLocalAssembler<
     auto Kgp =
         local_K.template block<nonwet_pressure_size, nonwet_pressure_size>(
             nonwet_pressure_matrix_index, nonwet_pressure_matrix_index);
+    
+    auto Kgpc = local_K.template block<nonwet_pressure_size, cap_pressure_size>(
+        nonwet_pressure_matrix_index, cap_pressure_matrix_index);
 
     auto Klp = local_K.template block<cap_pressure_size, nonwet_pressure_size>(
         cap_pressure_matrix_index, nonwet_pressure_matrix_index);
@@ -133,19 +141,57 @@ void TwoPhaseFlowWithPPLocalAssembler<
         double const porosity = _process_data.material->getPorosity(
             material_id, t, pos, pn_int_pt, temperature, 0);
 
+        double p_sat = get_P_sat(temperature);
+
+        const double rho_mol_water = _rho_l_std / Water;
+        const double kelvin_term = exp(pc_int_pt / rho_mol_water / IdealGasConstant / temperature);
+        const double d_kelvin_term_d_pc = kelvin_term / rho_mol_water / IdealGasConstant / temperature;
+        double const x_vapor_nonwet = get_x_nonwet_vapor(pn_int_pt, p_sat, kelvin_term);
+        double const x_water_wet = pn_int_pt*x_vapor_nonwet*kelvin_term / p_sat;
+        double const x_air_nonwet = 1- x_vapor_nonwet;
+        double const x_air_wet = pn_int_pt*x_air_nonwet / _hen_L_air;
+
+        double const d_x_vapor_nonwet_d_pg = get_derivative_x_nonwet_h2o_d_pg(pn_int_pt, p_sat, kelvin_term);
+        double const d_x_vapor_nonwet_d_kelvin = get_derivative_x_nonwet_h2o_d_kelvin(pn_int_pt, p_sat, kelvin_term);
+        double const d_x_vapor_nonwet_d_pc = d_x_vapor_nonwet_d_kelvin * d_kelvin_term_d_pc;
+
+
+        double const d_x_air_nonwet_d_pg = -d_x_vapor_nonwet_d_pg;
+        double const d_x_air_nonwet_d_pc = -d_x_vapor_nonwet_d_pc;
+        double const d_x_air_wet_d_pg = x_air_nonwet / _hen_L_air + pn_int_pt * d_x_air_nonwet_d_pg / _hen_L_air;
+        double const d_x_air_wet_d_pc= pn_int_pt * d_x_air_nonwet_d_pc / _hen_L_air;
+
+        const double rho_mol_nonwet = pn_int_pt / IdealGasConstant / temperature;
+        const double rho_mol_wet = rho_mol_water / x_water_wet;
+        double const d_rho_mol_nonwet_d_pg = 1 / IdealGasConstant / temperature;
+        double const d_rho_mol_wet_d_pg= -rho_mol_water * kelvin_term *(x_vapor_nonwet / p_sat +
+            pn_int_pt * d_x_vapor_nonwet_d_pg / p_sat) /
+            x_water_wet / x_water_wet;
+        double const d_rho_mol_wet_d_pc = -rho_mol_water *(pn_int_pt * d_x_vapor_nonwet_d_pc * kelvin_term / p_sat
+            + pn_int_pt * x_vapor_nonwet * d_kelvin_term_d_pc / p_sat) /
+            x_water_wet / x_water_wet;
+        double const rho_mass_nonwet = rho_mol_nonwet*(x_vapor_nonwet*Water + x_air_nonwet*Air);
+        double const rho_mass_wet = rho_mol_wet *
+            (x_water_wet* Water + x_air_wet*Air);
+
         // Assemble M matrix
         // nonwetting
-        double const drhononwet_dpn =
-            _process_data.material->getGasDensityDerivative(pn_int_pt,
-                                                             temperature);
 
         Mgp.noalias() +=
-            porosity * (1 - Sw) * drhononwet_dpn * _ip_data[ip].massOperator;
+            porosity * (d_rho_mol_nonwet_d_pg*(1 - Sw)*x_air_nonwet + rho_mol_nonwet*(1 - Sw)*d_x_air_nonwet_d_pg
+                + rho_mol_wet * Sw* d_x_air_nonwet_d_pg*pn_int_pt / _hen_L_air
+                + rho_mol_wet*Sw*x_air_wet / _hen_L_air)
+            * _ip_data[ip].massOperator;//dpn
         Mgpc.noalias() +=
-            -porosity * rho_nonwet * dSw_dpc * _ip_data[ip].massOperator;
+            porosity * ((rho_mol_wet*x_air_nonwet-rho_mol_nonwet*x_air_nonwet) * dSw_dpc +
+                Sw*d_rho_mol_wet_d_pc*x_air_wet
+                +Sw*rho_mol_wet*d_x_air_wet_d_pc)* _ip_data[ip].massOperator;//dpc
 
+        Mlp.noalias() += porosity *(d_rho_mol_nonwet_d_pg*(1 - Sw)*x_air_nonwet
+            + rho_mol_nonwet*(1 - Sw)*d_x_air_nonwet_d_pg)*_ip_data[ip].massOperator;//dpn
         Mlpc.noalias() +=
-            porosity * dSw_dpc * rho_wet * _ip_data[ip].massOperator;
+            porosity * (dSw_dpc * (rho_mol_wet-rho_mol_nonwet*x_vapor_nonwet) +rho_mol_nonwet*(1-Sw)*d_x_air_nonwet_d_pc)
+            * _ip_data[ip].massOperator;//dpc
 
         // nonwet
         double const k_rel_nonwet =
@@ -154,7 +200,8 @@ void TwoPhaseFlowWithPPLocalAssembler<
         double const mu_nonwet =
             _process_data.material->getGasViscosity(pn_int_pt, temperature);
         double const lambda_nonwet = k_rel_nonwet / mu_nonwet;
-
+        double const diffusion_coeff_component_air =
+            _process_data.diffusion_coeff_component_b(t, pos)[0];
         // wet
         double const k_rel_wet =
             _process_data.material->getWetRelativePermeability(
@@ -162,14 +209,24 @@ void TwoPhaseFlowWithPPLocalAssembler<
         double const mu_wet = _process_data.material->getLiquidViscosity(
             _pressure_wet[ip], temperature);
         double const lambda_wet = k_rel_wet / mu_wet;
+        double const diffusion_coeff_component_h2o =
+            _process_data.diffusion_coeff_component_a(t, pos)[0];
 
         laplace_operator.noalias() = sm.dNdx.transpose() * permeability *
                                      sm.dNdx * _ip_data[ip].integration_weight;
 
-        Kgp.noalias() += rho_nonwet * lambda_nonwet * laplace_operator;
+        Kgp.noalias() += (lambda_nonwet*rho_mol_nonwet*x_air_nonwet + lambda_wet*rho_mol_wet*x_air_wet)
+            *laplace_operator
+            + (porosity*(1 - Sw)*rho_mol_nonwet*diffusion_coeff_component_air*d_x_air_nonwet_d_pg
+                + porosity*Sw*rho_mol_wet*diffusion_coeff_component_h2o*(pn_int_pt * d_x_air_nonwet_d_pg / _hen_L_air + x_air_nonwet / _hen_L_air))
+            *_ip_data[ip].diffusion_operator;
 
-        Klp.noalias() += rho_wet * lambda_wet * laplace_operator;
-        Klpc.noalias() += -rho_wet * lambda_wet * laplace_operator;
+        Kgpc.noalias() +=-lambda_wet*rho_mol_wet*x_air_wet*laplace_operator
+            + (porosity*(1 - Sw)*rho_mol_nonwet*diffusion_coeff_component_air*d_x_air_nonwet_d_pc
+                + porosity*Sw*rho_mol_wet*diffusion_coeff_component_h2o*(pn_int_pt * d_x_air_nonwet_d_pc / _hen_L_air))
+            *_ip_data[ip].diffusion_operator;
+        Klp.noalias() += (lambda_nonwet*rho_mol_nonwet + lambda_wet*rho_mol_wet)*laplace_operator;
+        Klpc.noalias() += -lambda_wet * rho_mol_wet* laplace_operator;
 
         if (_process_data.has_gravity)
         {
@@ -179,8 +236,10 @@ void TwoPhaseFlowWithPPLocalAssembler<
                                                permeability * b *
                                                _ip_data[ip].integration_weight;
             Bg.noalias() +=
-                rho_nonwet * rho_nonwet * lambda_nonwet * gravity_operator;
-            Bl.noalias() += rho_wet * rho_wet * lambda_wet * gravity_operator;
+                rho_mol_nonwet*x_air_nonwet * rho_mass_nonwet * lambda_nonwet * gravity_operator
+                + rho_mol_wet*x_air_wet*rho_mass_wet*lambda_wet*gravity_operator;
+            Bl.noalias() += rho_mol_wet * rho_mass_wet * lambda_wet * gravity_operator
+                + rho_mol_nonwet*rho_mass_nonwet*lambda_nonwet*gravity_operator;
         }  // end of has gravity
     }
     if (_process_data.has_mass_lumping)

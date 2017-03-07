@@ -66,7 +66,14 @@ std::unique_ptr<Process> createTwoPhaseFlowWithPPProcess(
 
     //! \ogs_file_param{prj__processes__process__TWOPHASE_FLOW_PP__mass_lumping}
     auto const mass_lumping = config.getConfigParameter<bool>("mass_lumping");
-
+    auto& diff_coeff_b = findParameter<double>(
+        config,
+        //! \ogs_file_param_special{prj__processes__process__TWOPHASE_FLOW_PP__diffusion_coeff_component_b}
+        "diffusion_coeff_component_b", parameters, 1);
+    auto& diff_coeff_a = findParameter<double>(
+        config,
+        //! \ogs_file_param_special{prj__processes__process__TWOPHASE_FLOW_PP__diffusion_coeff_component_a}
+        "diffusion_coeff_component_a", parameters, 1);
     auto& temperature = findParameter<double>(
         config,
         //! \ogs_file_param_special{prj__processes__process__TWOPHASE_FLOW_PP__temperature}
@@ -90,7 +97,7 @@ std::unique_ptr<Process> createTwoPhaseFlowWithPPProcess(
     material = createTwoPhaseFlowWithPPMaterialProperties(mat_config, material_ids);
 
     TwoPhaseFlowWithPPProcessData process_data{
-        specific_body_force, has_gravity, mass_lumping, temperature, std::move(material)};
+        specific_body_force, has_gravity, mass_lumping, diff_coeff_b,diff_coeff_a, temperature, std::move(material)};
 
     return std::unique_ptr<Process>{new TwoPhaseFlowWithPPProcess{
         mesh, std::move(jacobian_assembler), parameters, integration_order,

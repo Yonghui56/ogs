@@ -27,11 +27,15 @@ struct TwoPhaseFlowWithPPProcessData
         Eigen::VectorXd const specific_body_force_,
         bool const has_gravity_,
         bool const has_mass_lumping_,
+        Parameter<double> const& diffusion_coeff_component_b_,
+        Parameter<double> const& diffusion_coeff_component_a_,
         Parameter<double> const& temperature_,
         std::unique_ptr<TwoPhaseFlowWithPPMaterialProperties>&& material_)
         : specific_body_force(specific_body_force_),
           has_gravity(has_gravity_),
           has_mass_lumping(has_mass_lumping_),
+          diffusion_coeff_component_b(diffusion_coeff_component_b_),
+          diffusion_coeff_component_a(diffusion_coeff_component_a_),
           temperature(temperature_),
           material(std::move(material_))
 
@@ -42,6 +46,8 @@ struct TwoPhaseFlowWithPPProcessData
         : specific_body_force(other.specific_body_force),
           has_gravity(other.has_gravity),
           has_mass_lumping(other.has_mass_lumping),
+        diffusion_coeff_component_b(other.diffusion_coeff_component_b),
+        diffusion_coeff_component_a(other.diffusion_coeff_component_a),
           temperature(other.temperature),
           material(std::move(other.material))
     {
@@ -66,6 +72,8 @@ struct TwoPhaseFlowWithPPProcessData
 
     //! Enables lumping of the mass matrix.
     bool const has_mass_lumping;
+    Parameter<double> const& diffusion_coeff_component_b;
+    Parameter<double> const& diffusion_coeff_component_a;
     Parameter<double> const& temperature;
     std::unique_ptr<TwoPhaseFlowWithPPMaterialProperties> material;
 };

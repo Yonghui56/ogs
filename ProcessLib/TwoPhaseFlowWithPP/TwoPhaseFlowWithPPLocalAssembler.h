@@ -32,10 +32,11 @@ struct IntegrationPointData final
 {
     explicit IntegrationPointData(
         TwoPhaseFlowWithPPMaterialProperties& material_property_,
-        double const& integration_weight_, NodalMatrixType const massOperator_)
+        double const& integration_weight_, NodalMatrixType const massOperator_, NodalMatrixType const diffusion_operator_)
         : mat_property(material_property_),
           integration_weight(integration_weight_),
-          massOperator(massOperator_)
+          massOperator(massOperator_),
+        diffusion_operator(diffusion_operator_)
 
     {
     }
@@ -43,6 +44,7 @@ struct IntegrationPointData final
 
     const double integration_weight;
     NodalMatrixType const massOperator;
+    NodalMatrixType const diffusion_operator;
 };
 const unsigned NUM_NODAL_DOF = 2;
 
@@ -105,6 +107,8 @@ public:
                 sm.integralMeasure * sm.detJ *
                     _integration_method.getWeightedPoint(ip).getWeight(),
                 sm.N.transpose() * sm.N  * sm.integralMeasure * sm.detJ *
+                _integration_method.getWeightedPoint(ip).getWeight(),
+                sm.dNdx.transpose() * sm.dNdx * sm.integralMeasure * sm.detJ *
                 _integration_method.getWeightedPoint(ip).getWeight());
         }
     }
@@ -153,6 +157,10 @@ private:
     // output vector for wetting phase pressure with respect
     // to each integration point
     std::vector<double> _pressure_wet;
+    const double _hen_L_air = 9.077e+9; // Henry constant in [Pa]
+    const double _rho_l_std = 1000;
+    const double& _molar_mass_water = MaterialLib::PhysicalConstant::MolarMass::Water;
+    const double& _ideal_gas_const = MaterialLib::PhysicalConstant::IdealGasConstant;
     static const int nonwet_pressure_coeff_index = 0;
     static const int cap_pressure_coeff_index = 1;
 
@@ -161,6 +169,36 @@ private:
 
     static const int nonwet_pressure_size = ShapeFunction::NPOINTS;
     static const int cap_pressure_size = ShapeFunction::NPOINTS;
+private:
+    const double get_P_sat(double T)
+    {
+        double P_sat(0.0);
+        double T_0 = 373.15;
+        double P_0 = 101325.0;
+        double h_wg = 2258000.0;
+        return P_0 * exp(((1 / T_0) - (1 / T)) * _molar_mass_water * h_wg / _ideal_gas_const);
+    }
+
+    const double get_x_nonwet_vapor(double pg, double p_sat, double kelvin_term)
+    {
+
+        return (1 / pg - 1/_hen_L_air)/(kelvin_term/p_sat -1/_hen_L_air);
+    }
+
+    const double get_derivative_x_nonwet_h2o_d_pg(double const pg,
+        double const p_sat,
+        double const kelvin_term)
+    {
+        return (1 / (kelvin_term / p_sat - 1 / _hen_L_air)) * (-1 / pg / pg);
+    }
+
+    const double get_derivative_x_nonwet_h2o_d_kelvin(double const pg,
+        double const p_sat,
+        double const kelvin_term)
+    {
+        return -(1 / pg - 1 / _hen_L_air) / (kelvin_term / p_sat - 1 / _hen_L_air) / (kelvin_term / p_sat - 1 / _hen_L_air) / p_sat;
+    }
+
 };
 
 }  // end of namespace
