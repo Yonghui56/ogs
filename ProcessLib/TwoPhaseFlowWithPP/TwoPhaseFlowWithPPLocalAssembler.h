@@ -182,7 +182,7 @@ private:
     const double get_x_nonwet_vapor(double pg, double p_sat, double kelvin_term)
     {
 
-        return (1 / pg - 1/_hen_L_air)/(kelvin_term/p_sat -1/_hen_L_air);
+        return (1 - pg/_hen_L_air)/(pg*kelvin_term/p_sat -pg/_hen_L_air);
     }
 
     const double get_derivative_x_nonwet_h2o_d_pg(double const pg,

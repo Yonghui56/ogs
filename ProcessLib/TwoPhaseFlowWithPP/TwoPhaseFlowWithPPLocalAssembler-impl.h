@@ -130,12 +130,12 @@ void TwoPhaseFlowWithPPLocalAssembler<
         double const rho_wet = _process_data.material->getLiquidDensity(
             _pressure_wet[ip], temperature);
 
-        double const Sw = _process_data.material->getSaturation(
+        double const Sw = (pc_int_pt<0) ? 1 : _process_data.material->getSaturation(
             material_id, t, pos, pn_int_pt, temperature, pc_int_pt);
 
         _saturation[ip] = Sw;
 
-        double dSw_dpc = _process_data.material->getSaturationDerivative(
+        double dSw_dpc = (pc_int_pt < 0) ? 0 : _process_data.material->getSaturationDerivative(
             material_id, t, pos, pn_int_pt, temperature, Sw);
 
         double const porosity = _process_data.material->getPorosity(
@@ -144,8 +144,13 @@ void TwoPhaseFlowWithPPLocalAssembler<
         double p_sat = get_P_sat(temperature);
 
         const double rho_mol_water = _rho_l_std / Water;
-        const double kelvin_term = exp(pc_int_pt / rho_mol_water / IdealGasConstant / temperature);
-        const double d_kelvin_term_d_pc = kelvin_term / rho_mol_water / IdealGasConstant / temperature;
+        double kelvin_term = exp(pc_int_pt / rho_mol_water / IdealGasConstant / temperature);
+        double d_kelvin_term_d_pc = kelvin_term / rho_mol_water / IdealGasConstant / temperature;
+        if (pc_int_pt < 0)
+        {
+            kelvin_term= exp(0 / rho_mol_water / IdealGasConstant / temperature);
+            d_kelvin_term_d_pc = 0;
+        }
         double const x_vapor_nonwet = get_x_nonwet_vapor(pn_int_pt, p_sat, kelvin_term);
         double const x_water_wet = pn_int_pt*x_vapor_nonwet*kelvin_term / p_sat;
         double const x_air_nonwet = 1- x_vapor_nonwet;
@@ -154,7 +159,6 @@ void TwoPhaseFlowWithPPLocalAssembler<
         double const d_x_vapor_nonwet_d_pg = get_derivative_x_nonwet_h2o_d_pg(pn_int_pt, p_sat, kelvin_term);
         double const d_x_vapor_nonwet_d_kelvin = get_derivative_x_nonwet_h2o_d_kelvin(pn_int_pt, p_sat, kelvin_term);
         double const d_x_vapor_nonwet_d_pc = d_x_vapor_nonwet_d_kelvin * d_kelvin_term_d_pc;
-
 
         double const d_x_air_nonwet_d_pg = -d_x_vapor_nonwet_d_pg;
         double const d_x_air_nonwet_d_pc = -d_x_vapor_nonwet_d_pc;
@@ -187,12 +191,15 @@ void TwoPhaseFlowWithPPLocalAssembler<
                 Sw*d_rho_mol_wet_d_pc*x_air_wet
                 +Sw*rho_mol_wet*d_x_air_wet_d_pc)* _ip_data[ip].massOperator;//dpc
 
-        Mlp.noalias() += porosity *(d_rho_mol_nonwet_d_pg*(1 - Sw)*x_air_nonwet
-            + rho_mol_nonwet*(1 - Sw)*d_x_air_nonwet_d_pg)*_ip_data[ip].massOperator;//dpn
+        Mlp.noalias() += porosity *(d_rho_mol_nonwet_d_pg*(1 - Sw)
+            + d_rho_mol_wet_d_pg *Sw)*_ip_data[ip].massOperator;//dpn
         Mlpc.noalias() +=
-            porosity * (dSw_dpc * (rho_mol_wet-rho_mol_nonwet*x_vapor_nonwet) +rho_mol_nonwet*(1-Sw)*d_x_air_nonwet_d_pc)
+            porosity * (dSw_dpc * (rho_mol_wet-rho_mol_nonwet) +d_rho_mol_wet_d_pc*Sw)
             * _ip_data[ip].massOperator;//dpc
-
+        /*std::cout << Mgp << std::endl;
+        std::cout << Mgpc << std::endl;
+        std::cout << Mlp << std::endl;
+        std::cout << Mlpc << std::endl;*/
         // nonwet
         double const k_rel_nonwet =
             _process_data.material->getNonwetRelativePermeability(
@@ -227,6 +234,10 @@ void TwoPhaseFlowWithPPLocalAssembler<
             *_ip_data[ip].diffusion_operator;
         Klp.noalias() += (lambda_nonwet*rho_mol_nonwet + lambda_wet*rho_mol_wet)*laplace_operator;
         Klpc.noalias() += -lambda_wet * rho_mol_wet* laplace_operator;
+        /*std::cout << Kgp << std::endl;
+        std::cout << Kgpc << std::endl;
+        std::cout << Klp << std::endl;
+        std::cout << Klpc << std::endl;*/
 
         if (_process_data.has_gravity)
         {
