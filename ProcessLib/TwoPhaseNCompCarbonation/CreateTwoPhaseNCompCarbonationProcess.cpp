@@ -47,7 +47,7 @@ std::unique_ptr<Process> createTwoPhaseNCompCarbonationProcess(
          //! \ogs_file_param_special{prj__processes__process__TWOPHASE_NComp_CARBONATION__process_variables__capillary_pressure}
          "capillary_pressure",
          //! \ogs_file_param_special{prj__processes__process__TWOPHASE_NComp_CARBONATION__process_variables__capillary_pressure}
-         "dissolve_molar_fraction", });
+         "gas_co2_molar_fraction", });
 
     SecondaryVariableCollection secondary_variables;
 

@@ -151,8 +151,8 @@ void TwoPhaseNCompCarbonationLocalAssembler<
 
         double pc_int_pt = 0.;
         double pn_int_pt = 0.;
-        double x_air_int_pt = 0.;
-        NumLib::shapeFunctionInterpolate(local_x, sm.N, pn_int_pt, pc_int_pt, x_air_int_pt);
+        double x_co2_gas_int_pt = 0.;//co2 molar fraction in the gas phase
+        NumLib::shapeFunctionInterpolate(local_x, sm.N, pn_int_pt, pc_int_pt, x_co2_gas_int_pt);
 
         _pressure_wet[ip] = pn_int_pt - pc_int_pt;
 
@@ -163,28 +163,28 @@ void TwoPhaseNCompCarbonationLocalAssembler<
         
         double const Henry_constant_co2 = 0.164e+4 * 101325;
         double const Henry_constant_air = 9.077e+9;
-        double const p_air_nonwet = x_air_int_pt*Henry_constant_air;
-        double const p_co2_nonwet = pn_int_pt - p_air_nonwet;
+        double const p_co2_nonwet = pn_int_pt * x_co2_gas_int_pt;
+        double const p_air_nonwet = pn_int_pt * (1 - x_co2_gas_int_pt);
 
-        double const x_mol_co2_nonwet = p_co2_nonwet/pn_int_pt;
         double const x_mol_air_nonwet = p_air_nonwet / pn_int_pt;
-        double const d_x_mol_air_nonwet_d_pn = - p_air_nonwet / pn_int_pt / pn_int_pt;
-        double const d_x_mol_co2_nonwet_d_pn = p_air_nonwet / pn_int_pt / pn_int_pt;
-        double const d_x_mol_air_nonwet_d_x = Henry_constant_air / pn_int_pt;
-        double const d_x_mol_co2_nonwet_d_x = -Henry_constant_air / pn_int_pt;
+        double const x_mol_air_wet = p_air_nonwet / Henry_constant_air;
+        double const d_x_mol_air_nonwet_d_pn = 0.0;
+        double const d_x_mol_air_nonwet_d_x = -1;
+        double const d_x_mol_air_wet_d_pn = x_mol_air_nonwet / Henry_constant_air;
+        double const d_x_mol_air_wet_d_x = -pn_int_pt / Henry_constant_air;
 
         double const x_mol_co2_wet =
             p_co2_nonwet / Henry_constant_co2;  // dissolved co2
-        double const d_x_mol_co2_wet_d_pn = 1 / Henry_constant_co2;
-        double const d_x_mol_co2_wet_d_x = -Henry_constant_air / Henry_constant_co2;
+        double const d_x_mol_co2_wet_d_pn = x_co2_gas_int_pt / Henry_constant_co2;
+        double const d_x_mol_co2_wet_d_x = pn_int_pt / Henry_constant_co2;
 
         double const rho_water = _process_data._material->getLiquidDensity(
             _pressure_wet[ip], temperature);
         double const rho_mol_water = rho_water / Water;
-        double const rho_mol_wet = rho_water / Water / (1 - x_mol_co2_wet- x_air_int_pt);
+        double const rho_mol_wet = rho_water / Water / (1 - x_mol_co2_wet- x_mol_air_wet);
 
         double const rho_mol_nonwet = pn_int_pt / IdealGasConstant / temperature;
-        double const rho_mass_nonwet = rho_mol_nonwet*(x_mol_air_nonwet*Air + x_mol_co2_nonwet*0.044);
+        double const rho_mass_nonwet = rho_mol_nonwet*(x_mol_air_nonwet*Air + x_co2_gas_int_pt*0.044);
 
         double const Sw =
             (pc_int_pt < 0)
@@ -208,14 +208,12 @@ void TwoPhaseNCompCarbonationLocalAssembler<
         // calculate the current ammount of co2
         double rho_mol_total_co2 =
             _ip_data[ip].porosity_prev *
-            (rho_mol_nonwet * x_mol_co2_nonwet * (1 - Sw) +
+            (rho_mol_nonwet * x_co2_gas_int_pt * (1 - Sw) +
              rho_mol_wet * x_mol_co2_wet * Sw);
         double test= _ip_data[ip].porosity_prev *
             (rho_mol_nonwet * 1 * 1e-6 +
                 rho_mol_wet * x_mol_co2_wet *1);
-        porosity = _process_data._material->getPorosity(material_id, t, pos, pn_int_pt, temperature, 0);
-            /*bi_interpolation(_ip_data[ip].rho_mol_sio2_prev,
-                _ip_data[ip].rho_mol_co2_cumul_total_prev, _porosity_at_supp_pnts);*/
+
         double const pH = bi_interpolation(_ip_data[ip].rho_mol_sio2_prev,
             _ip_data[ip].rho_mol_co2_cumul_total_prev, _pH_at_supp_pnt);
         _pH_value[ip] = pH;
@@ -224,26 +222,24 @@ void TwoPhaseNCompCarbonationLocalAssembler<
 
         double const d_rho_mol_nonwet_d_pn = 1 / IdealGasConstant / temperature;
         double const d_rho_mol_nonwet_d_x = 0.0;
-
-        double const d_rho_mol_wet_d_pn = rho_water * (d_x_mol_co2_wet_d_pn+d_x_mol_air_nonwet_d_pn) /
-                                          Water / (1 - x_mol_co2_wet- x_air_int_pt) /
-                                          (1 - x_mol_co2_wet- x_air_int_pt);
-        double const d_rho_mol_wet_d_x = rho_water * (d_x_mol_co2_wet_d_x + d_x_mol_air_nonwet_d_x) /
-            Water / (1 - x_mol_co2_wet - x_air_int_pt) /
-            (1 - x_mol_co2_wet - x_air_int_pt);
+        double const x_mol_water_wet = 1 - x_mol_air_wet - x_mol_co2_wet;
+        double const d_rho_mol_wet_d_pn = rho_water * (d_x_mol_co2_wet_d_pn+d_x_mol_air_wet_d_pn) /
+                                          Water / x_mol_water_wet / x_mol_water_wet;
+        double const d_rho_mol_wet_d_x = rho_water * (d_x_mol_co2_wet_d_x + d_x_mol_air_wet_d_x) /
+            Water / (1 - x_mol_co2_wet - x_mol_air_wet) /
+            (1 - x_mol_co2_wet - x_mol_air_wet);
 
         Mcp.noalias() += porosity *
-                         ((1 - Sw) * x_mol_co2_nonwet * d_rho_mol_nonwet_d_pn +
-                          (1 - Sw) * d_x_mol_co2_nonwet_d_pn * rho_mol_nonwet +
+                         ((1 - Sw) * x_co2_gas_int_pt * d_rho_mol_nonwet_d_pn +
                           Sw * rho_mol_wet * d_x_mol_co2_wet_d_pn +
                           Sw * x_mol_co2_wet * d_rho_mol_wet_d_pn) *
                          _ip_data[ip].massOperator;
-        Mcpc.noalias() += -porosity * (rho_mol_wet * x_mol_co2_wet -
-                                       rho_mol_nonwet * x_mol_co2_nonwet) *
+        Mcpc.noalias() += porosity * (rho_mol_wet * x_mol_co2_wet -
+                                       rho_mol_nonwet * x_co2_gas_int_pt) *
                           dSw_dpc * _ip_data[ip].massOperator;
         Mcx.noalias() += porosity *
-            ((1 - Sw) * x_mol_co2_nonwet * d_rho_mol_nonwet_d_x +
-            (1 - Sw) * d_x_mol_co2_nonwet_d_x * rho_mol_nonwet +
+            ((1 - Sw) * x_co2_gas_int_pt * d_rho_mol_nonwet_d_x +
+            (1 - Sw)  * rho_mol_nonwet +
                 Sw * rho_mol_wet * d_x_mol_co2_wet_d_x +
                 Sw * x_mol_co2_wet * d_rho_mol_wet_d_x) *
             _ip_data[ip].massOperator;
@@ -251,16 +247,17 @@ void TwoPhaseNCompCarbonationLocalAssembler<
         Map.noalias() += porosity *
             ((1 - Sw) * x_mol_air_nonwet * d_rho_mol_nonwet_d_pn +
             (1 - Sw) * d_x_mol_air_nonwet_d_pn * rho_mol_nonwet +
-                Sw * x_air_int_pt * d_rho_mol_wet_d_pn) *
+                Sw * x_mol_air_wet * d_rho_mol_wet_d_pn
+                +Sw*rho_mol_wet*d_x_mol_air_wet_d_pn) *
             _ip_data[ip].massOperator;
-        Mapc.noalias() += -porosity * (rho_mol_wet * x_air_int_pt -
+        Mapc.noalias() += porosity * (rho_mol_wet * x_mol_air_wet -
             rho_mol_nonwet * x_mol_air_nonwet) *
             dSw_dpc * _ip_data[ip].massOperator;
         Max.noalias() += porosity *
             ((1 - Sw) * x_mol_air_nonwet * d_rho_mol_nonwet_d_x +
             (1 - Sw) * d_x_mol_air_nonwet_d_x * rho_mol_nonwet +
-                Sw * rho_mol_wet +
-                Sw * x_air_int_pt * d_rho_mol_wet_d_x) *
+                Sw * d_x_mol_air_wet_d_x*rho_mol_wet +
+                Sw * x_mol_air_wet * d_rho_mol_wet_d_x) *
             _ip_data[ip].massOperator;
 
         Mlpc.noalias() +=
@@ -290,50 +287,53 @@ void TwoPhaseNCompCarbonationLocalAssembler<
                                      sm.dNdx * _ip_data[ip].integration_weight;
 
         Kcp.noalias() +=
-            rho_mol_nonwet * x_mol_co2_nonwet * lambda_nonwet *
+            rho_mol_nonwet * x_co2_gas_int_pt * lambda_nonwet *
                 laplace_operator +
             rho_mol_wet * x_mol_co2_wet * lambda_wet * laplace_operator +
             Sw * porosity * rho_mol_wet * diffusion_coeff_wet *
-                d_x_mol_co2_wet_d_pn * _ip_data[ip].diffusionOperator +
-            (1-Sw) * porosity * rho_mol_nonwet*diffusion_coeff_nonwet*d_x_mol_co2_nonwet_d_pn* _ip_data[ip].diffusionOperator;
+                d_x_mol_co2_wet_d_pn * _ip_data[ip].diffusionOperator;
 
         Kcpc.noalias() +=
-            -rho_mol_nonwet * x_mol_co2_nonwet * lambda_wet * laplace_operator;
+            -rho_mol_wet * x_mol_co2_wet * lambda_wet * laplace_operator;
         Kcx.noalias() += Sw * porosity * rho_mol_wet * diffusion_coeff_wet *
             d_x_mol_co2_wet_d_x * _ip_data[ip].diffusionOperator + 
-            (1 - Sw) * porosity * rho_mol_nonwet*diffusion_coeff_nonwet*d_x_mol_co2_nonwet_d_x* _ip_data[ip].diffusionOperator;
+            (1 - Sw) * porosity * rho_mol_nonwet*diffusion_coeff_nonwet * _ip_data[ip].diffusionOperator;
 
         Kap.noalias() +=
             rho_mol_nonwet * x_mol_air_nonwet * lambda_nonwet *
             laplace_operator +
-            rho_mol_wet * x_air_int_pt * lambda_wet * laplace_operator -
-            (1 - Sw) * porosity * rho_mol_nonwet*diffusion_coeff_nonwet*d_x_mol_co2_nonwet_d_pn* _ip_data[ip].diffusionOperator;
+            rho_mol_wet * x_mol_air_wet * lambda_wet * laplace_operator 
+            +Sw*porosity*rho_mol_wet*diffusion_coeff_wet*d_x_mol_air_wet_d_pn* _ip_data[ip].diffusionOperator;
 
         Kapc.noalias() +=
-            -rho_mol_nonwet * x_mol_air_nonwet * lambda_wet * laplace_operator;
-        Kax.noalias() += Sw * porosity * rho_mol_wet * diffusion_coeff_wet *
-            _ip_data[ip].diffusionOperator - 
-            (1 - Sw) * porosity * rho_mol_nonwet*diffusion_coeff_nonwet*d_x_mol_co2_nonwet_d_x* _ip_data[ip].diffusionOperator;
+            -rho_mol_wet * x_mol_air_wet * lambda_wet * laplace_operator;
+        Kax.noalias() += Sw * porosity * rho_mol_wet * diffusion_coeff_wet * d_x_mol_air_wet_d_x*
+            _ip_data[ip].diffusionOperator -
+            (1 - Sw) * porosity * rho_mol_nonwet*diffusion_coeff_nonwet* _ip_data[ip].diffusionOperator;
 
         Klp.noalias() +=
             rho_mol_water * lambda_wet * laplace_operator -
             Sw * porosity * rho_mol_wet * diffusion_coeff_wet *
-                d_x_mol_co2_wet_d_pn * _ip_data[ip].diffusionOperator;
+            d_x_mol_co2_wet_d_pn * _ip_data[ip].diffusionOperator -
+            Sw * porosity*rho_mol_wet*diffusion_coeff_wet*d_x_mol_air_wet_d_pn
+            * _ip_data[ip].diffusionOperator;
         Klpc.noalias() += -rho_mol_water * lambda_wet * laplace_operator;
         Klx.noalias() += -Sw * porosity * rho_mol_wet * diffusion_coeff_wet *
+            d_x_mol_co2_wet_d_x * _ip_data[ip].diffusionOperator
+            - Sw * porosity * rho_mol_wet * diffusion_coeff_wet * d_x_mol_air_wet_d_x*
             _ip_data[ip].diffusionOperator;
         if (_process_data._has_gravity)
         {
             auto const& b = _process_data._specific_body_force;
             Bc.noalias() +=
-                (rho_mol_nonwet * x_mol_co2_nonwet * lambda_nonwet *
+                (rho_mol_nonwet * x_co2_gas_int_pt * lambda_nonwet *
                      rho_mass_nonwet +
                  rho_mol_wet * x_mol_co2_wet * lambda_wet * rho_water) *
                 sm.dNdx.transpose() * permeability * b *
                 _ip_data[ip].integration_weight;
             Ba.noalias() += (rho_mol_nonwet * x_mol_air_nonwet * lambda_nonwet *
                 rho_mass_nonwet +
-                rho_mol_wet * x_air_int_pt * lambda_wet * rho_water) *
+                rho_mol_wet * x_mol_air_wet * lambda_wet * rho_water) *
                 sm.dNdx.transpose() * permeability * b *
                 _ip_data[ip].integration_weight;
             Bl.noalias() += rho_mol_water * rho_water * lambda_wet *
@@ -365,17 +365,21 @@ void TwoPhaseNCompCarbonationLocalAssembler<
             rho_mol_co2_cumul_total =
                 _ip_data[ip].rho_mol_co2_cumul_total_prev + rho_mol_total_co2;
             // co2 consumption
-            Bc.noalias() -= sm.dNdx.transpose() * rho_mol_total_co2 *
+            Bc.noalias() -= sm.N.transpose() * (rho_mol_total_co2/dt) *
                             _ip_data[ip].integration_weight;
             // water source/sink term
-            Bl.noalias() += sm.dNdx.transpose() * fluid_volume_rate *
+            Bl.noalias() += sm.N.transpose() * fluid_volume_rate *
                             _ip_data[ip].integration_weight;
             // update the amount of dissolved sio2
             rho_mol_sio2_wet =
                 _ip_data[ip].rho_mol_sio2_prev -
                 quartz_dissolute_rate * dt;  // cumulative dissolved sio2
+            //update the porosity
+            porosity =
+                bi_interpolation(_ip_data[ip].rho_mol_sio2_prev,
+                    _ip_data[ip].rho_mol_co2_cumul_total_prev, _porosity_at_supp_pnts);
         }
-
+        _porosity_value[ip] = porosity;
     }
     if (_process_data._has_mass_lumping)
     {

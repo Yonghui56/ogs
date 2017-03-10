@@ -35,8 +35,8 @@ struct IntegrationPointData final
         : mat_property(material_property_), 
         rho_mol_sio2(0.0),
         rho_mol_sio2_prev(0.0),
-        porosity(0.0763),
-        porosity_prev(0.0763),
+        porosity(0.076293302),
+        porosity_prev(0.076293302),
         rho_mol_co2_cumul_total(0.0),
         rho_mol_co2_cumul_total_prev(0.0),
         fluid_volume(0.0),
@@ -81,6 +81,9 @@ public:
     virtual std::vector<double> const& getIntPtpHValue(
         std::vector<double>& /*cache*/) const = 0;
 
+    virtual std::vector<double> const& getIntPtPorosity(
+        std::vector<double>& /*cache*/) const = 0;
+
 };
 
 template <typename ShapeFunction, typename IntegrationMethod,
@@ -119,6 +122,8 @@ public:
           _pressure_wet(
               std::vector<double>(_integration_method.getNumberOfPoints())),
           _pH_value(
+            std::vector<double>(_integration_method.getNumberOfPoints())),
+          _porosity_value(
             std::vector<double>(_integration_method.getNumberOfPoints()))
     {
         unsigned const n_integration_points =
@@ -190,6 +195,13 @@ public:
         return _pH_value;
     }
 
+    std::vector<double> const& getIntPtPorosity(
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(_porosity_value.size() > 0);
+        return _porosity_value;
+    }
+
 private:
     MeshLib::Element const& _element;
 
@@ -202,6 +214,7 @@ private:
     std::vector<double> _saturation;
     std::vector<double> _pressure_wet;
     std::vector<double> _pH_value;
+    std::vector<double> _porosity_value;
     static const int nonwet_pressure_coeff_index = 0;
     static const int cap_pressure_coeff_index = 1;
     static const int molar_fraction_coeff_index = 2;
