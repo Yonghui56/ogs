@@ -76,6 +76,11 @@ void TwoPhaseNCompCarbonationProcess::initializeConcreteProcess(
         makeExtrapolator(getExtrapolator(), _local_assemblers,
             &TwoPhaseNCompCarbonationLocalAssemblerInterface::getIntPtPorosity
         ));
+    _secondary_variables.addSecondaryVariable(
+        "co2_gas_concentration", 1,
+        makeExtrapolator(getExtrapolator(), _local_assemblers,
+            &TwoPhaseNCompCarbonationLocalAssemblerInterface::getIntPtCO2Concentration
+        ));
 }
 
 void TwoPhaseNCompCarbonationProcess::assembleConcreteProcess(const double t,

@@ -83,6 +83,8 @@ public:
 
     virtual std::vector<double> const& getIntPtPorosity(
         std::vector<double>& /*cache*/) const = 0;
+    virtual std::vector<double> const& getIntPtCO2Concentration(
+        std::vector<double>& /*cache*/) const = 0;
 
 };
 
@@ -124,6 +126,8 @@ public:
           _pH_value(
             std::vector<double>(_integration_method.getNumberOfPoints())),
           _porosity_value(
+            std::vector<double>(_integration_method.getNumberOfPoints())),
+          _co2_concentration(
             std::vector<double>(_integration_method.getNumberOfPoints()))
     {
         unsigned const n_integration_points =
@@ -202,6 +206,13 @@ public:
         return _porosity_value;
     }
 
+    std::vector<double> const& getIntPtCO2Concentration(
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(_co2_concentration.size() > 0);
+        return _co2_concentration;
+    }
+
 private:
     MeshLib::Element const& _element;
 
@@ -215,6 +226,7 @@ private:
     std::vector<double> _pressure_wet;
     std::vector<double> _pH_value;
     std::vector<double> _porosity_value;
+    std::vector<double> _co2_concentration;
     static const int nonwet_pressure_coeff_index = 0;
     static const int cap_pressure_coeff_index = 1;
     static const int molar_fraction_coeff_index = 2;
