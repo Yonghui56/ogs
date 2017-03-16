@@ -57,9 +57,9 @@ void TwoPhaseNCompCarbonationProcess::initializeConcreteProcess(
 
     _secondary_variables.addSecondaryVariable(
         "saturation", 1,
-        makeExtrapolator(
-            getExtrapolator(), _local_assemblers,
-            &TwoPhaseNCompCarbonationLocalAssemblerInterface::getIntPtSaturation));
+        makeExtrapolator(getExtrapolator(), _local_assemblers,
+                         &TwoPhaseNCompCarbonationLocalAssemblerInterface::
+                             getIntPtSaturation));
 
     _secondary_variables.addSecondaryVariable(
         "pressure_wet", 1,
@@ -68,26 +68,59 @@ void TwoPhaseNCompCarbonationProcess::initializeConcreteProcess(
                              getIntPtWetPressure));
     _secondary_variables.addSecondaryVariable(
         "pH_value", 1,
-        makeExtrapolator(getExtrapolator(), _local_assemblers,
-            &TwoPhaseNCompCarbonationLocalAssemblerInterface::getIntPtpHValue
-            ));
+        makeExtrapolator(
+            getExtrapolator(), _local_assemblers,
+            &TwoPhaseNCompCarbonationLocalAssemblerInterface::getIntPtpHValue));
     _secondary_variables.addSecondaryVariable(
         "porosity", 1,
         makeExtrapolator(getExtrapolator(), _local_assemblers,
-            &TwoPhaseNCompCarbonationLocalAssemblerInterface::getIntPtPorosity
-        ));
+                         &TwoPhaseNCompCarbonationLocalAssemblerInterface::
+                             getIntPtPorosity));
     _secondary_variables.addSecondaryVariable(
         "co2_gas_concentration", 1,
         makeExtrapolator(getExtrapolator(), _local_assemblers,
-            &TwoPhaseNCompCarbonationLocalAssemblerInterface::getIntPtCO2Concentration
-        ));
+                         &TwoPhaseNCompCarbonationLocalAssemblerInterface::
+                             getIntPtCO2Concentration));
+    _secondary_variables.addSecondaryVariable(
+        "accum_co2_concentr", 1,
+        makeExtrapolator(getExtrapolator(), _local_assemblers,
+                         &TwoPhaseNCompCarbonationLocalAssemblerInterface::
+                             getIntPtAccumCO2Concentr));
+    _secondary_variables.addSecondaryVariable(
+        "accum_dissolved_sio2_concentr", 1,
+        makeExtrapolator(getExtrapolator(), _local_assemblers,
+                         &TwoPhaseNCompCarbonationLocalAssemblerInterface::
+                             getIntPtAccumDissSiO2Concentr));
+    _secondary_variables.addSecondaryVariable(
+        "darcy_velocity_x", 1,
+        makeExtrapolator(getExtrapolator(), _local_assemblers,
+                         &TwoPhaseNCompCarbonationLocalAssemblerInterface::
+                             getIntPtDarcyVelocityX));
+
+    if (mesh.getDimension() > 1)
+    {
+        _secondary_variables.addSecondaryVariable(
+            "darcy_velocity_y", 1,
+            makeExtrapolator(getExtrapolator(), _local_assemblers,
+                             &TwoPhaseNCompCarbonationLocalAssemblerInterface::
+                                 getIntPtDarcyVelocityY));
+    }
+    if (mesh.getDimension() > 2)
+    {
+        _secondary_variables.addSecondaryVariable(
+            "darcy_velocity_z", 1,
+            makeExtrapolator(getExtrapolator(), _local_assemblers,
+                             &TwoPhaseNCompCarbonationLocalAssemblerInterface::
+                                 getIntPtDarcyVelocityZ));
+    }
 }
 
-void TwoPhaseNCompCarbonationProcess::assembleConcreteProcess(const double t,
-                                                        GlobalVector const& x,
-                                                        GlobalMatrix& M,
-                                                        GlobalMatrix& K,
-                                                        GlobalVector& b)
+void TwoPhaseNCompCarbonationProcess::assembleConcreteProcess(
+    const double t,
+    GlobalVector const& x,
+    GlobalMatrix& M,
+    GlobalMatrix& K,
+    GlobalVector& b)
 {
     DBUG("Assemble TwoPhaseCarbonationProcess.");
     // Call global assembler for each local assembly item.
