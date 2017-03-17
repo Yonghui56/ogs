@@ -71,6 +71,11 @@ void TwoPhaseComponentialFlowProcess::initializeConcreteProcess(
         makeExtrapolator(getExtrapolator(), _local_assemblers,
             &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtpHValue
         ));
+    _secondary_variables.addSecondaryVariable(
+        "porosity", 1,
+        makeExtrapolator(getExtrapolator(), _local_assemblers,
+            &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtPorosityValue
+        ));
 }
 
 void TwoPhaseComponentialFlowProcess::assembleConcreteProcess(const double t,
