@@ -518,117 +518,117 @@ void TwoPhaseComponentialFlowLocalAssembler<
     if (_process_data._has_mass_lumping)
     {
         auto Mhpg =
-            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+            local_M.template block<nonwet_pressure_size, nonwet_pressure_size>(
                 nonwet_pressure_matrix_index, nonwet_pressure_matrix_index);
 
         auto Mhmolh2 =
-            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+            local_M.template block<nonwet_pressure_size, nonwet_pressure_size>(
                 nonwet_pressure_matrix_index,
                 nonwet_pressure_size * mol_fraction_h_coeff_index);
 
         auto Mhmolch4 =
-            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+            local_M.template block<nonwet_pressure_size, nonwet_pressure_size>(
                 nonwet_pressure_matrix_index,
                 nonwet_pressure_size * mol_fraction_ch4_coeff_index);
         auto Mhmolco2 =
-            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+            local_M.template block<nonwet_pressure_size, nonwet_pressure_size>(
                 nonwet_pressure_matrix_index,
                 nonwet_pressure_size * mol_fraction_co2_coeff_index);
 
         auto Mhpc =
-            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+            local_M.template block<nonwet_pressure_size, nonwet_pressure_size>(
                 nonwet_pressure_matrix_index,
                 nonwet_pressure_size * cap_pressure_coeff_index);
 
         auto Mch4pg =
-            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+            local_M.template block<nonwet_pressure_size, nonwet_pressure_size>(
                 nonwet_pressure_size, nonwet_pressure_matrix_index);
 
         auto Mch4molh2 =
-            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+            local_M.template block<nonwet_pressure_size, nonwet_pressure_size>(
                 nonwet_pressure_size,
                 nonwet_pressure_size * mol_fraction_h_coeff_index);
 
         auto Mch4molch4 =
-            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+            local_M.template block<nonwet_pressure_size, nonwet_pressure_size>(
                 nonwet_pressure_size,
                 nonwet_pressure_size * mol_fraction_ch4_coeff_index);
         auto Mch4molco2 =
-            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+            local_M.template block<nonwet_pressure_size, nonwet_pressure_size>(
                 nonwet_pressure_size,
                 nonwet_pressure_size * mol_fraction_co2_coeff_index);
 
         auto Mch4pc =
-            local_M.block<nonwet_pressure_size, cap_pressure_size>(
+            local_M.template block<nonwet_pressure_size, cap_pressure_size>(
                 nonwet_pressure_size,
                 nonwet_pressure_size * cap_pressure_coeff_index);
 
         auto Mco2pg =
-            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+            local_M.template block<nonwet_pressure_size, nonwet_pressure_size>(
                 2 * nonwet_pressure_size, nonwet_pressure_matrix_index);
 
         auto Mco2molh2 =
-            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+            local_M.template block<nonwet_pressure_size, nonwet_pressure_size>(
                 2 * nonwet_pressure_size,
                 nonwet_pressure_size * mol_fraction_h_coeff_index);
 
         auto Mco2molch4 =
-            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+            local_M.template block<nonwet_pressure_size, nonwet_pressure_size>(
                 2 * nonwet_pressure_size,
                 nonwet_pressure_size * mol_fraction_ch4_coeff_index);
         auto Mco2molco2 =
-            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+            local_M.template block<nonwet_pressure_size, nonwet_pressure_size>(
                 2 * nonwet_pressure_size,
                 nonwet_pressure_size * mol_fraction_co2_coeff_index);
 
         auto Mco2pc =
-            local_M.block<nonwet_pressure_size, cap_pressure_size>(
+            local_M.template block<nonwet_pressure_size, cap_pressure_size>(
                 2 * nonwet_pressure_size,
                 nonwet_pressure_size * cap_pressure_coeff_index);
 
         auto Mairpg =
-            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+            local_M.template block<nonwet_pressure_size, nonwet_pressure_size>(
                 3 * nonwet_pressure_size, nonwet_pressure_matrix_index);
 
         auto Mairmolh2 =
-            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+            local_M.template block<nonwet_pressure_size, nonwet_pressure_size>(
                 3 * nonwet_pressure_size,
                 nonwet_pressure_size * mol_fraction_h_coeff_index);
 
         auto Mairmolch4 =
-            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+            local_M.template block<nonwet_pressure_size, nonwet_pressure_size>(
                 3 * nonwet_pressure_size,
                 nonwet_pressure_size * mol_fraction_ch4_coeff_index);
         auto Mairmolco2 =
-            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+            local_M.template block<nonwet_pressure_size, nonwet_pressure_size>(
                 3 * nonwet_pressure_size,
                 nonwet_pressure_size * mol_fraction_co2_coeff_index);
 
         auto Mairpc =
-            local_M.block<nonwet_pressure_size, cap_pressure_size>(
+            local_M.template block<nonwet_pressure_size, cap_pressure_size>(
                 3 * nonwet_pressure_size,
                 nonwet_pressure_size * cap_pressure_coeff_index);
 
         auto Mh2opg =
-            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+            local_M.template block<nonwet_pressure_size, nonwet_pressure_size>(
                 4 * nonwet_pressure_size, nonwet_pressure_matrix_index);
 
         auto Mh2omolh2 =
-            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+            local_M.template block<nonwet_pressure_size, nonwet_pressure_size>(
                 4 * nonwet_pressure_size,
                 nonwet_pressure_size * mol_fraction_h_coeff_index);
 
         auto Mh2omolch4 =
-            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+            local_M.template block<nonwet_pressure_size, nonwet_pressure_size>(
                 4 * nonwet_pressure_size,
                 nonwet_pressure_size * mol_fraction_ch4_coeff_index);
         auto Mh2omolco2 =
-            local_M.block<nonwet_pressure_size, nonwet_pressure_size>(
+            local_M.template block<nonwet_pressure_size, nonwet_pressure_size>(
                 4 * nonwet_pressure_size,
                 nonwet_pressure_size * mol_fraction_co2_coeff_index);
 
         auto Mh2opc =
-            local_M.block<nonwet_pressure_size, cap_pressure_size>(
+            local_M.template block<nonwet_pressure_size, cap_pressure_size>(
                 4 * nonwet_pressure_size,
                 nonwet_pressure_size * cap_pressure_coeff_index);
         for (unsigned row = 0; row < Mhpg.cols(); row++)
