@@ -121,7 +121,6 @@ void TwoPhaseFlowWithPPLocalAssembler<
         double pc_int_pt = 0.;
         double pn_int_pt = 0.;
         NumLib::shapeFunctionInterpolate(local_x, sm.N, pn_int_pt, pc_int_pt);
-
         _pressure_wet[ip] = pn_int_pt - pc_int_pt;
 
         const double temperature = _process_data.temperature(t, pos)[0];
@@ -137,6 +136,8 @@ void TwoPhaseFlowWithPPLocalAssembler<
 
         double dSw_dpc = (pc_int_pt < 0) ? 0 : _process_data.material->getSaturationDerivative(
             material_id, t, pos, pn_int_pt, temperature, Sw);
+        if (pc_int_pt > 4e+5)
+            dSw_dpc = (-0.409347627722080 / 4e+5);
 
         double const porosity = _process_data.material->getPorosity(
             material_id, t, pos, pn_int_pt, temperature, 0);

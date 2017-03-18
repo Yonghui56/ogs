@@ -157,7 +157,7 @@ private:
     // output vector for wetting phase pressure with respect
     // to each integration point
     std::vector<double> _pressure_wet;
-    const double _hen_L_air = 9.077e+9; // Henry constant in [Pa]
+    const double _hen_L_air = 1e+8; // Henry constant in [Pa]
     const double _rho_l_std = 1000;
     const double& _molar_mass_water = MaterialLib::PhysicalConstant::MolarMass::Water;
     const double& _ideal_gas_const = MaterialLib::PhysicalConstant::IdealGasConstant;
