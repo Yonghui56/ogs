@@ -209,15 +209,14 @@ namespace NumLib
             sys.getJacobian(J);
             INFO("[time] Assembly took %g s.", time_assembly.elapsed());
 
-            d_norm = MathLib::LinAlg::norm(res, MathLib::VecNormType::NORM2);
-
             BaseLib::RunTime time_dirichlet;
             time_dirichlet.start();
             sys.applyKnownSolutionsNewton(J, res, minus_delta_x);
             INFO("[time] Applying Dirichlet BCs took %g s.", time_dirichlet.elapsed());
-
-            if (!sys.isLinear() && _convergence_criterion->hasResidualCheck())
-                _convergence_criterion->checkResidual(res);
+            d_norm = MathLib::LinAlg::norm(res, MathLib::VecNormType::NORM2);
+            _convergence_criterion->preFirstIteration();
+            //if (!sys.isLinear() && _convergence_criterion->hasResidualCheck())
+            //    _convergence_criterion->checkResidual(res);
 
             BaseLib::RunTime time_linear_solver;
             time_linear_solver.start();
@@ -270,7 +269,7 @@ namespace NumLib
                 _beta = 1.0;
                 d1_norm = MathLib::LinAlg::norm(res, MathLib::VecNormType::NORM2);
                 // if (d1_norm < 0.1 * d_norm || iteration <= 1)
-                if (d1_norm < d_norm)
+                if (d1_norm < d_norm || iteration <= 1)
                 {
                     d_norm = d1_norm;
                     x_new = x_storage;
@@ -286,6 +285,7 @@ namespace NumLib
                                 x, _x_new_id);
                         _beta -= (1 - damping_factor) / 20;
                         LinAlg::axpy(x_new, -(1 - _beta), minus_delta_x);
+                        //LinAlg::axpy(x_new, -_beta, minus_delta_x);
                         sys.assemble(x_new, coupling_term);
                         sys.getResidual(x_new, res);
                         sys.getJacobian(J);
@@ -324,7 +324,9 @@ namespace NumLib
                     // Note: x contains the new solution!
                     _convergence_criterion->checkDeltaX(minus_delta_x, x);
                 }
-
+                else if (_convergence_criterion->hasResidualCheck()) {
+                    _convergence_criterion->checkResidual(res);
+                }
                 error_norms_met = _convergence_criterion->isSatisfied();
             }
 
