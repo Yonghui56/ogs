@@ -37,12 +37,12 @@
 #include "ProcessLib/GroundwaterFlow/CreateGroundwaterFlowProcess.h"
 #include "ProcessLib/HT/CreateHTProcess.h"
 #include "ProcessLib/HeatConduction/CreateHeatConductionProcess.h"
-#include "ProcessLib/HydroMechanics/CreateHydroMechanicsProcess.h"
-#include "ProcessLib/LIE/HydroMechanics/CreateHydroMechanicsProcess.h"
-#include "ProcessLib/LIE/SmallDeformation/CreateSmallDeformationProcess.h"
+//#include "ProcessLib/HydroMechanics/CreateHydroMechanicsProcess.h"
+//#include "ProcessLib/LIE/HydroMechanics/CreateHydroMechanicsProcess.h"
+//#include "ProcessLib/LIE/SmallDeformation/CreateSmallDeformationProcess.h"
 #include "ProcessLib/LiquidFlow/CreateLiquidFlowProcess.h"
 #include "ProcessLib/RichardsFlow/CreateRichardsFlowProcess.h"
-#include "ProcessLib/SmallDeformation/CreateSmallDeformationProcess.h"
+//#include "ProcessLib/SmallDeformation/CreateSmallDeformationProcess.h"
 #include "ProcessLib/TES/CreateTESProcess.h"
 #include "ProcessLib/TwoPhaseFlowWithPP/CreateTwoPhaseFlowWithPPProcess.h"
 #include "ProcessLib/TwoPhaseFlowWithPrho/CreateTwoPhaseFlowWithPrhoProcess.h"
@@ -333,7 +333,7 @@ void ProjectData::parseProcesses(BaseLib::ConfigTree const& processes_config,
                 _process_variables, _parameters, integration_order,
                 process_config);
         }
-        else if (type == "HYDRO_MECHANICS")
+        /*else if (type == "HYDRO_MECHANICS")
         {
             //! \ogs_file_param{prj__processes__process__HYDRO_MECHANICS__dimension}
             switch (process_config.getConfigParameter<int>("dimension"))
@@ -375,7 +375,7 @@ void ProjectData::parseProcesses(BaseLib::ConfigTree const& processes_config,
                         "HYDRO_MECHANICS_WITH_LIE process does not support "
                         "given dimension");
             }
-        }
+        }*/
         else if (type == "HT")
         {
             process = ProcessLib::HT::createHTProcess(
@@ -383,7 +383,7 @@ void ProjectData::parseProcesses(BaseLib::ConfigTree const& processes_config,
                 _process_variables, _parameters, integration_order,
                 process_config);
         }
-        else if (type == "SMALL_DEFORMATION")
+        /*else if (type == "SMALL_DEFORMATION")
         {
             //! \ogs_file_param{prj__processes__process__SMALL_DEFORMATION__dimension}
             switch (process_config.getConfigParameter<int>("dimension"))
@@ -425,7 +425,7 @@ void ProjectData::parseProcesses(BaseLib::ConfigTree const& processes_config,
                         "SMALL_DEFORMATION_WITH_LIE process does not support "
                         "given dimension");
             }
-        }
+        }*/
         else if (type == "RICHARDS_FLOW")
         {
             process = ProcessLib::RichardsFlow::createRichardsFlowProcess(
