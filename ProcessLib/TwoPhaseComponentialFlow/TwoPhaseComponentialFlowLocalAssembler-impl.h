@@ -15,6 +15,7 @@
 #include "NumLib/Function/Interpolation.h"
 #include "TwoPhaseComponentialFlowProcessData.h"
 
+using MaterialLib::PhysicalConstant::MolarMass::Water;
 namespace ProcessLib
 {
 namespace TwoPhaseComponentialFlow
@@ -95,7 +96,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
 
         NumLib::shapeFunctionInterpolate(local_x, sm.N, pg_int_pt, X1_int_pt,
             X2_int_pt, X3_int_pt, PC_int_pt);
-
+        //PC_int_pt = 3.1245e+7;
         _pressure_wetting[ip] = pg_int_pt - PC_int_pt;
         const double dt = _process_data._dt;
         auto const& wp = _integration_method.getWeightedPoint(ip);
@@ -103,7 +104,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
             sm.integralMeasure * sm.detJ * wp.getWeight();
 
         const double temperature = _process_data._temperature(t, pos)[0];
-
+        const double kelvin_term = exp(PC_int_pt*0.018 / rho_l_std / R / temperature);
         double X_L_h_gp = pg_int_pt * X1_int_pt / Hen_L_h;  // Henry law
         double X_L_c_gp = pg_int_pt * X2_int_pt / Hen_L_c;
         double X_L_co2_gp = pg_int_pt * X3_int_pt / Hen_L_co2;
@@ -120,9 +121,9 @@ void TwoPhaseComponentialFlowLocalAssembler<
         /*double X_G_h2o_gp = get_X_G_h2o_gp(pg_int_pt, X1_int_pt, X2_int_pt,
         X3_int_pt, P_sat_gp);*/
         double const x_nonwet_h2o = get_x_nonwet_h2o(
-            pg_int_pt, X1_int_pt, X2_int_pt, X3_int_pt, P_sat_gp);
+            pg_int_pt, X1_int_pt, X2_int_pt, X3_int_pt, P_sat_gp,kelvin_term);
 
-        double const x_wet_h2o = pg_int_pt * x_nonwet_h2o / P_sat_gp;
+        double const x_wet_h2o = pg_int_pt * x_nonwet_h2o*kelvin_term / P_sat_gp;
         double const x_wet_air = pg_int_pt * x_nonwet_air / Hen_L_air;
         /*double const rho_gas =
             _process_data._material->getGasDensity(pg_int_pt, temperature);*/

@@ -285,12 +285,12 @@ private:
     }
     const double get_x_nonwet_h2o(double const pg, double const x1,
                                   double const x2, double const x3,
-                                  double const p_sat)
+                                  double const p_sat, double const kelvin_term)
     {
         double const A = 1 - x1 - x2 - x3;
         double const B =
             1 - (x1 * pg / Hen_L_h + x2 * pg / Hen_L_c + x3 * pg / Hen_L_co2);
-        return (B / pg - A / Hen_L_air) / (1 / p_sat - 1 / Hen_L_air);
+        return (B / pg - A / Hen_L_air) / (kelvin_term / p_sat - 1 / Hen_L_air);
     }
     const double get_derivative_x_nonwet_h2o_d_pg(double const pg,
                                                   double const /*x1*/,
