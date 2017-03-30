@@ -1,6 +1,0 @@
-# Enable style checks on source files
-*.h   hooks.style=uncrustify
-*.cpp hooks.style=uncrustify
-*.hpp hooks.style=uncrustify
-web/**/*.jpg filter=lfs diff=lfs merge=lfs -text
-web/**/*.png filter=lfs diff=lfs merge=lfs -text

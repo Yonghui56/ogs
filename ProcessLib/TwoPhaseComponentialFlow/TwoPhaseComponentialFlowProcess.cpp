@@ -71,6 +71,20 @@ void TwoPhaseComponentialFlowProcess::initializeConcreteProcess(
         makeExtrapolator(getExtrapolator(), _local_assemblers,
             &TwoPhaseComponentialFlowLocalAssemblerInterface::
             getIntPtMolFracNonwetVapor));
+    _secondary_variables.addSecondaryVariable(
+        "co2_concentration", 1,
+        makeExtrapolator(getExtrapolator(), _local_assemblers,
+            &TwoPhaseComponentialFlowLocalAssemblerInterface::
+            getIntPtCO2Concentration));
+    _secondary_variables.addSecondaryVariable(
+        "porosity", 1,
+        makeExtrapolator(getExtrapolator(), _local_assemblers,
+            &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtPorosityValue));
+    _secondary_variables.addSecondaryVariable(
+        "pH_value", 1,
+        makeExtrapolator(getExtrapolator(), _local_assemblers,
+            &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtpHValue));
+
 }
 
 void TwoPhaseComponentialFlowProcess::assembleConcreteProcess(const double t,
