@@ -601,6 +601,8 @@ void TwoPhaseComponentialFlowLocalAssembler<
                     localSource_tmp;
             }
         }
+        //store the secondary variable
+        _rho_mol_co2_cumulated_prev[ip] = rho_mol_co2_cumul_total;
     }  // end of GP asm
 
     if (_process_data._has_mass_lumping)

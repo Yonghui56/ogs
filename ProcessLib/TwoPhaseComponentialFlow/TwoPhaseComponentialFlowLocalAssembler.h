@@ -88,6 +88,9 @@ public:
     virtual std::vector<double> const& getIntPtCO2Concentration(
         std::vector<double>& /*cache*/) const = 0;
 
+    virtual std::vector<double> const& getIntPtRhoMolCo2CumulTotalPrev(
+        std::vector<double>& /*cache*/) const = 0;
+
 };
 
 template <typename ShapeFunction, typename IntegrationMethod,
@@ -132,6 +135,8 @@ public:
           _mol_fraction_nonwet_vapor(
               std::vector<double>(_integration_method.getNumberOfPoints())),
           _co2_concentration(
+            std::vector<double>(_integration_method.getNumberOfPoints())),
+          _rho_mol_co2_cumulated_prev(
             std::vector<double>(_integration_method.getNumberOfPoints()))
     {
         unsigned const n_integration_points =
@@ -220,6 +225,15 @@ public:
         assert(_co2_concentration.size() > 0);
         return _co2_concentration;
     }
+    /*
+    * used to store previous time step value of rho_mol_co2_cumul_total_prev
+    */
+    std::vector<double> const& getIntPtRhoMolCo2CumulTotalPrev(
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(_rho_mol_co2_cumulated_prev.size() > 0);
+        return _rho_mol_co2_cumulated_prev;
+    }
 
 private:
     MeshLib::Element const& _element;
@@ -239,6 +253,7 @@ private:
     std::vector<double> _porosity_value;
     std::vector<double> _mol_fraction_nonwet_vapor;
     std::vector<double> _co2_concentration;
+    std::vector<double> _rho_mol_co2_cumulated_prev;
     static const int nonwet_pressure_coeff_index = 0;
     static const int mol_fraction_h_coeff_index = 1;
     static const int mol_fraction_ch4_coeff_index = 2;

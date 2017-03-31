@@ -84,6 +84,10 @@ void TwoPhaseComponentialFlowProcess::initializeConcreteProcess(
         "pH_value", 1,
         makeExtrapolator(getExtrapolator(), _local_assemblers,
             &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtpHValue));
+    _secondary_variables.addSecondaryVariable(
+        "co2_cumulated_prev", 1,
+        makeExtrapolator(getExtrapolator(), _local_assemblers,
+            &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtRhoMolCo2CumulTotalPrev));
 
 }
 
