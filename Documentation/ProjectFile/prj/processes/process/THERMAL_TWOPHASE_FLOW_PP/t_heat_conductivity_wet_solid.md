@@ -1,1 +1,1 @@
-\ogs_missing_documentation
+Heat conductivity of the fully saturated porous medium [W/(m K)].

@@ -1,1 +1,1 @@
-\ogs_missing_documentation
+Heat conductivity of the dry porous medium [W/ (mK)]

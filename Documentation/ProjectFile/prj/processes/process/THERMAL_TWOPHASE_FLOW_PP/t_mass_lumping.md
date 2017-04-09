@@ -1,1 +1,1 @@
-\ogs_missing_documentation
+\copydoc ProcessLib::ThermalTwoPhaseFlowWithPP::ThermalTwoPhaseFlowWithPPProcessData::has_mass_lumping

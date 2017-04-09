@@ -1,1 +1,1 @@
-\ogs_missing_documentation
+Density of the solid.
