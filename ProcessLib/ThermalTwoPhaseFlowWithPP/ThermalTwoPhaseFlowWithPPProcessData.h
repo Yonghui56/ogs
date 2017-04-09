@@ -40,43 +40,43 @@ struct ThermalTwoPhaseFlowWithPPProcessData
         Parameter<double> const& latent_heat_evaporation_,
         std::unique_ptr<ThermalTwoPhaseFlowWithPPMaterialProperties>&&
             material_)
-        : _specific_body_force(specific_body_force_),
-          _has_gravity(has_gravity_),
-          _has_mass_lumping(has_mass_lumping_),
-          _diffusion_coeff_component_b(diffusion_coeff_component_b_),
-          _diffusion_coeff_component_a(diffusion_coeff_component_a_),
-          _specific_heat_capacity_solid(specific_heat_capacity_solid_),
-          _specific_heat_capacity_water(specific_heat_capacity_water_),
-          _specific_heat_capacity_dry_air(specific_heat_capacity_dry_air_),
-          _specific_heat_capacity_water_vapor(
+        : specific_body_force(specific_body_force_),
+          has_gravity(has_gravity_),
+          has_mass_lumping(has_mass_lumping_),
+          diffusion_coeff_component_b(diffusion_coeff_component_b_),
+          diffusion_coeff_component_a(diffusion_coeff_component_a_),
+          specific_heat_capacity_solid(specific_heat_capacity_solid_),
+          specific_heat_capacity_water(specific_heat_capacity_water_),
+          specific_heat_capacity_dry_air(specific_heat_capacity_dry_air_),
+          specific_heat_capacity_water_vapor(
               specific_heat_capacity_water_vapor_),
-          _heat_conductivity_dry_solid(heat_conductivity_dry_solid_),
-          _heat_conductivity_wet_solid(heat_conductivity_wet_solid_),
-          _density_solid(density_solid_),
-          _latent_heat_evaporation(latent_heat_evaporation_),
-          _material(std::move(material_))
+          heat_conductivity_dry_solid(heat_conductivity_dry_solid_),
+          heat_conductivity_wet_solid(heat_conductivity_wet_solid_),
+          density_solid(density_solid_),
+          latent_heat_evaporation(latent_heat_evaporation_),
+          material(std::move(material_))
 
     {
     }
 
     ThermalTwoPhaseFlowWithPPProcessData(
         ThermalTwoPhaseFlowWithPPProcessData&& other)
-        : _specific_body_force(other._specific_body_force),
-          _has_gravity(other._has_gravity),
-          _has_mass_lumping(other._has_mass_lumping),
-          _diffusion_coeff_component_b(other._diffusion_coeff_component_b),
-          _diffusion_coeff_component_a(other._diffusion_coeff_component_a),
-          _specific_heat_capacity_solid(other._specific_heat_capacity_solid),
-          _specific_heat_capacity_water(other._specific_heat_capacity_water),
-          _specific_heat_capacity_dry_air(
-              other._specific_heat_capacity_dry_air),
-          _specific_heat_capacity_water_vapor(
-              other._specific_heat_capacity_water_vapor),
-          _heat_conductivity_dry_solid(other._heat_conductivity_dry_solid),
-          _heat_conductivity_wet_solid(other._heat_conductivity_wet_solid),
-          _density_solid(other._density_solid),
-          _latent_heat_evaporation(other._latent_heat_evaporation),
-          _material(std::move(other._material))
+        : specific_body_force(other.specific_body_force),
+          has_gravity(other.has_gravity),
+          has_mass_lumping(other.has_mass_lumping),
+          diffusion_coeff_component_b(other.diffusion_coeff_component_b),
+          diffusion_coeff_component_a(other.diffusion_coeff_component_a),
+          specific_heat_capacity_solid(other.specific_heat_capacity_solid),
+          specific_heat_capacity_water(other.specific_heat_capacity_water),
+          specific_heat_capacity_dry_air(
+              other.specific_heat_capacity_dry_air),
+          specific_heat_capacity_water_vapor(
+              other.specific_heat_capacity_water_vapor),
+          heat_conductivity_dry_solid(other.heat_conductivity_dry_solid),
+          heat_conductivity_wet_solid(other.heat_conductivity_wet_solid),
+          density_solid(other.density_solid),
+          latent_heat_evaporation(other.latent_heat_evaporation),
+          material(std::move(other.material))
     {
     }
 
@@ -89,21 +89,21 @@ struct ThermalTwoPhaseFlowWithPPProcessData
 
     //! Assignments are not needed.
     void operator=(ThermalTwoPhaseFlowWithPPProcessData&&) = delete;
-    Eigen::VectorXd const _specific_body_force;
+    Eigen::VectorXd const specific_body_force;
 
-    bool const _has_gravity;
-    bool const _has_mass_lumping;
-    Parameter<double> const& _diffusion_coeff_component_b;
-    Parameter<double> const& _diffusion_coeff_component_a;
-    Parameter<double> const& _specific_heat_capacity_solid;
-    Parameter<double> const& _specific_heat_capacity_water;
-    Parameter<double> const& _specific_heat_capacity_dry_air;
-    Parameter<double> const& _specific_heat_capacity_water_vapor;
-    Parameter<double> const& _heat_conductivity_dry_solid;
-    Parameter<double> const& _heat_conductivity_wet_solid;
-    Parameter<double> const& _density_solid;
-    Parameter<double> const& _latent_heat_evaporation;
-    std::unique_ptr<ThermalTwoPhaseFlowWithPPMaterialProperties> _material;
+    bool const has_gravity;
+    bool const has_mass_lumping;
+    Parameter<double> const& diffusion_coeff_component_b;
+    Parameter<double> const& diffusion_coeff_component_a;
+    Parameter<double> const& specific_heat_capacity_solid;
+    Parameter<double> const& specific_heat_capacity_water;
+    Parameter<double> const& specific_heat_capacity_dry_air;
+    Parameter<double> const& specific_heat_capacity_water_vapor;
+    Parameter<double> const& heat_conductivity_dry_solid;
+    Parameter<double> const& heat_conductivity_wet_solid;
+    Parameter<double> const& density_solid;
+    Parameter<double> const& latent_heat_evaporation;
+    std::unique_ptr<ThermalTwoPhaseFlowWithPPMaterialProperties> material;
 };
 
 }  // namespace TwoPhaseFlowWithPP
