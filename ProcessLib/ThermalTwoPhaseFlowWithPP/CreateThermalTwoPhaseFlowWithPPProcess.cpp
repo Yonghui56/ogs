@@ -36,7 +36,7 @@ std::unique_ptr<Process> createThermalTwoPhaseFlowWithPPProcess(
     //! \ogs_file_param{prj__processes__process__type}
     config.checkConfigParameter("type", "THERMAL_TWOPHASE_WITH_PP");
 
-    DBUG("Create TwoPhaseFlowProcess with Prho model.");
+    DBUG("Create nonisothermal two-phase flow model.");
     //! \ogs_file_param{prj__processes__process__TWOPHASE_FLOW_PRHO__process_variables}
     auto const pv_config = config.getConfigSubtree("process_variables");
 

@@ -41,7 +41,7 @@ ThermalTwoPhaseFlowWithPPProcess::ThermalTwoPhaseFlowWithPPProcess(
               std::move(secondary_variables), std::move(named_function_caller)),
       _process_data(std::move(process_data))
 {
-    DBUG("Create Nonisothermal TwoPhaseFlowProcess with PP model.");
+    DBUG("Create Nonisothermal TwoPhase Flow Process model.");
 }
 
 void ThermalTwoPhaseFlowWithPPProcess::initializeConcreteProcess(

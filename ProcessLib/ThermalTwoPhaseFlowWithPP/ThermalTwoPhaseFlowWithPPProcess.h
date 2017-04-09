@@ -27,10 +27,8 @@ namespace ProcessLib
 namespace ThermalTwoPhaseFlowWithPP
 {
 /**
- * \brief A class to simulate the two-phase flow process with PL-RHO model in
- * porous media
- * PL is the liquid pressure
- * RHO is overall mass concentration of the light component
+ * \brief A class to simulate the nonisothermal two-phase flow process 
+ * with phase change phenomena in porous media
  */
 class ThermalTwoPhaseFlowWithPPProcess final : public Process
 {

@@ -72,7 +72,7 @@ ThermalTwoPhaseFlowWithPPMaterialProperties::
       _capillary_pressure_models(std::move(capillary_pressure_models)),
       _relative_permeability_models(std::move(relative_permeability_models))
 {
-    DBUG("Create material properties for Two-Phase flow with Prho model.");
+    DBUG("Create material properties for non-isothermal two-phase flow model.");
 }
 
 int ThermalTwoPhaseFlowWithPPMaterialProperties::getMaterialID(
@@ -154,9 +154,6 @@ ThermalTwoPhaseFlowWithPPMaterialProperties::getNonwetRelativePermeability(
     const double /*t*/, const ProcessLib::SpatialPosition& /*pos*/,
     const double /*p*/, const double /*T*/, const double saturation) const
 {
-    /*const double nonwet_krel =
-        _relative_permeability_models[0]->getValue(saturation);
-    return nonwet_krel;*/
     const double Se = (saturation - 0.15) / (1 - 0.15);
     if (saturation < 0.15)
         return 1.0;
@@ -167,9 +164,6 @@ double ThermalTwoPhaseFlowWithPPMaterialProperties::getWetRelativePermeability(
     const double /*t*/, const ProcessLib::SpatialPosition& /*pos*/,
     const double /*p*/, const double /*T*/, const double saturation) const
 {
-    /*const double wet_krel =
-        _relative_permeability_models[1]->getValue(saturation);
-    return wet_krel;*/
     const double Se = (saturation - 0.15) / (1 - 0.15);
     if (Se < 0)
         return 0.0;
