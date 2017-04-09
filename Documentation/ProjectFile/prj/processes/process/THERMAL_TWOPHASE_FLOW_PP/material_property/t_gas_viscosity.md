@@ -1,1 +1,1 @@
-\ogs_missing_documentation
+Viscosity model of the gas phase.

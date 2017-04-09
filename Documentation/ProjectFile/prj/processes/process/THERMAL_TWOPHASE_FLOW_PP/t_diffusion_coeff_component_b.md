@@ -1,1 +1,1 @@
-\ogs_missing_documentation
+Diffusion coefficient for the light component.

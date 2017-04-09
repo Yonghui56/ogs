@@ -1,1 +1,1 @@
-\ogs_missing_documentation
+A tag for liquid and gas material properties of the nonisothermal two-phase flow process.

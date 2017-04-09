@@ -1,1 +1,1 @@
-\ogs_missing_documentation
+Density model of the liquid phase.
