@@ -50,7 +50,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
     Eigen::MatrixXd K_mat_coeff =
         Eigen::MatrixXd::Zero(NUM_NODAL_DOF, NUM_NODAL_DOF);
     Eigen::VectorXd H_vec_coeff = Eigen::VectorXd::Zero(NUM_NODAL_DOF);
-    Eigen::VectorXd F_vec_coeff = Eigen::VectorXd::Zero(NUM_NODAL_DOF);
+    //Eigen::VectorXd F_vec_coeff = Eigen::VectorXd::Zero(NUM_NODAL_DOF);
 
     NodalMatrixType localMass_tmp;
     localMass_tmp.setZero(ShapeFunction::NPOINTS, ShapeFunction::NPOINTS);
@@ -92,6 +92,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
         _process_data._interpolated_Q_fast;
     for (unsigned ip = 0; ip < n_integration_points; ip++)
     {
+        Eigen::VectorXd F_vec_coeff = Eigen::VectorXd::Zero(NUM_NODAL_DOF);
         auto const& sm = _shape_matrices[ip];
 
         double pg_int_pt = 0.0;
@@ -214,8 +215,6 @@ void TwoPhaseComponentialFlowLocalAssembler<
         /// X3_int_pt, P_sat_gp);
         double porosity = _process_data._material->getPorosity(
             material_id, t, pos, pg_int_pt, temperature, 0);
-        // should be only valid for material 0
-        double& porosity2 = _ip_data[ip].porosity;
 
         // Assemble M matrix
         // nonwetting
@@ -249,27 +248,46 @@ void TwoPhaseComponentialFlowLocalAssembler<
             x_wet_h2o / x_wet_h2o;
 
         // calculate the carbonation and ASR source/sink term
-        double& rho_mol_sio2_wet = _ip_data[ip].rho_mol_sio2;
+        double& rho_mol_sio2_wet_backfill = _ip_data[ip].rho_mol_sio2_backfill;
+        double& rho_mol_co2_cumul_total_backfill =
+            _ip_data[ip].rho_mol_co2_cumul_total_backfill;  // get cumulative co2
+        double& porosity2 = _ip_data[ip].porosity_backfill;
+        double rho_mol_total_co2_backfill = 0.;
+        //for the waste part
+        double& porosity3= _ip_data[ip].porosity_waste;
+        double& rho_mol_co2_cumul_total_waste = _ip_data[ip].rho_mol_co2_cumul_total_waste;
+        double rho_mol_total_co2_waste = 0.;
         if (_process_data._material->getMaterialID(pos.getElementID().get()) ==
-            0)
+            0)//backfill
         {
+            // should be only valid for material 0
             porosity = porosity2;  // use look-up table value
+            // calculate the current ammount of co2
+            // calculate the total amount of co2 in this element(gp), which should
+            // be consumed at this time step
+            rho_mol_total_co2_backfill = _ip_data[ip].porosity_prev_backfill *
+                (rho_mol_nonwet * X3_int_pt * (1 - Sw) +
+                    rho_mol_wet * X_L_co2_gp * Sw);
+            // get the pH value at this iteration based cumulated dissovled quatz and
+            // cumulated co2
+            double const pH = bi_interpolation(
+                _ip_data[ip].rho_mol_sio2_prev_backfill,
+                _ip_data[ip].rho_mol_co2_cumul_total_prev_backfill, _pH_at_supp_pnt_backfill);
+            _pH_value[ip] = pH;//update the secondary variable
         }
-        double& rho_mol_co2_cumul_total =
-            _ip_data[ip].rho_mol_co2_cumul_total;  // get cumulative co2
-        // calculate the current ammount of co2
-        // calculate the total amount of co2 in this element(gp), which should
-        // be consumed at this time step
-        double rho_mol_total_co2 = _ip_data[ip].porosity_prev *
-                                   (rho_mol_nonwet * X3_int_pt * (1 - Sw) +
-                                    rho_mol_wet * X_L_co2_gp * Sw);
-        // get the pH value at this iteration based dissovled quatz and
-        // cumulated co2
-        double const pH = bi_interpolation(
-            _ip_data[ip].rho_mol_sio2_prev,
-            _ip_data[ip].rho_mol_co2_cumul_total_prev, _pH_at_supp_pnt);
-        // output
-        _pH_value[ip] = pH;
+        else//waste
+        {
+            // calculate the current ammount of co2
+            // calculate the total amount of co2 in this element(gp), which should
+            // be consumed at this time step
+            rho_mol_total_co2_waste = _ip_data[ip].porosity_prev_waste *
+                (rho_mol_nonwet * X3_int_pt * (1 - Sw) +
+                    rho_mol_wet * X_L_co2_gp * Sw);
+            porosity = porosity3;
+            double const pH = piecewiselinear_interpolation(
+                _ip_data[ip].rho_mol_co2_cumul_total_prev_waste, _pH_at_supp_pnt_waste);
+            _pH_value[ip] = pH;
+        }
         //calculate the co2 concentration
         _co2_concentration[ip] = rho_mol_nonwet*X3_int_pt + rho_mol_wet*X_L_co2_gp;
 
@@ -515,19 +533,6 @@ void TwoPhaseComponentialFlowLocalAssembler<
             }
         }  // end of hasGravityEffect
         // load the source term
-        double const flag_carbon = bi_interpolation(
-            _ip_data[ip].rho_mol_sio2_prev,
-            _ip_data[ip].rho_mol_co2_cumul_total_prev, _flag_carbon_suppt_pnt);
-        double& fluid_volume = _ip_data[ip].fluid_volume;
-        fluid_volume = bi_interpolation(
-            _ip_data[ip].rho_mol_sio2_prev,
-            _ip_data[ip].rho_mol_co2_cumul_total_prev, _fluid_volume_suppt_pnt);
-        double quartz_dissolute_rate = bi_interpolation(
-            _ip_data[ip].rho_mol_sio2_prev,
-            _ip_data[ip].rho_mol_co2_cumul_total_prev, _quartz_rate_suppt_pnt);
-        // quartz_dissolute_rate is always nonpositive.
-        if (quartz_dissolute_rate > 0)
-            quartz_dissolute_rate = 0;
         if (Sw > 0.3 && dt > 0)
         {
             Eigen::VectorXd F_vec_coeff = Eigen::VectorXd::Zero(NUM_NODAL_DOF);
@@ -536,8 +541,14 @@ void TwoPhaseComponentialFlowLocalAssembler<
             double Q_organic_fast_co2_ini =
                 interpolated_Q_fast.getValue(t);  // read from curves
             if (_process_data._material->getMaterialID(
-                    pos.getElementID().get()) == 1)
+                    pos.getElementID().get()) == 1)//waste matrix
             {
+                //calculate the fluid volume change
+                double& fluid_volume_waste = _ip_data[ip].fluid_volume_waste;
+                fluid_volume_waste = piecewiselinear_interpolation(
+                    _ip_data[ip].rho_mol_co2_cumul_total_prev_waste, _fluid_volume_suppt_pnt_waste);
+                double const fluid_volume_rate_waste =
+                    (fluid_volume_waste - _ip_data[ip].fluid_volume_prev_waste) / dt;
                 F_vec_coeff(0) = Q_steel;
 
                 const double Q_organic_slow_co2 =
@@ -545,6 +556,10 @@ void TwoPhaseComponentialFlowLocalAssembler<
 
                 const double Q_organic_fast_co2 =
                     Q_organic_fast_co2_ini * para_fast;
+                //update the cumulated co2 consumption
+                rho_mol_co2_cumul_total_waste =
+                    _ip_data[ip].rho_mol_co2_cumul_total_prev_waste +
+                    rho_mol_total_co2_waste;
 
                 F_vec_coeff(1) += (Q_organic_slow_co2 * 31 / 19);
                 F_vec_coeff(2) += Q_organic_slow_co2;
@@ -553,41 +568,60 @@ void TwoPhaseComponentialFlowLocalAssembler<
 
                 F_vec_coeff(2) += Q_organic_fast_co2;
 
-                F_vec_coeff(4) = (Q_organic_slow_co2 * 12 / 19) +
+                F_vec_coeff(2) -= (rho_mol_total_co2_waste / dt);//consumption of carbonation
+
+                F_vec_coeff(4) += (Q_organic_slow_co2 * 12 / 19) +
                                  (Q_organic_fast_co2 * 5 / 3);
+                F_vec_coeff(4) +=
+                    (fluid_volume_rate_waste)-(rho_mol_total_co2_waste / dt);
+                //update the porosity
+                //= previous porosity + porosity change
+                porosity3 = _ip_data[ip].porosity_prev_waste + piecewiselinear_interpolation(
+                    _ip_data[ip].rho_mol_co2_cumul_total_prev_waste,
+                    _porosity_change_at_supp_pnt_waste);
                 _porosity_value[ip] = porosity;
             }
             else if (_process_data._material->getMaterialID(
-                         pos.getElementID().get()) == 0)
+                         pos.getElementID().get()) == 0)//backfill, cement and concrete
             {
-                const double rho_co2_ele =
+                double& fluid_volume_backfill = _ip_data[ip].fluid_volume_backfill;
+                fluid_volume_backfill = bi_interpolation(
+                    _ip_data[ip].rho_mol_sio2_prev_backfill,
+                    _ip_data[ip].rho_mol_co2_cumul_total_prev_backfill, _fluid_volume_suppt_pnt_backfill);
+                double quartz_dissolute_rate_backfill = bi_interpolation(
+                    _ip_data[ip].rho_mol_sio2_prev_backfill,
+                    _ip_data[ip].rho_mol_co2_cumul_total_prev_backfill, _quartz_rate_suppt_pnt_backfill);
+                // quartz_dissolute_rate is always nonpositive.
+                if (quartz_dissolute_rate_backfill > 0)
+                    quartz_dissolute_rate_backfill = 0;
+                const double rho_co2_ele_backfill =
                     porosity * ((1 - Sw) * rho_mol_nonwet * X3_int_pt +
                                 Sw * rho_mol_wet * X_L_co2_gp);
-
+                double test = rho_mol_total_co2_backfill - rho_co2_ele_backfill;
                 double const fluid_volume_rate =
-                    (fluid_volume - _ip_data[ip].fluid_volume_prev) / dt;
-                if (_ip_data[ip].rho_mol_co2_cumul_total_prev >=
-                    3800)  // means carbonation stops
-                    rho_mol_total_co2 = 0.0;
+                    (fluid_volume_backfill - _ip_data[ip].fluid_volume_prev_backfill) / dt;
+
                 // update the current cumulated co2 consumption
-                rho_mol_co2_cumul_total =
-                    _ip_data[ip].rho_mol_co2_cumul_total_prev +
-                    rho_mol_total_co2;
+                rho_mol_co2_cumul_total_backfill =
+                    _ip_data[ip].rho_mol_co2_cumul_total_prev_backfill +
+                    rho_mol_total_co2_backfill;
                 // co2 consumption
-                F_vec_coeff(2) -= (rho_mol_total_co2 / dt);
+                F_vec_coeff(2) -= (rho_mol_total_co2_backfill / dt);
                 // water source/sink term
                 F_vec_coeff(4) +=
-                    (fluid_volume_rate) - (rho_mol_total_co2 / dt);
+                    (fluid_volume_rate) - (rho_mol_total_co2_backfill / dt);
                 // update the amount of dissolved sio2
-                rho_mol_sio2_wet =
-                    _ip_data[ip].rho_mol_sio2_prev -
-                    quartz_dissolute_rate * dt;  // cumulative dissolved sio2
+                rho_mol_sio2_wet_backfill =
+                    _ip_data[ip].rho_mol_sio2_prev_backfill -
+                    quartz_dissolute_rate_backfill * dt;  // cumulative dissolved sio2
                                                  // porosity update
                 porosity2 = bi_interpolation(
-                    _ip_data[ip].rho_mol_sio2_prev,
-                    _ip_data[ip].rho_mol_co2_cumul_total_prev,
-                    _porosity_at_supp_pnts);  // porosity update
+                    _ip_data[ip].rho_mol_sio2_prev_backfill,
+                    _ip_data[ip].rho_mol_co2_cumul_total_prev_backfill,
+                    _porosity_at_supp_pnts_backfill);  // porosity update
+                //store the secondary variable
                 _porosity_value[ip] = porosity2;
+                _rho_mol_co2_cumulated_prev[ip] = rho_mol_co2_cumul_total_backfill;
             }
             for (int idx = 0; idx < NUM_NODAL_DOF; idx++)
             {
@@ -601,8 +635,6 @@ void TwoPhaseComponentialFlowLocalAssembler<
                     localSource_tmp;
             }
         }
-        //store the secondary variable
-        _rho_mol_co2_cumulated_prev[ip] = rho_mol_co2_cumul_total;
     }  // end of GP asm
 
     if (_process_data._has_mass_lumping)
