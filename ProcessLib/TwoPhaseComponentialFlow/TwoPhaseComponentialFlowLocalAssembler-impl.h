@@ -549,6 +549,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
                     _ip_data[ip].rho_mol_co2_cumul_total_prev_waste, _fluid_volume_suppt_pnt_waste);
                 double const fluid_volume_rate_waste =
                     (fluid_volume_waste - _ip_data[ip].fluid_volume_prev_waste) / dt;
+
                 F_vec_coeff(0) = Q_steel;
 
                 const double Q_organic_slow_co2 =
@@ -556,6 +557,9 @@ void TwoPhaseComponentialFlowLocalAssembler<
 
                 const double Q_organic_fast_co2 =
                     Q_organic_fast_co2_ini * para_fast;
+                if (_ip_data[ip].rho_mol_co2_cumul_total_prev_waste >=
+                    400)  // means carbonation stops, no more co2 will be consumed
+                    rho_mol_total_co2_waste = 0.0;
                 //update the cumulated co2 consumption
                 rho_mol_co2_cumul_total_waste =
                     _ip_data[ip].rho_mol_co2_cumul_total_prev_waste +
@@ -591,12 +595,22 @@ void TwoPhaseComponentialFlowLocalAssembler<
                 double quartz_dissolute_rate_backfill = bi_interpolation(
                     _ip_data[ip].rho_mol_sio2_prev_backfill,
                     _ip_data[ip].rho_mol_co2_cumul_total_prev_backfill, _quartz_rate_suppt_pnt_backfill);
-                // quartz_dissolute_rate is always nonpositive.
-                if (quartz_dissolute_rate_backfill > 0)
+                double saturation_index_interpolated= bi_interpolation(
+                    _ip_data[ip].rho_mol_sio2_prev_backfill,
+                    _ip_data[ip].rho_mol_co2_cumul_total_prev_backfill, _saturation_index_suppt_pnts_backfill);
+                // if the "saturation
+                // index" for Quartz is lower than 0.95, indicating that Quartz is supposed
+                // to dissolve(i.e.ASR is active). If the saturation index is close to 1,
+                // the system is in equilibrium (also indicated by the rates which are very
+                // small), for values bigger than 1 Quartz will precipitate...->positive rates.
+                if (saturation_index_interpolated > 0.95)
                     quartz_dissolute_rate_backfill = 0;
                 const double rho_co2_ele_backfill =
                     porosity * ((1 - Sw) * rho_mol_nonwet * X3_int_pt +
                                 Sw * rho_mol_wet * X_L_co2_gp);
+                if (_ip_data[ip].rho_mol_co2_cumul_total_prev_backfill >=
+                    7500)  // means carbonation stops, no more co2 will be consumed
+                    rho_mol_total_co2_backfill = 0.0;
                 double test = rho_mol_total_co2_backfill - rho_co2_ele_backfill;
                 double const fluid_volume_rate =
                     (fluid_volume_backfill - _ip_data[ip].fluid_volume_prev_backfill) / dt;
