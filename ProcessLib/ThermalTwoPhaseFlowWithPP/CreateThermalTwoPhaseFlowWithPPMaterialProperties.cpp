@@ -33,7 +33,7 @@ createThermalTwoPhaseFlowWithPPMaterialProperties(
     BaseLib::ConfigTree const& config,
     boost::optional<MeshLib::PropertyVector<int> const&> material_ids)
 {
-    DBUG("Reading material properties of two-phase flow process.");
+    DBUG("Reading material properties of nonisothermal two-phase flow process.");
 
     //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__material_property__fluid}
     auto const& fluid_config = config.getConfigSubtree("fluid");
