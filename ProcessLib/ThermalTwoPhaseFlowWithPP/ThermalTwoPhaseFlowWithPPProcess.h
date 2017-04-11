@@ -27,7 +27,7 @@ namespace ProcessLib
 namespace ThermalTwoPhaseFlowWithPP
 {
 /**
- * \brief A class to simulate the nonisothermal two-phase flow process 
+ * \brief A class to simulate the nonisothermal two-phase flow process
  * with phase change phenomena in porous media
  */
 class ThermalTwoPhaseFlowWithPPProcess final : public Process
