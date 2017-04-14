@@ -49,6 +49,18 @@ ThermalTwoPhaseFlowWithPPMaterialProperties::
             gas_density,
         std::unique_ptr<MaterialLib::Fluid::FluidProperty>
             gas_viscosity,
+        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+            specific_heat_capacity_solid,
+        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+            specific_heat_capacity_water,
+        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+            specific_heat_capacity_air,
+        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+            specific_heat_capacity_vapor,
+        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+            thermal_conductivity_dry_solid,
+        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+            thermal_conductivity_wet_solid,
         std::vector<Eigen::MatrixXd>
             intrinsic_permeability_models,
         std::vector<std::unique_ptr<MaterialLib::PorousMedium::Porosity>>&&
@@ -65,6 +77,12 @@ ThermalTwoPhaseFlowWithPPMaterialProperties::
       _viscosity(std::move(viscosity)),
       _gas_density(std::move(gas_density)),
       _gas_viscosity(std::move(gas_viscosity)),
+      _specific_heat_capacity_solid(std::move(specific_heat_capacity_solid)),
+      _specific_heat_capacity_water(std::move(specific_heat_capacity_water)),
+      _specific_heat_capacity_air(std::move(specific_heat_capacity_air)),
+      _specific_heat_capacity_vapor(std::move(specific_heat_capacity_vapor)),
+      _thermal_conductivity_dry_solid(std::move(thermal_conductivity_dry_solid)),
+      _thermal_conductivity_wet_solid(std::move(thermal_conductivity_wet_solid)),
       _material_ids(material_ids),
       _intrinsic_permeability_models(intrinsic_permeability_models),
       _porosity_models(std::move(porosity_models)),
@@ -131,6 +149,60 @@ double ThermalTwoPhaseFlowWithPPMaterialProperties::getGasViscosity(
     vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::T)] = T;
     vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::p)] = p;
     return _gas_viscosity->getValue(vars);
+}
+
+double ThermalTwoPhaseFlowWithPPMaterialProperties::getSpecificHeatCapacitySolid(
+    const double p, const double T) const
+{
+    ArrayType vars;
+    vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::T)] = T;
+    vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::p)] = p;
+    return _specific_heat_capacity_solid->getValue(vars);
+}
+
+double ThermalTwoPhaseFlowWithPPMaterialProperties::getSpecificHeatCapacityWater(
+    const double p, const double T) const
+{
+    ArrayType vars;
+    vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::T)] = T;
+    vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::p)] = p;
+    return _specific_heat_capacity_water->getValue(vars);
+}
+
+double ThermalTwoPhaseFlowWithPPMaterialProperties::getSpecificHeatCapacityAir(
+    const double p, const double T) const
+{
+    ArrayType vars;
+    vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::T)] = T;
+    vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::p)] = p;
+    return _specific_heat_capacity_air->getValue(vars);
+}
+
+double ThermalTwoPhaseFlowWithPPMaterialProperties::getSpecificHeatCapacityVapor(
+    const double p, const double T) const
+{
+    ArrayType vars;
+    vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::T)] = T;
+    vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::p)] = p;
+    return _specific_heat_capacity_vapor->getValue(vars);
+}
+
+double ThermalTwoPhaseFlowWithPPMaterialProperties::getThermalConductivityDrySolid(
+    const double p, const double T) const
+{
+    ArrayType vars;
+    vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::T)] = T;
+    vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::p)] = p;
+    return _thermal_conductivity_dry_solid->getValue(vars);
+}
+
+double ThermalTwoPhaseFlowWithPPMaterialProperties::getThermalConductivityWetSolid(
+    const double p, const double T) const
+{
+    ArrayType vars;
+    vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::T)] = T;
+    vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::p)] = p;
+    return _thermal_conductivity_wet_solid->getValue(vars);
 }
 
 Eigen::MatrixXd const&

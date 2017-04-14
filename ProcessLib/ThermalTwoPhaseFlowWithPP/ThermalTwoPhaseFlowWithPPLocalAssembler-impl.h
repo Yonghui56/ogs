@@ -220,16 +220,16 @@ void ThermalTwoPhaseFlowWithPPLocalAssembler<
                 p_air_nonwet, p_vapor_nonwet, pc_int_pt, T_int_pt, rho_water);
 
         _pressure_wetting[ip] = pg_int_pt - pc_int_pt;
-        /// heat capacity of nonwet phase
+        // heat capacity of nonwet phase
         double const heat_capacity_dry_air =
-            _process_data.specific_heat_capacity_dry_air(t, pos)[0];
+            _process_data.material->getSpecificHeatCapacityAir(pg_int_pt, T_int_pt);
         const double heat_capacity_water_vapor =
-            _process_data.specific_heat_capacity_water_vapor(t, pos)[0];
+            _process_data.material->getSpecificHeatCapacityVapor(pg_int_pt, T_int_pt);
 
         double const heat_capacity_water =
-            _process_data.specific_heat_capacity_water(t, pos)[0];
+            _process_data.material->getSpecificHeatCapacityWater(pg_int_pt, T_int_pt);
         double const heat_capacity_solid =
-            _process_data.specific_heat_capacity_solid(t, pos)[0];
+            _process_data.material->getSpecificHeatCapacitySolid(pg_int_pt, T_int_pt);
 
         double const latent_heat_evaporation =
             _process_data.latent_heat_evaporation(t, pos)[0];
@@ -344,9 +344,9 @@ void ThermalTwoPhaseFlowWithPPLocalAssembler<
                 _ip_data[ip].dNdx;
 
         double const heat_conductivity_dry_solid =
-            _process_data.heat_conductivity_dry_solid(t, pos)[0];
+            _process_data.material->getThermalConductivityDrySolid(pg_int_pt, T_int_pt);
         double const heat_conductivity_wet_solid =
-            _process_data.heat_conductivity_wet_solid(t, pos)[0];
+            _process_data.material->getThermalConductivityWetSolid(pg_int_pt, T_int_pt);
         double heat_conductivity_unsaturated =
             _process_data.material->calculateUnsatHeatConductivity(
                 t, pos, Sw, heat_conductivity_dry_solid,

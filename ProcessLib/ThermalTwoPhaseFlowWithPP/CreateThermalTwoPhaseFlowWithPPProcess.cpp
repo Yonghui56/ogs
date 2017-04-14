@@ -78,54 +78,6 @@ std::unique_ptr<Process> createThermalTwoPhaseFlowWithPPProcess(
         //! \ogs_file_param_special{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__diffusion_coeff_component_a}
         "diffusion_coeff_component_a", parameters, 1);
 
-    // Parameter for the specific heat capacity of the solid.
-    auto& specific_heat_capacity_solid = findParameter<double>(
-        config,
-        //! \ogs_file_param_special{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__specific_heat_capacity_solid}
-        "specific_heat_capacity_solid", parameters, 1);
-    DBUG("Use \'%s\' as specific_heat_capacity_solid parameter.",
-         specific_heat_capacity_solid.name.c_str());
-
-    // Parameter for the specific heat capacity of the solid.
-    auto& specific_heat_capacity_water = findParameter<double>(
-        config,
-        //! \ogs_file_param_special{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__specific_heat_capacity_water}
-        "specific_heat_capacity_water", parameters, 1);
-    DBUG("Use \'%s\' as specific_heat_capacity_water parameter.",
-         specific_heat_capacity_water.name.c_str());
-
-    // Parameter for the specific heat capacity of the dry air.
-    auto& specific_heat_capacity_dry_air = findParameter<double>(
-        config,
-        //! \ogs_file_param_special{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__specific_heat_capacity_dry_air}
-        "specific_heat_capacity_dry_air", parameters, 1);
-    DBUG("Use \'%s\' as specific_heat_capacity_dry_air parameter.",
-         specific_heat_capacity_dry_air.name.c_str());
-
-    // Parameter for the specific heat capacity of the water vapor.
-    auto& specific_heat_capacity_water_vapor = findParameter<double>(
-        config,
-        //! \ogs_file_param_special{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__specific_heat_capacity_water_vapor}
-        "specific_heat_capacity_water_vapor", parameters, 1);
-    DBUG("Use \'%s\' as specific_heat_capacity_water_vapor parameter.",
-         specific_heat_capacity_water_vapor.name.c_str());
-
-    // Parameter for the heat conductivity of the dry solid
-    auto& heat_conductivity_dry_solid = findParameter<double>(
-        config,
-        //! \ogs_file_param_special{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__heat_conductivity_dry_solid}
-        "heat_conductivity_dry_solid", parameters, 1);
-    DBUG("Use \'%s\' as heat_conductivity_dry_solid parameter.",
-        heat_conductivity_dry_solid.name.c_str());
-
-    // Parameter for the heat conductivity of the wet solid
-    auto& heat_conductivity_wet_solid = findParameter<double>(
-        config,
-        //! \ogs_file_param_special{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__heat_conductivity_wet_solid}
-        "heat_conductivity_wet_solid", parameters, 1);
-    DBUG("Use \'%s\' as heat_conductivity_wet_solid parameter.",
-        heat_conductivity_wet_solid.name.c_str());
-
     // Parameter for the density of the solid.
 
     auto& density_solid = findParameter<double>(
@@ -172,12 +124,6 @@ std::unique_ptr<Process> createThermalTwoPhaseFlowWithPPProcess(
         mass_lumping,
         diff_coeff_b,
         diff_coeff_a,
-        specific_heat_capacity_solid,
-        specific_heat_capacity_water,
-        specific_heat_capacity_dry_air,
-        specific_heat_capacity_water_vapor,
-        heat_conductivity_dry_solid,
-        heat_conductivity_wet_solid,
         density_solid,
         latent_heat_evaporation,
         std::move(material) };
