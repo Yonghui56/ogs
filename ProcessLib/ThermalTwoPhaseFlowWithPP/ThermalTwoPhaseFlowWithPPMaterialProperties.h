@@ -55,6 +55,18 @@ public:
             gas_density,
         std::unique_ptr<MaterialLib::Fluid::FluidProperty>
             gas_viscosity,
+        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+            specific_heat_capacity_solid,
+        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+            specific_heat_capacity_water,
+        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+            specific_heat_capacity_air,
+        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+            specific_heat_capacity_vapor,
+        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+            thermal_conductivity_dry_solid,
+        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+            thermal_conductivity_wet_solid,
         std::vector<Eigen::MatrixXd>
             intrinsic_permeability_models,
         std::vector<std::unique_ptr<MaterialLib::PorousMedium::Porosity>>&&
@@ -103,6 +115,12 @@ public:
     double getGasDensity(const double p, const double T) const;
     double getGasViscosity(const double p, const double T) const;
     double getLiquidViscosity(const double p, const double T) const;
+    double getSpecificHeatCapacitySolid(const double p, const double T) const;
+    double getSpecificHeatCapacityWater(const double p, const double T) const;
+    double getSpecificHeatCapacityAir(const double p, const double T) const;
+    double getSpecificHeatCapacityVapor(const double p, const double T) const;
+    double getThermalConductivityDrySolid(const double p, const double T) const;
+    double getThermalConductivityWetSolid(const double p, const double T) const;
     double getDerivativeGasDensity(double const p, double const T) const;
     /// Calculates the unsaturated heat conductivity
     double calculateUnsatHeatConductivity(double const t,
@@ -132,6 +150,12 @@ protected:
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _viscosity;
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _gas_density;
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _gas_viscosity;
+    std::unique_ptr<MaterialLib::Fluid::FluidProperty> _specific_heat_capacity_solid;
+    std::unique_ptr<MaterialLib::Fluid::FluidProperty> _specific_heat_capacity_water;
+    std::unique_ptr<MaterialLib::Fluid::FluidProperty> _specific_heat_capacity_air;
+    std::unique_ptr<MaterialLib::Fluid::FluidProperty> _specific_heat_capacity_vapor;
+    std::unique_ptr<MaterialLib::Fluid::FluidProperty> _thermal_conductivity_dry_solid;
+    std::unique_ptr<MaterialLib::Fluid::FluidProperty> _thermal_conductivity_wet_solid;
 
     /** Use two phase models for different material zones.
     *  Material IDs must be given as mesh element properties.

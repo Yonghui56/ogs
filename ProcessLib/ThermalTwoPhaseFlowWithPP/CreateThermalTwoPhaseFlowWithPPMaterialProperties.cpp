@@ -11,6 +11,8 @@
 #include <logog/include/logog.hpp>
 #include "BaseLib/reorderVector.h"
 #include "MaterialLib/Fluid/FluidProperty.h"
+#include "MaterialLib/Fluid/SpecificHeatCapacity/CreateSpecificFluidHeatCapacityModel.h"
+#include "MaterialLib/Fluid/ThermalConductivity/CreateFluidThermalConductivityModel.h"
 #include "MaterialLib/PorousMedium/Porosity/Porosity.h"
 #include "MaterialLib/PorousMedium/Storage/Storage.h"
 #include "MaterialLib/PorousMedium/UnsaturatedProperty/CapillaryPressure/CapillaryPressureSaturation.h"
@@ -47,6 +49,39 @@ createThermalTwoPhaseFlowWithPPMaterialProperties(
     auto const& rho_gas_conf = fluid_config.getConfigSubtree("gas_density");
     auto gas_density =
         MaterialLib::Fluid::createFluidDensityModel(rho_gas_conf);
+
+    auto const& spec_heat_capacity_solid_conf =
+        //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__material_property__specific_heat_capacity_solid}
+        fluid_config.getConfigSubtree("specific_heat_capacity_solid");
+    auto specific_heat_capacity_solid =
+        MaterialLib::Fluid::createSpecificFluidHeatCapacityModel(spec_heat_capacity_solid_conf);
+    auto const& spec_heat_capacity_water_conf =
+        //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__material_property__specific_heat_capacity_water}
+        fluid_config.getConfigSubtree("specific_heat_capacity_water");
+    auto specific_heat_capacity_water =
+        MaterialLib::Fluid::createSpecificFluidHeatCapacityModel(spec_heat_capacity_water_conf);
+    auto const& spec_heat_capacity_air_conf =
+        //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__material_property__specific_heat_capacity_air}
+        fluid_config.getConfigSubtree("specific_heat_capacity_air");
+    auto specific_heat_capacity_air =
+        MaterialLib::Fluid::createSpecificFluidHeatCapacityModel(spec_heat_capacity_air_conf);
+    auto const& spec_heat_capacity_vapor_conf =
+        //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__material_property__specific_heat_capacity_vapor}
+        fluid_config.getConfigSubtree("specific_heat_capacity_vapor");
+    auto specific_heat_capacity_vapor =
+        MaterialLib::Fluid::createSpecificFluidHeatCapacityModel(spec_heat_capacity_vapor_conf);
+
+    auto const& thermal_conductivity_dry_solid_conf =
+        //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__material_property__thermal_conductivity_dry_solid}
+        fluid_config.getConfigSubtree("thermal_conductivity_dry_solid");
+    auto thermal_conductivity_dry_solid =
+        MaterialLib::Fluid::createFluidThermalConductivityModel(thermal_conductivity_dry_solid_conf);
+    auto const& thermal_conductivity_wet_solid_conf =
+        //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__material_property__thermal_conductivity_wet_solid}
+        fluid_config.getConfigSubtree("thermal_conductivity_wet_solid");
+    auto thermal_conductivity_wet_solid =
+        MaterialLib::Fluid::createFluidThermalConductivityModel(thermal_conductivity_wet_solid_conf);
+
     //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__material_property__liquid_viscosity}
     auto const& mu_conf = fluid_config.getConfigSubtree("liquid_viscosity");
     auto viscosity = MaterialLib::Fluid::createViscosityModel(mu_conf);
@@ -129,7 +164,10 @@ createThermalTwoPhaseFlowWithPPMaterialProperties(
         new ThermalTwoPhaseFlowWithPPMaterialProperties{
             material_ids, std::move(liquid_density),
             std::move(viscosity), std::move(gas_density),
-            std::move(gas_viscosity), intrinsic_permeability_models,
+            std::move(gas_viscosity), std::move(specific_heat_capacity_solid),
+            std::move(specific_heat_capacity_water),std::move(specific_heat_capacity_air),
+            std::move(specific_heat_capacity_vapor),std::move(thermal_conductivity_dry_solid),
+            std::move(thermal_conductivity_wet_solid),intrinsic_permeability_models,
             std::move(porosity_models), std::move(storage_models),
             std::move(capillary_pressure_models),
             std::move(relative_permeability_models)}};
