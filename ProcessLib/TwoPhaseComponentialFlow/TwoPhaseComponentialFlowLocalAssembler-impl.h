@@ -584,6 +584,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
                     _ip_data[ip].rho_mol_co2_cumul_total_prev_waste,
                     _porosity_change_at_supp_pnt_waste);
                 _porosity_value[ip] = porosity;
+                _rho_mol_co2_cumulated_prev[ip] = rho_mol_co2_cumul_total_waste;
             }
             else if (_process_data._material->getMaterialID(
                          pos.getElementID().get()) == 0)//backfill, cement and concrete

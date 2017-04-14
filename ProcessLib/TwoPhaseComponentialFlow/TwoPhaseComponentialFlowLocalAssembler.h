@@ -182,7 +182,9 @@ public:
                   std::vector<double>& local_K_data,
                   std::vector<double>& local_b_data) override;
 
-    void postTimestepConcrete(std::vector<double> const& /*local_x*/) override
+    void preTimestepConcrete(std::vector<double> const& /*local_x*/,
+        double const /*t*/,
+        double const /*delta_t*/) override
     {
         unsigned const n_integration_points =
             _integration_method.getNumberOfPoints();
