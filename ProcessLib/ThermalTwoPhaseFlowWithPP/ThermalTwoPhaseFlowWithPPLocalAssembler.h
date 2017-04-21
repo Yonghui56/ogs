@@ -112,14 +112,15 @@ public:
         for (unsigned ip = 0; ip < n_integration_points; ip++)
         {
             auto const& sm = shape_matrices[ip];
+            const double integration_factor = sm.integralMeasure * sm.detJ;
             _ip_data.emplace_back(
                 sm.N, sm.dNdx,
                 *_process_data.material,
                 sm.integralMeasure * sm.detJ *
                 _integration_method.getWeightedPoint(ip).getWeight(),
-                sm.N.transpose() * sm.N  * sm.integralMeasure * sm.detJ *
+                sm.N.transpose() * sm.N  * integration_factor *
                 _integration_method.getWeightedPoint(ip).getWeight(),
-                sm.dNdx.transpose() * sm.dNdx * sm.integralMeasure * sm.detJ *
+                sm.dNdx.transpose() * sm.dNdx * integration_factor *
                 _integration_method.getWeightedPoint(ip).getWeight());
         }
     }
@@ -167,14 +168,11 @@ private:
 
     std::vector<double> _saturation;
     std::vector<double> _pressure_wetting;
-    static const int nonwet_pressure_coeff_index = 0;
-    static const int cap_pressure_coeff_index = 1;
-    static const int temperature_coeff_index = 2;
 
     static const int nonwet_pressure_matrix_index = 0;
     static const int cap_pressure_matrix_index = ShapeFunction::NPOINTS;
     static const int temperature_matrix_index =
-        temperature_coeff_index * ShapeFunction::NPOINTS;
+        2 * ShapeFunction::NPOINTS;
 
     static const int nonwet_pressure_size = ShapeFunction::NPOINTS;
     static const int cap_pressure_size = ShapeFunction::NPOINTS;
