@@ -16,6 +16,8 @@
 #include "MaterialLib/PorousMedium/Porosity/Porosity.h"
 #include "MaterialLib/PorousMedium/PorousPropertyHeaders.h"
 #include "MaterialLib/PorousMedium/Storage/Storage.h"
+#include "MaterialLib/PorousMedium/UnsaturatedProperty/CapillaryPressure/CapillaryPressureSaturation.h"
+#include "MaterialLib/PorousMedium/UnsaturatedProperty/CapillaryPressure/CreateCapillaryPressureModel.h"
 #include "MathLib/InterpolationAlgorithms/PiecewiseLinearInterpolation.h"
 
 // TODO
@@ -36,18 +38,24 @@ namespace MaterialLib
 {
 namespace TwoPhaseFlowWithPP
 {
+    /** This class has a collection of material properties for two-phase flow with PP model
+    *  and it makes description of the material properties for two-phase condition,
+    *  i.e. the gas/liquid density and viscosity models, respectively,
+    *  the relative permeability models with respect to two phases,
+    *  the capillary pressure-saturation relationships.
+    *  It generally provides the computation of the PDE coefficients for two-phase flow.
+    */
 class TwoPhaseFlowWithPPMaterialProperties
 {
 public:
     using ArrayType = MaterialLib::Fluid::FluidProperty::ArrayType;
 
     TwoPhaseFlowWithPPMaterialProperties(
-        bool const has_material_ids,
-        MeshLib::PropertyVector<int> const& material_ids,
+        boost::optional<MeshLib::PropertyVector<int> const&> const  material_ids,
         std::unique_ptr<MaterialLib::Fluid::FluidProperty>
             liquid_density,
         std::unique_ptr<MaterialLib::Fluid::FluidProperty>
-            viscosity,
+            liquid_viscosity,
         std::unique_ptr<MaterialLib::Fluid::FluidProperty>
             gas_density,
         std::unique_ptr<MaterialLib::Fluid::FluidProperty>
@@ -57,46 +65,59 @@ public:
         std::vector<std::unique_ptr<MaterialLib::PorousMedium::Porosity>>&&
             porosity_models,
         std::vector<std::unique_ptr<MaterialLib::PorousMedium::Storage>>&&
-            storage_models);
+            storage_models,
+        std::vector<std::unique_ptr<
+        MaterialLib::PorousMedium::CapillaryPressureSaturation>>&&
+        capillary_pressure_models);
 
-    void setMaterialID(const ProcessLib::SpatialPosition& pos);
+    int getMaterialID(const std::size_t element_id);
 
     Eigen::MatrixXd const& getPermeability(
+        const int material_id,
         const double t,
         const ProcessLib::SpatialPosition& pos,
         const int dim) const;
 
-    double getPorosity(const double t, const ProcessLib::SpatialPosition& pos,
+    double getPorosity(const int material_id, 
+        const double t, const ProcessLib::SpatialPosition& pos,
                        const double p, const double T,
                        const double porosity_variable) const;
-
+    double getSaturation(const int material_id, const double t,
+        const ProcessLib::SpatialPosition& pos, const double p,
+        const double T, const double pc) const;
+    double getCapillaryPressure(const int material_id, const double t,
+        const ProcessLib::SpatialPosition& pos,
+        const double p, const double T,
+        const double saturation) const;
+    double getSaturationDerivative(const int material_id, const double t,
+        const ProcessLib::SpatialPosition& pos,
+        const double p, const double T,
+        const double saturation) const;
     double getLiquidDensity(const double p, const double T) const;
     double getGasDensity(const double p, const double T) const;
     double getGasViscosity(const double p, const double T) const;
     double getLiquidViscosity(const double p, const double T) const;
-    double getDerivGasDensity(double const p, double const T) const;
+    double getGasDensityDerivative(double const p, double const T) const;
 
 protected:
-    /// A flag to indicate whether the reference member, _material_ids,
-    /// is not assigned.
-    const bool _has_material_ids;
-
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _liquid_density;
-    std::unique_ptr<MaterialLib::Fluid::FluidProperty> _viscosity;
+    std::unique_ptr<MaterialLib::Fluid::FluidProperty> _liquid_viscosity;
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _gas_density;
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _gas_viscosity;
 
     /** Use two phase models for different material zones.
      *  Material IDs must be given as mesh element properties.
      */
-    MeshLib::PropertyVector<int> const& _material_ids;
+    boost::optional<MeshLib::PropertyVector<int> const&> const _material_ids;
 
-    int _current_material_id = 0;
     std::vector<Eigen::MatrixXd> _intrinsic_permeability_models;
     std::vector<std::unique_ptr<MaterialLib::PorousMedium::Porosity>>
         _porosity_models;
     std::vector<std::unique_ptr<MaterialLib::PorousMedium::Storage>>
         _storage_models;
+    std::vector<
+        std::unique_ptr<MaterialLib::PorousMedium::CapillaryPressureSaturation>>
+        _capillary_pressure_models;
 };
 
 }  // end of namespace

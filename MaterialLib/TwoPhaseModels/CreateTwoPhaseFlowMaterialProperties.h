@@ -10,6 +10,7 @@
 #pragma once
 
 #include <memory>
+#include <tuple>
 #include "MaterialLib/Fluid/FluidPropertyHeaders.h"
 #include "MaterialLib/PorousMedium/Porosity/Porosity.h"
 #include "MaterialLib/PorousMedium/PorousPropertyHeaders.h"
@@ -24,11 +25,12 @@ namespace MaterialLib
 {
 namespace TwoPhaseFlowWithPP
 {
-std::unique_ptr<TwoPhaseFlowWithPPMaterialProperties>
-CreateTwoPhaseFlowMaterialProperties(
+std::tuple<std::unique_ptr<TwoPhaseFlowWithPPMaterialProperties>,
+    BaseLib::ConfigTree>
+createTwoPhaseFlowMaterialProperties(
     BaseLib::ConfigTree const& config,
-    bool const has_material_ids,
-    MeshLib::PropertyVector<int> const& material_ids);
+    boost::optional<MeshLib::PropertyVector<int> const&>
+    material_ids);
 
 }  // end namespace
 }  // end namespace
