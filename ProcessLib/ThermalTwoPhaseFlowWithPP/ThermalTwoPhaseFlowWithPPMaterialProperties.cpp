@@ -17,6 +17,7 @@
 #include "MaterialLib/PorousMedium/UnsaturatedProperty/CapillaryPressure/CreateCapillaryPressureModel.h"
 #include "MaterialLib/PorousMedium/UnsaturatedProperty/RelativePermeability/CreateRelativePermeabilityModel.h"
 #include "MaterialLib/PorousMedium/UnsaturatedProperty/RelativePermeability/RelativePermeability.h"
+#include "MaterialLib/TwoPhaseModels/TwoPhaseFlowWithPPMaterialProperties.h"
 #include "MathLib/InterpolationAlgorithms/PiecewiseLinearInterpolation.h"
 #include "MeshLib/Mesh.h"
 #include "MeshLib/PropertyVector.h"
@@ -40,15 +41,8 @@ namespace ThermalTwoPhaseFlowWithPP
 {
 ThermalTwoPhaseFlowWithPPMaterialProperties::
     ThermalTwoPhaseFlowWithPPMaterialProperties(
-        boost::optional<MeshLib::PropertyVector<int> const&> const material_ids,
-        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
-            liquid_density,
-        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
-            viscosity,
-        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
-            gas_density,
-        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
-            gas_viscosity,
+        std::unique_ptr<MaterialLib::TwoPhaseFlowWithPP::TwoPhaseFlowWithPPMaterialProperties>
+        two_phase_material_model,
         std::unique_ptr<MaterialLib::Fluid::FluidProperty>
             specific_heat_capacity_solid,
         std::unique_ptr<MaterialLib::Fluid::FluidProperty>
@@ -61,32 +55,19 @@ ThermalTwoPhaseFlowWithPPMaterialProperties::
             thermal_conductivity_dry_solid,
         std::unique_ptr<MaterialLib::Fluid::FluidProperty>
             thermal_conductivity_wet_solid,
-        std::vector<Eigen::MatrixXd>
-            intrinsic_permeability_models,
-        std::vector<std::unique_ptr<MaterialLib::PorousMedium::Porosity>>&&
-            porosity_models,
-        std::vector<std::unique_ptr<MaterialLib::PorousMedium::Storage>>&&
-            storage_models,
         std::vector<std::unique_ptr<
             MaterialLib::PorousMedium::CapillaryPressureSaturation>>&&
             capillary_pressure_models,
         std::vector<
             std::unique_ptr<MaterialLib::PorousMedium::RelativePermeability>>&&
             relative_permeability_models)
-    : _liquid_density(std::move(liquid_density)),
-      _viscosity(std::move(viscosity)),
-      _gas_density(std::move(gas_density)),
-      _gas_viscosity(std::move(gas_viscosity)),
+    : _two_phase_material_model(std::move(two_phase_material_model)),
       _specific_heat_capacity_solid(std::move(specific_heat_capacity_solid)),
       _specific_heat_capacity_water(std::move(specific_heat_capacity_water)),
       _specific_heat_capacity_air(std::move(specific_heat_capacity_air)),
       _specific_heat_capacity_vapor(std::move(specific_heat_capacity_vapor)),
       _thermal_conductivity_dry_solid(std::move(thermal_conductivity_dry_solid)),
       _thermal_conductivity_wet_solid(std::move(thermal_conductivity_wet_solid)),
-      _material_ids(material_ids),
-      _intrinsic_permeability_models(intrinsic_permeability_models),
-      _porosity_models(std::move(porosity_models)),
-      _storage_models(std::move(storage_models)),
       _capillary_pressure_models(std::move(capillary_pressure_models)),
       _relative_permeability_models(std::move(relative_permeability_models))
 {
@@ -103,52 +84,6 @@ int ThermalTwoPhaseFlowWithPPMaterialProperties::getMaterialID(
 
     assert(element_id < _material_ids->size());
     return (*_material_ids)[element_id];
-}
-
-double ThermalTwoPhaseFlowWithPPMaterialProperties::getLiquidDensity(
-    const double p, const double T) const
-{
-    ArrayType vars;
-    vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::T)] = T;
-    vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::p)] = p;
-    return _liquid_density->getValue(vars);
-}
-
-double ThermalTwoPhaseFlowWithPPMaterialProperties::getGasDensity(
-    const double p, const double T) const
-{
-    ArrayType vars;
-    vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::T)] = T;
-    vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::p)] = p;
-    return _gas_density->getValue(vars);
-}
-
-double ThermalTwoPhaseFlowWithPPMaterialProperties::getDerivativeGasDensity(
-    const double p, const double T) const
-{
-    ArrayType vars;
-    vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::T)] = T;
-    vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::p)] = p;
-
-    return _gas_density->getdValue(vars,
-                                   MaterialLib::Fluid::PropertyVariableType::p);
-}
-double ThermalTwoPhaseFlowWithPPMaterialProperties::getLiquidViscosity(
-    const double p, const double T) const
-{
-    ArrayType vars;
-    vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::T)] = T;
-    vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::p)] = p;
-    return _viscosity->getValue(vars);
-}
-
-double ThermalTwoPhaseFlowWithPPMaterialProperties::getGasViscosity(
-    const double p, const double T) const
-{
-    ArrayType vars;
-    vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::T)] = T;
-    vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::p)] = p;
-    return _gas_viscosity->getValue(vars);
 }
 
 double ThermalTwoPhaseFlowWithPPMaterialProperties::getSpecificHeatCapacitySolid(
@@ -203,22 +138,6 @@ double ThermalTwoPhaseFlowWithPPMaterialProperties::getThermalConductivityWetSol
     vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::T)] = T;
     vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::p)] = p;
     return _thermal_conductivity_wet_solid->getValue(vars);
-}
-
-Eigen::MatrixXd const&
-ThermalTwoPhaseFlowWithPPMaterialProperties::getPermeability(const int material_id,
-    const double /*t*/, const ProcessLib::SpatialPosition& /*pos*/,
-    const int /*dim*/) const
-{
-    return _intrinsic_permeability_models[material_id];
-}
-
-double ThermalTwoPhaseFlowWithPPMaterialProperties::getPorosity(const int material_id,
-    const double /*t*/, const ProcessLib::SpatialPosition& /*pos*/,
-    const double /*p*/, const double T, const double porosity_variable) const
-{
-    return
-        _porosity_models[material_id]->getValue(porosity_variable, T);
 }
 
 double

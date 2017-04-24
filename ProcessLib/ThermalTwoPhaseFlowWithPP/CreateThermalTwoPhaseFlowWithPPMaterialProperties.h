@@ -14,6 +14,7 @@
 #include "MaterialLib/PorousMedium/Porosity/Porosity.h"
 #include "MaterialLib/PorousMedium/PorousPropertyHeaders.h"
 #include "MaterialLib/PorousMedium/Storage/Storage.h"
+#include "MaterialLib/TwoPhaseModels/CreateTwoPhaseFlowMaterialProperties.h"
 #include "ProcessLib/ThermalTwoPhaseFlowWithPP/ThermalTwoPhaseFlowWithPPMaterialProperties.h"
 namespace BaseLib
 {
