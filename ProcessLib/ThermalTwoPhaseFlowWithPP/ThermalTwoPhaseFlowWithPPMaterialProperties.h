@@ -20,6 +20,7 @@
 #include "MaterialLib/PorousMedium/UnsaturatedProperty/CapillaryPressure/CreateCapillaryPressureModel.h"
 #include "MaterialLib/PorousMedium/UnsaturatedProperty/RelativePermeability/CreateRelativePermeabilityModel.h"
 #include "MaterialLib/PorousMedium/UnsaturatedProperty/RelativePermeability/RelativePermeability.h"
+#include "MaterialLib/TwoPhaseModels/TwoPhaseFlowWithPPMaterialProperties.h"
 #include "MathLib/InterpolationAlgorithms/PiecewiseLinearInterpolation.h"
 
 namespace MeshLib
@@ -33,28 +34,15 @@ namespace ProcessLib
 class SpatialPosition;
 namespace ThermalTwoPhaseFlowWithPP
 {
-class ThermalTwoPhaseFlowWithPPMaterialProperties
+class ThermalTwoPhaseFlowWithPPMaterialProperties 
 {
-public:
-    static int const JacobianResidualSize = 2;
-    using ResidualVector = Eigen::Matrix<double, JacobianResidualSize, 1>;
-    using JacobianMatrix = Eigen::Matrix<double, JacobianResidualSize,
-                                         JacobianResidualSize, Eigen::RowMajor>;
-    using UnknownVector = Eigen::Matrix<double, JacobianResidualSize, 1>;
 
 public:
     using ArrayType = MaterialLib::Fluid::FluidProperty::ArrayType;
 
     ThermalTwoPhaseFlowWithPPMaterialProperties(
-        boost::optional<MeshLib::PropertyVector<int> const&> const material_ids,
-        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
-            liquid_density,
-        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
-            viscosity,
-        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
-            gas_density,
-        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
-            gas_viscosity,
+        std::unique_ptr<MaterialLib::TwoPhaseFlowWithPP::TwoPhaseFlowWithPPMaterialProperties>
+        two_phase_material_model,
         std::unique_ptr<MaterialLib::Fluid::FluidProperty>
             specific_heat_capacity_solid,
         std::unique_ptr<MaterialLib::Fluid::FluidProperty>
@@ -67,30 +55,11 @@ public:
             thermal_conductivity_dry_solid,
         std::unique_ptr<MaterialLib::Fluid::FluidProperty>
             thermal_conductivity_wet_solid,
-        std::vector<Eigen::MatrixXd>
-            intrinsic_permeability_models,
-        std::vector<std::unique_ptr<MaterialLib::PorousMedium::Porosity>>&&
-            porosity_models,
-        std::vector<std::unique_ptr<MaterialLib::PorousMedium::Storage>>&&
-            storage_models,
-        std::vector<std::unique_ptr<
-            MaterialLib::PorousMedium::CapillaryPressureSaturation>>&&
-            capillary_pressure_models,
         std::vector<
             std::unique_ptr<MaterialLib::PorousMedium::RelativePermeability>>&&
             relative_permeability_models);
 
     int getMaterialID(const std::size_t element_id);
-
-    Eigen::MatrixXd const& getPermeability(const int material_id,
-        const double t,
-        const ProcessLib::SpatialPosition& pos,
-        const int dim) const;
-
-    double getPorosity(const int material_id,
-        const double t, const ProcessLib::SpatialPosition& pos,
-                       const double p, const double T,
-                       const double porosity_variable) const;
 
     double getNonwetRelativePermeability(const double t,
                                          const ProcessLib::SpatialPosition& pos,
@@ -100,28 +69,13 @@ public:
                                       const ProcessLib::SpatialPosition& pos,
                                       const double p, const double T,
                                       const double saturation) const;
-    double getSaturation(const int material_id,
-        const double t, const ProcessLib::SpatialPosition& pos,
-                         const double p, const double T, const double pc) const;
-    double getSaturationDerivative(const int material_id, const double t,
-                                   const ProcessLib::SpatialPosition& pos,
-                                   const double p, const double T,
-                                   const double saturation) const;
-    double getCapillaryPressure(const int material_id, const double t,
-                                const ProcessLib::SpatialPosition& pos,
-                                const double p, const double T,
-                                const double saturation) const;
-    double getLiquidDensity(const double p, const double T) const;
-    double getGasDensity(const double p, const double T) const;
-    double getGasViscosity(const double p, const double T) const;
-    double getLiquidViscosity(const double p, const double T) const;
+
     double getSpecificHeatCapacitySolid(const double p, const double T) const;
     double getSpecificHeatCapacityWater(const double p, const double T) const;
     double getSpecificHeatCapacityAir(const double p, const double T) const;
     double getSpecificHeatCapacityVapor(const double p, const double T) const;
     double getThermalConductivityDrySolid(const double p, const double T) const;
     double getThermalConductivityWetSolid(const double p, const double T) const;
-    double getDerivativeGasDensity(double const p, double const T) const;
     /// Calculates the unsaturated heat conductivity
     double calculateUnsatHeatConductivity(double const t,
                                           ProcessLib::SpatialPosition const& x,
@@ -143,9 +97,13 @@ public:
     double calculatedRhoNonwetdT(const double p_air_nonwet,
                                  const double p_vapor_nonwetconst, double pc,
                                  const double T, const double rho_mass_h2o) const;
-
+    MaterialLib::TwoPhaseFlowWithPP::TwoPhaseFlowWithPPMaterialProperties*
+        getTwoPhaseMaterialModel() {
+        return _two_phase_material_model.get();
+    }
 protected:
-
+    std::unique_ptr<MaterialLib::TwoPhaseFlowWithPP::TwoPhaseFlowWithPPMaterialProperties> 
+        _two_phase_material_model;
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _liquid_density;
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _viscosity;
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _gas_density;
@@ -162,14 +120,6 @@ protected:
     */
     boost::optional<MeshLib::PropertyVector<int> const&> const _material_ids;
 
-    std::vector<Eigen::MatrixXd> _intrinsic_permeability_models;
-    std::vector<std::unique_ptr<MaterialLib::PorousMedium::Porosity>>
-        _porosity_models;
-    std::vector<std::unique_ptr<MaterialLib::PorousMedium::Storage>>
-        _storage_models;
-    std::vector<
-        std::unique_ptr<MaterialLib::PorousMedium::CapillaryPressureSaturation>>
-        _capillary_pressure_models;
     std::vector<
         std::unique_ptr<MaterialLib::PorousMedium::RelativePermeability>>
         _relative_permeability_models;

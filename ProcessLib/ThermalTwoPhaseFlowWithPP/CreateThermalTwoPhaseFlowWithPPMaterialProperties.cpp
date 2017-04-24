@@ -19,6 +19,7 @@
 #include "MaterialLib/PorousMedium/UnsaturatedProperty/CapillaryPressure/CreateCapillaryPressureModel.h"
 #include "MaterialLib/PorousMedium/UnsaturatedProperty/RelativePermeability/CreateRelativePermeabilityModel.h"
 #include "MaterialLib/PorousMedium/UnsaturatedProperty/RelativePermeability/RelativePermeability.h"
+#include "MaterialLib/TwoPhaseModels/CreateTwoPhaseFlowMaterialProperties.h"
 #include "MathLib/InterpolationAlgorithms/PiecewiseLinearInterpolation.h"
 #include "MeshLib/Mesh.h"
 #include "MeshLib/PropertyVector.h"
@@ -37,6 +38,8 @@ createThermalTwoPhaseFlowWithPPMaterialProperties(
 {
     DBUG("Reading material properties of nonisothermal two-phase flow process.");
 
+    auto two_phase_material_model
+        = MaterialLib::TwoPhaseFlowWithPP::createTwoPhaseFlowMaterialProperties(config, material_ids);
     //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__material_property__fluid}
     auto const& fluid_config = config.getConfigSubtree("fluid");
 
@@ -162,14 +165,11 @@ createThermalTwoPhaseFlowWithPPMaterialProperties(
 
     return std::unique_ptr<ThermalTwoPhaseFlowWithPPMaterialProperties>{
         new ThermalTwoPhaseFlowWithPPMaterialProperties{
-            material_ids, std::move(liquid_density),
-            std::move(viscosity), std::move(gas_density),
-            std::move(gas_viscosity), std::move(specific_heat_capacity_solid),
+            std::move(two_phase_material_model),
+            std::move(specific_heat_capacity_solid),
             std::move(specific_heat_capacity_water),std::move(specific_heat_capacity_air),
             std::move(specific_heat_capacity_vapor),std::move(thermal_conductivity_dry_solid),
-            std::move(thermal_conductivity_wet_solid),intrinsic_permeability_models,
-            std::move(porosity_models), std::move(storage_models),
-            std::move(capillary_pressure_models),
+            std::move(thermal_conductivity_wet_solid),
             std::move(relative_permeability_models)}};
 }
 
