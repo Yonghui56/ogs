@@ -13,6 +13,7 @@
 #include <vector>
 #include "MaterialLib/Fluid/FluidPropertyHeaders.h"
 #include "MaterialLib/PhysicalConstant.h"
+#include "MaterialLib/Fluid/WaterVaporProperties/WaterVaporProperties.h"
 #include "MaterialLib/PorousMedium/Porosity/Porosity.h"
 #include "MaterialLib/PorousMedium/PorousPropertyHeaders.h"
 #include "MaterialLib/PorousMedium/Storage/Storage.h"
@@ -55,11 +56,11 @@ public:
             thermal_conductivity_dry_solid,
         std::unique_ptr<MaterialLib::Fluid::FluidProperty>
             thermal_conductivity_wet_solid,
+        std::unique_ptr<MaterialLib::Fluid::WaterVaporProperties>
+            water_vapor_properties,
         std::vector<
             std::unique_ptr<MaterialLib::PorousMedium::RelativePermeability>>&&
             relative_permeability_models);
-
-    int getMaterialID(const std::size_t element_id);
 
     double getNonwetRelativePermeability(const double t,
                                          const ProcessLib::SpatialPosition& pos,
@@ -95,8 +96,9 @@ public:
     double calculateDerivativedPgwdPC(const double pc, const double T, const double rho_mass_h2o) const;
     ///
     double calculatedRhoNonwetdT(const double p_air_nonwet,
-                                 const double p_vapor_nonwetconst, double pc,
-                                 const double T, const double rho_mass_h2o) const;
+        const double p_vapor_nonwetconst, double pc,
+        const double T, const double rho_mass_h2o) const;
+
     MaterialLib::TwoPhaseFlowWithPP::TwoPhaseFlowWithPPMaterialProperties*
         getTwoPhaseMaterialModel() {
         return _two_phase_material_model.get();
@@ -104,21 +106,14 @@ public:
 protected:
     std::unique_ptr<MaterialLib::TwoPhaseFlowWithPP::TwoPhaseFlowWithPPMaterialProperties> 
         _two_phase_material_model;
-    std::unique_ptr<MaterialLib::Fluid::FluidProperty> _liquid_density;
-    std::unique_ptr<MaterialLib::Fluid::FluidProperty> _viscosity;
-    std::unique_ptr<MaterialLib::Fluid::FluidProperty> _gas_density;
-    std::unique_ptr<MaterialLib::Fluid::FluidProperty> _gas_viscosity;
+
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _specific_heat_capacity_solid;
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _specific_heat_capacity_water;
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _specific_heat_capacity_air;
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _specific_heat_capacity_vapor;
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _thermal_conductivity_dry_solid;
     std::unique_ptr<MaterialLib::Fluid::FluidProperty> _thermal_conductivity_wet_solid;
-
-    /** Use two phase models for different material zones.
-    *  Material IDs must be given as mesh element properties.
-    */
-    boost::optional<MeshLib::PropertyVector<int> const&> const _material_ids;
+    std::unique_ptr<MaterialLib::Fluid::WaterVaporProperties> _water_vapor_properties;
 
     std::vector<
         std::unique_ptr<MaterialLib::PorousMedium::RelativePermeability>>

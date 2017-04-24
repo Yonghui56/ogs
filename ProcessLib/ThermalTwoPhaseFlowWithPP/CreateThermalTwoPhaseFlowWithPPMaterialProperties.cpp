@@ -91,6 +91,10 @@ createThermalTwoPhaseFlowWithPPMaterialProperties(
     //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__material_property__gas_viscosity}
     auto const& mu_gas_conf = fluid_config.getConfigSubtree("gas_viscosity");
     auto gas_viscosity = MaterialLib::Fluid::createViscosityModel(mu_gas_conf);
+    
+    std::unique_ptr<MaterialLib::Fluid::WaterVaporProperties>
+        vapor_property = 
+        std::unique_ptr<MaterialLib::Fluid::WaterVaporProperties>(new MaterialLib::Fluid::WaterVaporProperties());
 
     // Get porous properties
     std::vector<int> mat_ids;
@@ -170,6 +174,7 @@ createThermalTwoPhaseFlowWithPPMaterialProperties(
             std::move(specific_heat_capacity_water),std::move(specific_heat_capacity_air),
             std::move(specific_heat_capacity_vapor),std::move(thermal_conductivity_dry_solid),
             std::move(thermal_conductivity_wet_solid),
+            std::move(vapor_property),
             std::move(relative_permeability_models)}};
 }
 
