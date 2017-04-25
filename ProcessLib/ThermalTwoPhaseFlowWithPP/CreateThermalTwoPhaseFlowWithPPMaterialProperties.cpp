@@ -8,6 +8,7 @@
  */
 
 #include "CreateThermalTwoPhaseFlowWithPPMaterialProperties.h"
+#include <tuple>
 #include <logog/include/logog.hpp>
 #include "BaseLib/reorderVector.h"
 #include "MaterialLib/Fluid/FluidProperty.h"
@@ -37,11 +38,12 @@ createThermalTwoPhaseFlowWithPPMaterialProperties(
     boost::optional<MeshLib::PropertyVector<int> const&> material_ids)
 {
     DBUG("Reading material properties of nonisothermal two-phase flow process.");
-
-    auto two_phase_material_model
+    auto two_phase_model_tuple 
         = MaterialLib::TwoPhaseFlowWithPP::createTwoPhaseFlowMaterialProperties(config, material_ids);
+    auto two_phase_material_model = std::move(std::get<0>(two_phase_model_tuple));
+    auto const& fluid_config = std::get<1>(two_phase_model_tuple);
     //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__material_property__fluid}
-    auto const& fluid_config = config.getConfigSubtree("fluid");
+    //auto const& fluid_config = config.getConfigSubtree("fluid");
 
     // Get fluid properties
     //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__material_property__liquid_density}
