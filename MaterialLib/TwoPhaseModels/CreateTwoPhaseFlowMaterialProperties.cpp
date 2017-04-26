@@ -25,7 +25,7 @@ namespace MaterialLib
 namespace TwoPhaseFlowWithPP
 {
 std::tuple<std::unique_ptr<TwoPhaseFlowWithPPMaterialProperties>,
-           BaseLib::ConfigTree>
+           const BaseLib::ConfigTree&>
 createTwoPhaseFlowMaterialProperties(
     BaseLib::ConfigTree const& config,
     boost::optional<MeshLib::PropertyVector<int> const&>
@@ -99,7 +99,7 @@ createTwoPhaseFlowMaterialProperties(
     BaseLib::reorderVector(porosity_models, mat_ids);
     BaseLib::reorderVector(storage_models, mat_ids);
 
-    return std::make_tuple(
+    return std::forward_as_tuple(
         std::unique_ptr<TwoPhaseFlowWithPPMaterialProperties>{
             new TwoPhaseFlowWithPPMaterialProperties{
                 material_ids, std::move(liquid_density),
