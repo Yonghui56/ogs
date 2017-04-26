@@ -580,10 +580,12 @@ void TwoPhaseComponentialFlowLocalAssembler<
                     (fluid_volume_rate_waste)-(rho_mol_total_co2_waste / dt);
                 //update the porosity
                 //= previous porosity + porosity change
-                porosity3 = _ip_data[ip].porosity_prev_waste + piecewiselinear_interpolation(
+                double const poro=_process_data._material->getPorosity(
+                    material_id, t, pos, pg_int_pt, temperature, 0);//initial porosity
+                porosity3 = poro + piecewiselinear_interpolation(
                     _ip_data[ip].rho_mol_co2_cumul_total_prev_waste,
                     _porosity_change_at_supp_pnt_waste);
-                _porosity_value[ip] = porosity;
+                _porosity_value[ip] = porosity3;
                 _rho_mol_co2_cumulated_prev[ip] = rho_mol_co2_cumul_total_waste;
             }
             else if (_process_data._material->getMaterialID(
