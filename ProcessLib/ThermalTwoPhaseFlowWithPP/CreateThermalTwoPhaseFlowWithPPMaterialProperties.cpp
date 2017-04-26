@@ -45,9 +45,8 @@ createThermalTwoPhaseFlowWithPPMaterialProperties(
             config, material_ids);
     auto two_phase_material_model =
         std::move(std::get<0>(two_phase_model_tuple));
-    auto const& fluid_config = std::get<1>(two_phase_model_tuple);
     //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__material_property__fluid}
-    // auto const& fluid_config = config.getConfigSubtree("fluid");
+    auto const& fluid_config = std::get<1>(two_phase_model_tuple);
 
     // Get fluid properties
     auto const& spec_heat_capacity_solid_conf =
