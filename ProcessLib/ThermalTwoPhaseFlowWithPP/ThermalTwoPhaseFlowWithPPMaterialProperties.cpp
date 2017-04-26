@@ -41,8 +41,9 @@ namespace ThermalTwoPhaseFlowWithPP
 {
 ThermalTwoPhaseFlowWithPPMaterialProperties::
     ThermalTwoPhaseFlowWithPPMaterialProperties(
-        std::unique_ptr<MaterialLib::TwoPhaseFlowWithPP::TwoPhaseFlowWithPPMaterialProperties>
-        two_phase_material_model,
+        std::unique_ptr<MaterialLib::TwoPhaseFlowWithPP::
+                            TwoPhaseFlowWithPPMaterialProperties>
+            two_phase_material_model,
         std::unique_ptr<MaterialLib::Fluid::FluidProperty>
             specific_heat_capacity_solid,
         std::unique_ptr<MaterialLib::Fluid::FluidProperty>
@@ -56,24 +57,23 @@ ThermalTwoPhaseFlowWithPPMaterialProperties::
         std::unique_ptr<MaterialLib::Fluid::FluidProperty>
             thermal_conductivity_wet_solid,
         std::unique_ptr<MaterialLib::Fluid::WaterVaporProperties>
-            water_vapor_properties,
-        std::vector<
-            std::unique_ptr<MaterialLib::PorousMedium::RelativePermeability>>&&
-            relative_permeability_models)
+            water_vapor_properties)
     : _two_phase_material_model(std::move(two_phase_material_model)),
       _specific_heat_capacity_solid(std::move(specific_heat_capacity_solid)),
       _specific_heat_capacity_water(std::move(specific_heat_capacity_water)),
       _specific_heat_capacity_air(std::move(specific_heat_capacity_air)),
       _specific_heat_capacity_vapor(std::move(specific_heat_capacity_vapor)),
-      _thermal_conductivity_dry_solid(std::move(thermal_conductivity_dry_solid)),
-      _thermal_conductivity_wet_solid(std::move(thermal_conductivity_wet_solid)),
-      _water_vapor_properties(std::move(water_vapor_properties)),
-      _relative_permeability_models(std::move(relative_permeability_models))
+      _thermal_conductivity_dry_solid(
+          std::move(thermal_conductivity_dry_solid)),
+      _thermal_conductivity_wet_solid(
+          std::move(thermal_conductivity_wet_solid)),
+      _water_vapor_properties(std::move(water_vapor_properties))
 {
     DBUG("Create material properties for non-isothermal two-phase flow model.");
 }
 
-double ThermalTwoPhaseFlowWithPPMaterialProperties::getSpecificHeatCapacitySolid(
+double
+ThermalTwoPhaseFlowWithPPMaterialProperties::getSpecificHeatCapacitySolid(
     const double p, const double T) const
 {
     ArrayType vars;
@@ -82,7 +82,8 @@ double ThermalTwoPhaseFlowWithPPMaterialProperties::getSpecificHeatCapacitySolid
     return _specific_heat_capacity_solid->getValue(vars);
 }
 
-double ThermalTwoPhaseFlowWithPPMaterialProperties::getSpecificHeatCapacityWater(
+double
+ThermalTwoPhaseFlowWithPPMaterialProperties::getSpecificHeatCapacityWater(
     const double p, const double T) const
 {
     ArrayType vars;
@@ -100,7 +101,8 @@ double ThermalTwoPhaseFlowWithPPMaterialProperties::getSpecificHeatCapacityAir(
     return _specific_heat_capacity_air->getValue(vars);
 }
 
-double ThermalTwoPhaseFlowWithPPMaterialProperties::getSpecificHeatCapacityVapor(
+double
+ThermalTwoPhaseFlowWithPPMaterialProperties::getSpecificHeatCapacityVapor(
     const double p, const double T) const
 {
     ArrayType vars;
@@ -109,7 +111,8 @@ double ThermalTwoPhaseFlowWithPPMaterialProperties::getSpecificHeatCapacityVapor
     return _specific_heat_capacity_vapor->getValue(vars);
 }
 
-double ThermalTwoPhaseFlowWithPPMaterialProperties::getThermalConductivityDrySolid(
+double
+ThermalTwoPhaseFlowWithPPMaterialProperties::getThermalConductivityDrySolid(
     const double p, const double T) const
 {
     ArrayType vars;
@@ -118,34 +121,14 @@ double ThermalTwoPhaseFlowWithPPMaterialProperties::getThermalConductivityDrySol
     return _thermal_conductivity_dry_solid->getValue(vars);
 }
 
-double ThermalTwoPhaseFlowWithPPMaterialProperties::getThermalConductivityWetSolid(
+double
+ThermalTwoPhaseFlowWithPPMaterialProperties::getThermalConductivityWetSolid(
     const double p, const double T) const
 {
     ArrayType vars;
     vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::T)] = T;
     vars[static_cast<int>(MaterialLib::Fluid::PropertyVariableType::p)] = p;
     return _thermal_conductivity_wet_solid->getValue(vars);
-}
-
-double
-ThermalTwoPhaseFlowWithPPMaterialProperties::getNonwetRelativePermeability(
-    const double /*t*/, const ProcessLib::SpatialPosition& /*pos*/,
-    const double /*p*/, const double /*T*/, const double saturation) const
-{
-    const double Se = (saturation - 0.15) / (1 - 0.15);
-    if (saturation < 0.15)
-        return 1.0;
-    return pow(1 - Se, 3);
-}
-
-double ThermalTwoPhaseFlowWithPPMaterialProperties::getWetRelativePermeability(
-    const double /*t*/, const ProcessLib::SpatialPosition& /*pos*/,
-    const double /*p*/, const double /*T*/, const double saturation) const
-{
-    const double Se = (saturation - 0.15) / (1 - 0.15);
-    if (Se < 0)
-        return 0.0;
-    return pow(Se, 3);
 }
 
 double
@@ -167,14 +150,14 @@ double
 ThermalTwoPhaseFlowWithPPMaterialProperties::calculateSaturatedVaporPressure(
     const double T) const
 {
-    
     return _water_vapor_properties->calculateSaturatedVaporPressure(T);
 }
 double
 ThermalTwoPhaseFlowWithPPMaterialProperties::calculateVaporPressureNonwet(
     const double pc, const double T, const double rho_mass_h2o) const
 {
-    return _water_vapor_properties->calculateVaporPressureNonwet(pc, T, rho_mass_h2o);
+    return _water_vapor_properties->calculateVaporPressureNonwet(pc, T,
+                                                                 rho_mass_h2o);
 }
 double ThermalTwoPhaseFlowWithPPMaterialProperties::calculateDerivativedPsatdT(
     const double T) const
@@ -184,19 +167,21 @@ double ThermalTwoPhaseFlowWithPPMaterialProperties::calculateDerivativedPsatdT(
 double ThermalTwoPhaseFlowWithPPMaterialProperties::calculateDerivativedPgwdT(
     const double pc, const double T, const double rho_mass_h2o) const
 {
-    return _water_vapor_properties->calculateDerivativedPgwdT(pc, T, rho_mass_h2o);
+    return _water_vapor_properties->calculateDerivativedPgwdT(pc, T,
+                                                              rho_mass_h2o);
 }
 double ThermalTwoPhaseFlowWithPPMaterialProperties::calculateDerivativedPgwdPC(
     const double pc, const double T, const double rho_mass_h2o) const
 {
-    return _water_vapor_properties->calculateDerivativedPgwdPC(pc, T, rho_mass_h2o);
+    return _water_vapor_properties->calculateDerivativedPgwdPC(pc, T,
+                                                               rho_mass_h2o);
 }
 double ThermalTwoPhaseFlowWithPPMaterialProperties::calculatedRhoNonwetdT(
     const double p_air_nonwet, const double p_vapor_nonwet, const double pc,
     const double T, const double rho_mass_h2o) const
 {
-    return _water_vapor_properties->
-        calculatedRhoNonwetdT(p_air_nonwet, p_vapor_nonwet, pc, T, rho_mass_h2o);
+    return _water_vapor_properties->calculatedRhoNonwetdT(
+        p_air_nonwet, p_vapor_nonwet, pc, T, rho_mass_h2o);
 }
 
 }  // end of namespace

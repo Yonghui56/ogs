@@ -26,11 +26,11 @@ namespace MaterialLib
 namespace TwoPhaseFlowWithPP
 {
 std::tuple<std::unique_ptr<TwoPhaseFlowWithPPMaterialProperties>,
-    BaseLib::ConfigTree>
+           BaseLib::ConfigTree>
 createTwoPhaseFlowMaterialProperties(
     BaseLib::ConfigTree const& config,
     boost::optional<MeshLib::PropertyVector<int> const&>
-    material_ids);
+        material_ids);
 
 }  // end namespace
 }  // end namespace

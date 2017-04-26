@@ -26,32 +26,30 @@ namespace ProcessLib
 {
 namespace ThermalTwoPhaseFlowWithPP
 {
-    template <typename NodalRowVectorType, typename GlobalDimNodalMatrixType,
-        typename NodalMatrixType>
-    struct IntegrationPointData final
+template <typename NodalRowVectorType, typename GlobalDimNodalMatrixType,
+          typename NodalMatrixType>
+struct IntegrationPointData final
+{
+    explicit IntegrationPointData(
+        NodalRowVectorType const& N_, GlobalDimNodalMatrixType const& dNdx_,
+        ThermalTwoPhaseFlowWithPPMaterialProperties& material_property_,
+        double const& integration_weight_, NodalMatrixType const mass_operator_,
+        NodalMatrixType const diffusion_operator_)
+        : N(N_),
+          dNdx(dNdx_),
+          mat_property(material_property_),
+          integration_weight(integration_weight_),
+          mass_operator(mass_operator_),
+          diffusion_operator(diffusion_operator_)
     {
-        explicit IntegrationPointData(
-            NodalRowVectorType const& N_, GlobalDimNodalMatrixType const& dNdx_,
-            ThermalTwoPhaseFlowWithPPMaterialProperties& material_property_,
-            double const& integration_weight_,
-            NodalMatrixType const mass_operator_,
-            NodalMatrixType const diffusion_operator_
-            ):
-            N(N_),
-            dNdx(dNdx_),
-            mat_property(material_property_),
-            integration_weight(integration_weight_),
-            mass_operator(mass_operator_),
-            diffusion_operator(diffusion_operator_)
-        {
-        }
-        NodalRowVectorType const N;
-        GlobalDimNodalMatrixType const dNdx;
-        ThermalTwoPhaseFlowWithPPMaterialProperties const& mat_property;
-        double const integration_weight;
-        NodalMatrixType const mass_operator;
-        NodalMatrixType const diffusion_operator;
-    };
+    }
+    NodalRowVectorType const N;
+    GlobalDimNodalMatrixType const dNdx;
+    ThermalTwoPhaseFlowWithPPMaterialProperties const& mat_property;
+    double const integration_weight;
+    NodalMatrixType const mass_operator;
+    NodalMatrixType const diffusion_operator;
+};
 const unsigned NUM_NODAL_DOF = 3;
 
 class ThermalTwoPhaseFlowWithPPLocalAssemblerInterface
@@ -107,21 +105,20 @@ public:
         _ip_data.reserve(n_integration_points);
         auto const shape_matrices =
             initShapeMatrices<ShapeFunction, ShapeMatricesType,
-            IntegrationMethod, GlobalDim>(
+                              IntegrationMethod, GlobalDim>(
                 element, is_axially_symmetric, _integration_method);
         for (unsigned ip = 0; ip < n_integration_points; ip++)
         {
             auto const& sm = shape_matrices[ip];
             const double integration_factor = sm.integralMeasure * sm.detJ;
             _ip_data.emplace_back(
-                sm.N, sm.dNdx,
-                *_process_data.material,
+                sm.N, sm.dNdx, *_process_data.material,
                 sm.integralMeasure * sm.detJ *
-                _integration_method.getWeightedPoint(ip).getWeight(),
-                sm.N.transpose() * sm.N  * integration_factor *
-                _integration_method.getWeightedPoint(ip).getWeight(),
+                    _integration_method.getWeightedPoint(ip).getWeight(),
+                sm.N.transpose() * sm.N * integration_factor *
+                    _integration_method.getWeightedPoint(ip).getWeight(),
                 sm.dNdx.transpose() * sm.dNdx * integration_factor *
-                _integration_method.getWeightedPoint(ip).getWeight());
+                    _integration_method.getWeightedPoint(ip).getWeight());
         }
     }
 
@@ -161,9 +158,9 @@ private:
     ThermalTwoPhaseFlowWithPPProcessData const& _process_data;
     std::vector<
         IntegrationPointData<NodalRowVectorType, GlobalDimNodalMatrixType,
-        NodalMatrixType>,
+                             NodalMatrixType>,
         Eigen::aligned_allocator<IntegrationPointData<
-        NodalRowVectorType, GlobalDimNodalMatrixType, NodalMatrixType>>>
+            NodalRowVectorType, GlobalDimNodalMatrixType, NodalMatrixType>>>
         _ip_data;
 
     std::vector<double> _saturation;
@@ -171,8 +168,7 @@ private:
 
     static const int nonwet_pressure_matrix_index = 0;
     static const int cap_pressure_matrix_index = ShapeFunction::NPOINTS;
-    static const int temperature_matrix_index =
-        2 * ShapeFunction::NPOINTS;
+    static const int temperature_matrix_index = 2 * ShapeFunction::NPOINTS;
 
     static const int nonwet_pressure_size = ShapeFunction::NPOINTS;
     static const int cap_pressure_size = ShapeFunction::NPOINTS;

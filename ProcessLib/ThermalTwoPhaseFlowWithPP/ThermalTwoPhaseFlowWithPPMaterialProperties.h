@@ -12,8 +12,8 @@
 #include <memory>
 #include <vector>
 #include "MaterialLib/Fluid/FluidPropertyHeaders.h"
-#include "MaterialLib/PhysicalConstant.h"
 #include "MaterialLib/Fluid/WaterVaporProperties/WaterVaporProperties.h"
+#include "MaterialLib/PhysicalConstant.h"
 #include "MaterialLib/PorousMedium/Porosity/Porosity.h"
 #include "MaterialLib/PorousMedium/PorousPropertyHeaders.h"
 #include "MaterialLib/PorousMedium/Storage/Storage.h"
@@ -35,15 +35,15 @@ namespace ProcessLib
 class SpatialPosition;
 namespace ThermalTwoPhaseFlowWithPP
 {
-class ThermalTwoPhaseFlowWithPPMaterialProperties 
+class ThermalTwoPhaseFlowWithPPMaterialProperties
 {
-
 public:
     using ArrayType = MaterialLib::Fluid::FluidProperty::ArrayType;
 
     ThermalTwoPhaseFlowWithPPMaterialProperties(
-        std::unique_ptr<MaterialLib::TwoPhaseFlowWithPP::TwoPhaseFlowWithPPMaterialProperties>
-        two_phase_material_model,
+        std::unique_ptr<MaterialLib::TwoPhaseFlowWithPP::
+                            TwoPhaseFlowWithPPMaterialProperties>
+            two_phase_material_model,
         std::unique_ptr<MaterialLib::Fluid::FluidProperty>
             specific_heat_capacity_solid,
         std::unique_ptr<MaterialLib::Fluid::FluidProperty>
@@ -57,19 +57,7 @@ public:
         std::unique_ptr<MaterialLib::Fluid::FluidProperty>
             thermal_conductivity_wet_solid,
         std::unique_ptr<MaterialLib::Fluid::WaterVaporProperties>
-            water_vapor_properties,
-        std::vector<
-            std::unique_ptr<MaterialLib::PorousMedium::RelativePermeability>>&&
-            relative_permeability_models);
-
-    double getNonwetRelativePermeability(const double t,
-                                         const ProcessLib::SpatialPosition& pos,
-                                         const double p, const double T,
-                                         const double saturation) const;
-    double getWetRelativePermeability(const double t,
-                                      const ProcessLib::SpatialPosition& pos,
-                                      const double p, const double T,
-                                      const double saturation) const;
+            water_vapor_properties);
 
     double getSpecificHeatCapacitySolid(const double p, const double T) const;
     double getSpecificHeatCapacityWater(const double p, const double T) const;
@@ -87,38 +75,47 @@ public:
     double calculateSaturatedVaporPressure(const double T) const;
     /// partial water vapor pressure in nonwetting phase
     /// Kelvin equation
-    double calculateVaporPressureNonwet(const double pc, const double T, const double rho_mass_h2o) const;
+    double calculateVaporPressureNonwet(const double pc, const double T,
+                                        const double rho_mass_h2o) const;
     /// Derivative of SaturatedVaporPressure in terms of T
     double calculateDerivativedPsatdT(const double T) const;
     /// Derivative of partial vapor pressure in terms of T
-    double calculateDerivativedPgwdT(const double pc, const double T, const double rho_mass_h2o) const;
+    double calculateDerivativedPgwdT(const double pc, const double T,
+                                     const double rho_mass_h2o) const;
     /// Derivative of partial vapor pressure in terms of PC
-    double calculateDerivativedPgwdPC(const double pc, const double T, const double rho_mass_h2o) const;
+    double calculateDerivativedPgwdPC(const double pc, const double T,
+                                      const double rho_mass_h2o) const;
     ///
     double calculatedRhoNonwetdT(const double p_air_nonwet,
-        const double p_vapor_nonwetconst, double pc,
-        const double T, const double rho_mass_h2o) const;
+                                 const double p_vapor_nonwetconst, double pc,
+                                 const double T,
+                                 const double rho_mass_h2o) const;
 
     MaterialLib::TwoPhaseFlowWithPP::TwoPhaseFlowWithPPMaterialProperties*
-        getTwoPhaseMaterialModel() {
+    getTwoPhaseMaterialModel()
+    {
         return _two_phase_material_model.get();
     }
+
 protected:
-    std::unique_ptr<MaterialLib::TwoPhaseFlowWithPP::TwoPhaseFlowWithPPMaterialProperties> 
+    std::unique_ptr<
+        MaterialLib::TwoPhaseFlowWithPP::TwoPhaseFlowWithPPMaterialProperties>
         _two_phase_material_model;
 
-    std::unique_ptr<MaterialLib::Fluid::FluidProperty> _specific_heat_capacity_solid;
-    std::unique_ptr<MaterialLib::Fluid::FluidProperty> _specific_heat_capacity_water;
-    std::unique_ptr<MaterialLib::Fluid::FluidProperty> _specific_heat_capacity_air;
-    std::unique_ptr<MaterialLib::Fluid::FluidProperty> _specific_heat_capacity_vapor;
-    std::unique_ptr<MaterialLib::Fluid::FluidProperty> _thermal_conductivity_dry_solid;
-    std::unique_ptr<MaterialLib::Fluid::FluidProperty> _thermal_conductivity_wet_solid;
-    std::unique_ptr<MaterialLib::Fluid::WaterVaporProperties> _water_vapor_properties;
-
-    std::vector<
-        std::unique_ptr<MaterialLib::PorousMedium::RelativePermeability>>
-        _relative_permeability_models;
-
+    std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+        _specific_heat_capacity_solid;
+    std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+        _specific_heat_capacity_water;
+    std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+        _specific_heat_capacity_air;
+    std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+        _specific_heat_capacity_vapor;
+    std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+        _thermal_conductivity_dry_solid;
+    std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+        _thermal_conductivity_wet_solid;
+    std::unique_ptr<MaterialLib::Fluid::WaterVaporProperties>
+        _water_vapor_properties;
 };
 
 }  // end of namespace
