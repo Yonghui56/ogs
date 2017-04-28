@@ -25,38 +25,33 @@
 #include "ProcessLib/Parameter/Parameter.h"
 #include "ProcessLib/Parameter/SpatialPosition.h"
 
-/**
-* Regarding the details of the material propertiy functions
-* please refer to: Class H, Helmig R, Bastian P. Numerical simulation of
-* non- isothermal multiphase multicomponent processes in Porous Media¨C¨C1. An
-* efficient solution technique. Adv Water Resour, 2002.
-*/
-
-using MaterialLib::PhysicalConstant::MolarMass::Water;
-using MaterialLib::PhysicalConstant::MolarMass::Air;
-using MaterialLib::PhysicalConstant::IdealGasConstant;
 namespace ProcessLib
 {
+    using MaterialLib::PhysicalConstant::CelsiusZeroInKelvin;
+    using MaterialLib::PhysicalConstant::MolarMass::Water;
+    using MaterialLib::PhysicalConstant::MolarMass::Air;
+    using MaterialLib::PhysicalConstant::IdealGasConstant;
+
 namespace ThermalTwoPhaseFlowWithPP
 {
 ThermalTwoPhaseFlowWithPPMaterialProperties::
     ThermalTwoPhaseFlowWithPPMaterialProperties(
         std::unique_ptr<MaterialLib::TwoPhaseFlowWithPP::
-                            TwoPhaseFlowWithPPMaterialProperties>
+                            TwoPhaseFlowWithPPMaterialProperties>&&
             two_phase_material_model,
-        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+        std::unique_ptr<MaterialLib::Fluid::FluidProperty>&&
             specific_heat_capacity_solid,
-        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+        std::unique_ptr<MaterialLib::Fluid::FluidProperty>&&
             specific_heat_capacity_water,
-        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+        std::unique_ptr<MaterialLib::Fluid::FluidProperty>&&
             specific_heat_capacity_air,
-        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+        std::unique_ptr<MaterialLib::Fluid::FluidProperty>&&
             specific_heat_capacity_vapor,
-        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+        std::unique_ptr<MaterialLib::Fluid::FluidProperty>&&
             thermal_conductivity_dry_solid,
-        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+        std::unique_ptr<MaterialLib::Fluid::FluidProperty>&&
             thermal_conductivity_wet_solid,
-        std::unique_ptr<MaterialLib::Fluid::WaterVaporProperties>
+        std::unique_ptr<MaterialLib::Fluid::WaterVaporProperties>&&
             water_vapor_properties)
     : _two_phase_material_model(std::move(two_phase_material_model)),
       _specific_heat_capacity_solid(std::move(specific_heat_capacity_solid)),
@@ -138,7 +133,7 @@ ThermalTwoPhaseFlowWithPPMaterialProperties::calculateUnsatHeatConductivity(
     double const lambda_pm_wet) const
 {
     double lambda_pm =
-        lambda_pm_dry + std::pow(Sw, 0.5) * (lambda_pm_wet - lambda_pm_dry);
+        lambda_pm_dry + std::sqrt(Sw) * (lambda_pm_wet - lambda_pm_dry);
     if (Sw > 1)
         lambda_pm = lambda_pm_wet;
     else if (Sw < 0)
@@ -182,6 +177,28 @@ double ThermalTwoPhaseFlowWithPPMaterialProperties::calculatedRhoNonwetdT(
 {
     return _water_vapor_properties->calculatedRhoNonwetdT(
         p_air_nonwet, p_vapor_nonwet, pc, T, rho_mass_h2o);
+}
+
+double ThermalTwoPhaseFlowWithPPMaterialProperties::getWaterVaporEnthalpySimple(const double temperature,
+    const double heat_capacity_water_vapor,
+    const double pg) const
+{
+    return _water_vapor_properties->getWaterVaporEnthalpySimple(temperature, heat_capacity_water_vapor,pg);
+}
+
+double ThermalTwoPhaseFlowWithPPMaterialProperties::getAirEnthalpySimple(const double temperature,
+    const double heat_capacity_dry_air,
+    const double /*pg*/) const
+{
+    return heat_capacity_dry_air * (temperature - CelsiusZeroInKelvin) +
+        IdealGasConstant * (temperature - CelsiusZeroInKelvin) / Air;
+}
+
+double ThermalTwoPhaseFlowWithPPMaterialProperties::getLiquidWaterEnthalpySimple(const double temperature,
+    const double heat_capacity_liquid_water,
+    const double /*pl*/) const
+{
+    return heat_capacity_liquid_water * (temperature - CelsiusZeroInKelvin);
 }
 
 }  // end of namespace

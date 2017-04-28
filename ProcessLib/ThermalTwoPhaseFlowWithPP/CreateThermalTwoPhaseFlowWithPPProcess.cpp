@@ -37,16 +37,16 @@ std::unique_ptr<Process> createThermalTwoPhaseFlowWithPPProcess(
     config.checkConfigParameter("type", "THERMAL_TWOPHASE_WITH_PP");
 
     DBUG("Create nonisothermal two-phase flow model.");
-    //! \ogs_file_param{prj__processes__process__TWOPHASE_FLOW_PRHO__process_variables}
+    //! \ogs_file_param{prj__processes__process__TWOPHASE_FLOW_THERMAL__process_variables}
     auto const pv_config = config.getConfigSubtree("process_variables");
 
     auto process_variables = findProcessVariables(
         variables, pv_config,
-        {//! \ogs_file_param_special{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__process_variables__gas_pressure}
+        {//! \ogs_file_param_special{prj__processes__process__TWOPHASE_FLOW_THERMAL__process_variables__gas_pressure}
          "gas_pressure",
-         //! \ogs_file_param_special{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__process_variables__capillary_pressure}
+         //! \ogs_file_param_special{prj__processes__process__TWOPHASE_FLOW_THERMAL__process_variables__capillary_pressure}
          "capillary_pressure",
-         //! \ogs_file_param_special{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__process_variables__temperature}
+         //! \ogs_file_param_special{prj__processes__process__TWOPHASE_FLOW_THERMAL__process_variables__temperature}
          "temperature"});
 
     SecondaryVariableCollection secondary_variables;
@@ -58,7 +58,7 @@ std::unique_ptr<Process> createThermalTwoPhaseFlowWithPPProcess(
                                         named_function_caller);
     // Specific body force
     std::vector<double> const b =
-        //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__specific_body_force}
+        //! \ogs_file_param{prj__processes__process__TWOPHASE_FLOW_THERMAL__specific_body_force}
         config.getConfigParameter<std::vector<double>>("specific_body_force");
     assert(b.size() > 0 && b.size() < 4);
     Eigen::VectorXd specific_body_force(b.size());
@@ -66,35 +66,35 @@ std::unique_ptr<Process> createThermalTwoPhaseFlowWithPPProcess(
     if (has_gravity)
         std::copy_n(b.data(), b.size(), specific_body_force.data());
 
-    //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__mass_lumping}
+    //! \ogs_file_param{prj__processes__process__TWOPHASE_FLOW_THERMAL__mass_lumping}
     auto mass_lumping = config.getConfigParameter<bool>("mass_lumping");
     // diffusion coeff
     auto& diff_coeff_b = findParameter<double>(
         config,
-        //! \ogs_file_param_special{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__diffusion_coeff_component_b}
+        //! \ogs_file_param_special{prj__processes__process__TWOPHASE_FLOW_THERMAL__diffusion_coeff_component_b}
         "diffusion_coeff_component_b", parameters, 1);
     auto& diff_coeff_a = findParameter<double>(
         config,
-        //! \ogs_file_param_special{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__diffusion_coeff_component_a}
+        //! \ogs_file_param_special{prj__processes__process__TWOPHASE_FLOW_THERMAL__diffusion_coeff_component_a}
         "diffusion_coeff_component_a", parameters, 1);
 
     // Parameter for the density of the solid.
 
     auto& density_solid = findParameter<double>(
         config,
-        //! \ogs_file_param_special{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__density_solid}
+        //! \ogs_file_param_special{prj__processes__process__TWOPHASE_FLOW_THERMAL__density_solid}
         "density_solid", parameters, 1);
     DBUG("Use \'%s\' as density_solid parameter.", density_solid.name.c_str());
 
     // Parameter for the latent heat of evaporation.
     auto& latent_heat_evaporation = findParameter<double>(
         config,
-        //! \ogs_file_param_special{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__latent_heat_evaporation}
+        //! \ogs_file_param_special{prj__processes__process__TWOPHASE_FLOW_THERMAL__latent_heat_evaporation}
         "latent_heat_evaporation", parameters, 1);
     DBUG("Use \'%s\' as latent_heat_evaporation parameter.",
          latent_heat_evaporation.name.c_str());
 
-    //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__material_property}
+    //! \ogs_file_param{prj__processes__process__TWOPHASE_FLOW_THERMAL__material_property}
     auto const& mat_config = config.getConfigSubtree("material_property");
 
     auto const& mat_ids =

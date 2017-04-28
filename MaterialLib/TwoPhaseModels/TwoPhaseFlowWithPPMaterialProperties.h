@@ -56,15 +56,15 @@ public:
 
     TwoPhaseFlowWithPPMaterialProperties(
         boost::optional<MeshLib::PropertyVector<int> const&> const material_ids,
-        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+        std::unique_ptr<MaterialLib::Fluid::FluidProperty>&&
             liquid_density,
-        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+        std::unique_ptr<MaterialLib::Fluid::FluidProperty>&&
             liquid_viscosity,
-        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+        std::unique_ptr<MaterialLib::Fluid::FluidProperty>&&
             gas_density,
-        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+        std::unique_ptr<MaterialLib::Fluid::FluidProperty>&&
             gas_viscosity,
-        std::vector<Eigen::MatrixXd>
+        std::vector<Eigen::MatrixXd>&&
             intrinsic_permeability_models,
         std::vector<std::unique_ptr<MaterialLib::PorousMedium::Porosity>>&&
             porosity_models,
@@ -77,7 +77,7 @@ public:
             std::unique_ptr<MaterialLib::PorousMedium::RelativePermeability>>&&
             relative_permeability_models);
 
-    int getMaterialID(const std::size_t element_id);
+    int getMaterialID(const std::size_t element_id) const;
 
     Eigen::MatrixXd const& getPermeability(
         const int material_id,
@@ -113,27 +113,27 @@ public:
                                       const double p, const double T,
                                       const double saturation) const;
 
-protected:
+private:
     /** Use two phase models for different material zones.
     *  Material IDs must be given as mesh element properties.
     */
     boost::optional<MeshLib::PropertyVector<int> const&> const _material_ids;
 
-    std::unique_ptr<MaterialLib::Fluid::FluidProperty> _liquid_density;
-    std::unique_ptr<MaterialLib::Fluid::FluidProperty> _liquid_viscosity;
-    std::unique_ptr<MaterialLib::Fluid::FluidProperty> _gas_density;
-    std::unique_ptr<MaterialLib::Fluid::FluidProperty> _gas_viscosity;
+    std::unique_ptr<MaterialLib::Fluid::FluidProperty> const _liquid_density;
+    std::unique_ptr<MaterialLib::Fluid::FluidProperty> const _liquid_viscosity;
+    std::unique_ptr<MaterialLib::Fluid::FluidProperty> const _gas_density;
+    std::unique_ptr<MaterialLib::Fluid::FluidProperty> const _gas_viscosity;
 
-    std::vector<Eigen::MatrixXd> _intrinsic_permeability_models;
-    std::vector<std::unique_ptr<MaterialLib::PorousMedium::Porosity>>
+    std::vector<Eigen::MatrixXd> const _intrinsic_permeability_models;
+    std::vector<std::unique_ptr<MaterialLib::PorousMedium::Porosity>> const
         _porosity_models;
-    std::vector<std::unique_ptr<MaterialLib::PorousMedium::Storage>>
+    std::vector<std::unique_ptr<MaterialLib::PorousMedium::Storage>> const
         _storage_models;
     std::vector<
-        std::unique_ptr<MaterialLib::PorousMedium::CapillaryPressureSaturation>>
+        std::unique_ptr<MaterialLib::PorousMedium::CapillaryPressureSaturation>> const
         _capillary_pressure_models;
     std::vector<
-        std::unique_ptr<MaterialLib::PorousMedium::RelativePermeability>>
+        std::unique_ptr<MaterialLib::PorousMedium::RelativePermeability>> const
         _relative_permeability_models;
 };
 

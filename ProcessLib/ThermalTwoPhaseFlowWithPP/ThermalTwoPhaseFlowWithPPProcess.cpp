@@ -74,8 +74,7 @@ void ThermalTwoPhaseFlowWithPPProcess::assembleConcreteProcess(
     GlobalMatrix& M,
     GlobalMatrix& K,
     GlobalVector& b,
-    StaggeredCouplingTerm
-    const& coupling_term)
+    StaggeredCouplingTerm const& coupling_term)
 {
     DBUG("Assemble ThermalTwoPhaseFlowWithPPProcess.");
     // Call global assembler for each local assembly item.
@@ -87,8 +86,8 @@ void ThermalTwoPhaseFlowWithPPProcess::assembleConcreteProcess(
 void ThermalTwoPhaseFlowWithPPProcess::assembleWithJacobianConcreteProcess(
     const double t, GlobalVector const& x, GlobalVector const& xdot,
     const double dxdot_dx, const double dx_dx, GlobalMatrix& M, GlobalMatrix& K,
-    GlobalVector& b, GlobalMatrix& Jac, StaggeredCouplingTerm
-    const& coupling_term)
+    GlobalVector& b, GlobalMatrix& Jac,
+    StaggeredCouplingTerm const& coupling_term)
 {
     DBUG("AssembleWithJacobian ThermalTwoPhaseFlowWithPPProcess.");
 

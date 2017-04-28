@@ -28,7 +28,10 @@ namespace ThermalTwoPhaseFlowWithPP
 {
 /**
  * \brief A class to simulate the nonisothermal two-phase flow process
- * with phase change phenomena in porous media
+ * with phase change phenomena between wetting phase and nonwetting phase in
+ * porous media. Note that the phase change here can be caused by evaporation,
+ * or by condensation, or by dissolution. The phase appearance and vanish
+ * are also taken into account.
  */
 class ThermalTwoPhaseFlowWithPPProcess final : public Process
 {
@@ -54,11 +57,9 @@ private:
         NumLib::LocalToGlobalIndexMap const& dof_table,
         MeshLib::Mesh const& mesh, unsigned const integration_order) override;
 
-    void assembleConcreteProcess(const double t, GlobalVector const& x,
-        GlobalMatrix& M, GlobalMatrix& K,
-        GlobalVector& b,
-        StaggeredCouplingTerm const& coupling_term
-    ) override;
+    void assembleConcreteProcess(
+        const double t, GlobalVector const& x, GlobalMatrix& M, GlobalMatrix& K,
+        GlobalVector& b, StaggeredCouplingTerm const& coupling_term) override;
 
     void assembleWithJacobianConcreteProcess(
         const double t, GlobalVector const& x, GlobalVector const& xdot,

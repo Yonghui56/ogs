@@ -45,43 +45,42 @@ createThermalTwoPhaseFlowWithPPMaterialProperties(
             config, material_ids);
     auto two_phase_material_model =
         std::move(std::get<0>(two_phase_model_tuple));
-    //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__material_property__fluid}
     auto const& fluid_config = std::get<1>(two_phase_model_tuple);
 
     // Get fluid properties
     auto const& spec_heat_capacity_solid_conf =
-        //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__material_property__specific_heat_capacity_solid}
+        //! \ogs_file_param{prj__processes__process__TWOPHASE_FLOW_THERMAL__material_property__specific_heat_capacity_solid}
         fluid_config.getConfigSubtree("specific_heat_capacity_solid");
     auto specific_heat_capacity_solid =
         MaterialLib::Fluid::createSpecificFluidHeatCapacityModel(
             spec_heat_capacity_solid_conf);
     auto const& spec_heat_capacity_water_conf =
-        //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__material_property__specific_heat_capacity_water}
+        //! \ogs_file_param{prj__processes__process__TWOPHASE_FLOW_THERMAL__material_property__specific_heat_capacity_water}
         fluid_config.getConfigSubtree("specific_heat_capacity_water");
     auto specific_heat_capacity_water =
         MaterialLib::Fluid::createSpecificFluidHeatCapacityModel(
             spec_heat_capacity_water_conf);
     auto const& spec_heat_capacity_air_conf =
-        //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__material_property__specific_heat_capacity_air}
+        //! \ogs_file_param{prj__processes__process__TWOPHASE_FLOW_THERMAL__material_property__specific_heat_capacity_air}
         fluid_config.getConfigSubtree("specific_heat_capacity_air");
     auto specific_heat_capacity_air =
         MaterialLib::Fluid::createSpecificFluidHeatCapacityModel(
             spec_heat_capacity_air_conf);
     auto const& spec_heat_capacity_vapor_conf =
-        //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__material_property__specific_heat_capacity_vapor}
+        //! \ogs_file_param{prj__processes__process__TWOPHASE_FLOW_THERMAL__material_property__specific_heat_capacity_water_vapor}
         fluid_config.getConfigSubtree("specific_heat_capacity_vapor");
     auto specific_heat_capacity_vapor =
         MaterialLib::Fluid::createSpecificFluidHeatCapacityModel(
             spec_heat_capacity_vapor_conf);
 
     auto const& thermal_conductivity_dry_solid_conf =
-        //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__material_property__thermal_conductivity_dry_solid}
+        //! \ogs_file_param{prj__processes__process__TWOPHASE_FLOW_THERMAL__material_property__thermal_conductivity_dry_solid}
         fluid_config.getConfigSubtree("thermal_conductivity_dry_solid");
     auto thermal_conductivity_dry_solid =
         MaterialLib::Fluid::createFluidThermalConductivityModel(
             thermal_conductivity_dry_solid_conf);
     auto const& thermal_conductivity_wet_solid_conf =
-        //! \ogs_file_param{prj__processes__process__THERMAL_TWOPHASE_FLOW_PP__material_property__thermal_conductivity_wet_solid}
+        //! \ogs_file_param{prj__processes__process__TWOPHASE_FLOW_THERMAL__material_property__thermal_conductivity_wet_solid}
         fluid_config.getConfigSubtree("thermal_conductivity_wet_solid");
     auto thermal_conductivity_wet_solid =
         MaterialLib::Fluid::createFluidThermalConductivityModel(

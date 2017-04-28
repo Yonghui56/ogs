@@ -29,34 +29,44 @@ namespace MeshLib
 template <typename PROP_VAL_TYPE>
 class PropertyVector;
 }
-
+/** TODO
+* in this implementation, the thermal properties of gas component directly use
+* the properties of air,
+* e.g. the specific heat capacity of gas component use the specific heat
+* capacity of air, and since a constant specific heat capacity of air is
+* assumed, the enthalpy of air is calculated based on a simplified model.
+* Next, a strategy which can automatically(or from input file)switch between
+* different gas components is required, and should be implemented as a material
+* class, also different enthalpy models for different components are need to be
+* implemented.
+*/
 namespace ProcessLib
 {
 class SpatialPosition;
 namespace ThermalTwoPhaseFlowWithPP
 {
-class ThermalTwoPhaseFlowWithPPMaterialProperties
+class ThermalTwoPhaseFlowWithPPMaterialProperties final
 {
 public:
     using ArrayType = MaterialLib::Fluid::FluidProperty::ArrayType;
 
     ThermalTwoPhaseFlowWithPPMaterialProperties(
         std::unique_ptr<MaterialLib::TwoPhaseFlowWithPP::
-                            TwoPhaseFlowWithPPMaterialProperties>
+                            TwoPhaseFlowWithPPMaterialProperties>&&
             two_phase_material_model,
-        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+        std::unique_ptr<MaterialLib::Fluid::FluidProperty>&&
             specific_heat_capacity_solid,
-        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+        std::unique_ptr<MaterialLib::Fluid::FluidProperty>&&
             specific_heat_capacity_water,
-        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+        std::unique_ptr<MaterialLib::Fluid::FluidProperty>&&
             specific_heat_capacity_air,
-        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+        std::unique_ptr<MaterialLib::Fluid::FluidProperty>&&
             specific_heat_capacity_vapor,
-        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+        std::unique_ptr<MaterialLib::Fluid::FluidProperty>&&
             thermal_conductivity_dry_solid,
-        std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+        std::unique_ptr<MaterialLib::Fluid::FluidProperty>&&
             thermal_conductivity_wet_solid,
-        std::unique_ptr<MaterialLib::Fluid::WaterVaporProperties>
+        std::unique_ptr<MaterialLib::Fluid::WaterVaporProperties>&&
             water_vapor_properties);
 
     double getSpecificHeatCapacitySolid(const double p, const double T) const;
@@ -90,31 +100,42 @@ public:
                                  const double p_vapor_nonwetconst, double pc,
                                  const double T,
                                  const double rho_mass_h2o) const;
-
-    MaterialLib::TwoPhaseFlowWithPP::TwoPhaseFlowWithPPMaterialProperties*
-    getTwoPhaseMaterialModel()
+    /// Specific enthalpy of water vapor
+    double getWaterVaporEnthalpySimple(const double temperature,
+                                       const double heat_capacity_water_vapor,
+                                       const double pg) const;
+    /// Specific enthalpy of air
+    double getAirEnthalpySimple(const double temperature,
+                                const double heat_capacity_water_air,
+                                const double /*pg*/) const;
+    /// Specific enthalpy of liquid water
+    double getLiquidWaterEnthalpySimple(const double temperature,
+                                        const double heat_capacity_liquid_water,
+                                        const double /*pl*/) const;
+    const MaterialLib::TwoPhaseFlowWithPP::TwoPhaseFlowWithPPMaterialProperties&
+    getTwoPhaseMaterialModel() const
     {
-        return _two_phase_material_model.get();
+        return *_two_phase_material_model;
     }
 
-protected:
-    std::unique_ptr<
-        MaterialLib::TwoPhaseFlowWithPP::TwoPhaseFlowWithPPMaterialProperties>
+private:
+    std::unique_ptr<MaterialLib::TwoPhaseFlowWithPP::
+                        TwoPhaseFlowWithPPMaterialProperties> const
         _two_phase_material_model;
 
-    std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+    std::unique_ptr<MaterialLib::Fluid::FluidProperty> const
         _specific_heat_capacity_solid;
-    std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+    std::unique_ptr<MaterialLib::Fluid::FluidProperty> const
         _specific_heat_capacity_water;
-    std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+    std::unique_ptr<MaterialLib::Fluid::FluidProperty> const
         _specific_heat_capacity_air;
-    std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+    std::unique_ptr<MaterialLib::Fluid::FluidProperty> const
         _specific_heat_capacity_vapor;
-    std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+    std::unique_ptr<MaterialLib::Fluid::FluidProperty> const
         _thermal_conductivity_dry_solid;
-    std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+    std::unique_ptr<MaterialLib::Fluid::FluidProperty> const
         _thermal_conductivity_wet_solid;
-    std::unique_ptr<MaterialLib::Fluid::WaterVaporProperties>
+    std::unique_ptr<MaterialLib::Fluid::WaterVaporProperties> const
         _water_vapor_properties;
 };
 

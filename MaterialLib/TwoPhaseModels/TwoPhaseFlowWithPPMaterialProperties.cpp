@@ -11,6 +11,7 @@
 #include <logog/include/logog.hpp>
 #include <utility>
 #include "BaseLib/reorderVector.h"
+#include <boost/math/special_functions/math_fwd.hpp>
 #include "MaterialLib/Fluid/FluidProperty.h"
 #include "MaterialLib/PorousMedium/Porosity/Porosity.h"
 #include "MaterialLib/PorousMedium/Storage/Storage.h"
@@ -28,15 +29,15 @@ namespace TwoPhaseFlowWithPP
 {
 TwoPhaseFlowWithPPMaterialProperties::TwoPhaseFlowWithPPMaterialProperties(
     boost::optional<MeshLib::PropertyVector<int> const&> const material_ids,
-    std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+    std::unique_ptr<MaterialLib::Fluid::FluidProperty>&&
         liquid_density,
-    std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+    std::unique_ptr<MaterialLib::Fluid::FluidProperty>&&
         liquid_viscosity,
-    std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+    std::unique_ptr<MaterialLib::Fluid::FluidProperty>&&
         gas_density,
-    std::unique_ptr<MaterialLib::Fluid::FluidProperty>
+    std::unique_ptr<MaterialLib::Fluid::FluidProperty>&&
         gas_viscosity,
-    std::vector<Eigen::MatrixXd>
+    std::vector<Eigen::MatrixXd>&&
         intrinsic_permeability_models,
     std::vector<std::unique_ptr<MaterialLib::PorousMedium::Porosity>>&&
         porosity_models,
@@ -63,7 +64,7 @@ TwoPhaseFlowWithPPMaterialProperties::TwoPhaseFlowWithPPMaterialProperties(
 }
 
 int TwoPhaseFlowWithPPMaterialProperties::getMaterialID(
-    const std::size_t element_id)
+    const std::size_t element_id) const
 {
     if (!_material_ids)
     {
@@ -169,7 +170,7 @@ double TwoPhaseFlowWithPPMaterialProperties::getNonwetRelativePermeability(
     const double Se = (saturation - 0.15) / (1 - 0.15);
     if (saturation < 0.15)
         return 1.0;
-    return pow(1 - Se, 3);
+    return boost::math::pow<3>(1-Se);
 }
 
 double TwoPhaseFlowWithPPMaterialProperties::getWetRelativePermeability(
@@ -179,7 +180,7 @@ double TwoPhaseFlowWithPPMaterialProperties::getWetRelativePermeability(
     const double Se = (saturation - 0.15) / (1 - 0.15);
     if (Se < 0)
         return 0.0;
-    return pow(Se, 3);
+    return boost::math::pow<3>(Se);
 }
 }  // end of namespace
 }  // end of namespace
