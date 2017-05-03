@@ -8,7 +8,9 @@
 */
 
 #include "ThermalTwoPhaseFlowWithPPMaterialProperties.h"
+
 #include <logog/include/logog.hpp>
+
 #include "BaseLib/reorderVector.h"
 #include "MaterialLib/Fluid/FluidProperty.h"
 #include "MaterialLib/PorousMedium/Porosity/Porosity.h"
@@ -28,8 +30,6 @@
 namespace ProcessLib
 {
 using MaterialLib::PhysicalConstant::CelsiusZeroInKelvin;
-using MaterialLib::PhysicalConstant::MolarMass::Water;
-using MaterialLib::PhysicalConstant::MolarMass::Air;
 using MaterialLib::PhysicalConstant::IdealGasConstant;
 
 namespace ThermalTwoPhaseFlowWithPP
@@ -149,10 +149,10 @@ ThermalTwoPhaseFlowWithPPMaterialProperties::calculateSaturatedVaporPressure(
 }
 double
 ThermalTwoPhaseFlowWithPPMaterialProperties::calculateVaporPressureNonwet(
-    const double pc, const double T, const double rho_mass_h2o) const
+    const double pc, const double T, const double mass_density_water) const
 {
     return _water_vapor_properties->calculateVaporPressureNonwet(pc, T,
-                                                                 rho_mass_h2o);
+                                                                 mass_density_water);
 }
 double ThermalTwoPhaseFlowWithPPMaterialProperties::calculateDerivativedPsatdT(
     const double T) const
@@ -160,23 +160,23 @@ double ThermalTwoPhaseFlowWithPPMaterialProperties::calculateDerivativedPsatdT(
     return _water_vapor_properties->calculateDerivativedPsatdT(T);
 }
 double ThermalTwoPhaseFlowWithPPMaterialProperties::calculateDerivativedPgwdT(
-    const double pc, const double T, const double rho_mass_h2o) const
+    const double pc, const double T, const double mass_density_water) const
 {
     return _water_vapor_properties->calculateDerivativedPgwdT(pc, T,
-                                                              rho_mass_h2o);
+                                                              mass_density_water);
 }
 double ThermalTwoPhaseFlowWithPPMaterialProperties::calculateDerivativedPgwdPC(
-    const double pc, const double T, const double rho_mass_h2o) const
+    const double pc, const double T, const double mass_density_water) const
 {
     return _water_vapor_properties->calculateDerivativedPgwdPC(pc, T,
-                                                               rho_mass_h2o);
+                                                               mass_density_water);
 }
-double ThermalTwoPhaseFlowWithPPMaterialProperties::calculatedRhoNonwetdT(
+double ThermalTwoPhaseFlowWithPPMaterialProperties::calculatedDensityNonwetdT(
     const double p_air_nonwet, const double p_vapor_nonwet, const double pc,
-    const double T, const double rho_mass_h2o) const
+    const double T, const double mass_density_water) const
 {
-    return _water_vapor_properties->calculatedRhoNonwetdT(
-        p_air_nonwet, p_vapor_nonwet, pc, T, rho_mass_h2o);
+    return _water_vapor_properties->calculatedDensityNonwetdT(
+        p_air_nonwet, p_vapor_nonwet, pc, T, mass_density_water);
 }
 
 double ThermalTwoPhaseFlowWithPPMaterialProperties::getWaterVaporEnthalpySimple(
@@ -193,7 +193,7 @@ double ThermalTwoPhaseFlowWithPPMaterialProperties::getAirEnthalpySimple(
     const double /*pg*/) const
 {
     return heat_capacity_dry_air * (temperature - CelsiusZeroInKelvin) +
-           IdealGasConstant * (temperature - CelsiusZeroInKelvin) / Air;
+           IdealGasConstant * (temperature - CelsiusZeroInKelvin) / _air_mol_mass;
 }
 
 double

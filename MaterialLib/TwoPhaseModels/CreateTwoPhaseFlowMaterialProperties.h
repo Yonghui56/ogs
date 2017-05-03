@@ -11,11 +11,13 @@
 
 #include <memory>
 #include <tuple>
+
 #include "MaterialLib/Fluid/FluidPropertyHeaders.h"
 #include "MaterialLib/PorousMedium/Porosity/Porosity.h"
 #include "MaterialLib/PorousMedium/PorousPropertyHeaders.h"
 #include "MaterialLib/PorousMedium/Storage/Storage.h"
-#include "MaterialLib/TwoPhaseModels/TwoPhaseFlowWithPPMaterialProperties.h"
+
+#include "TwoPhaseFlowWithPPMaterialProperties.h"
 namespace BaseLib
 {
 class ConfigTree;

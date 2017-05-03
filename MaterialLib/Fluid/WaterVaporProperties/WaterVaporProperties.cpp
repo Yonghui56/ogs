@@ -10,14 +10,14 @@
  */
 
 #include "WaterVaporProperties.h"
+
 #include <array>
 #include <cmath>
+
 #include "MaterialLib/PhysicalConstant.h"
 
 namespace MaterialLib
 {
-using PhysicalConstant::MolarMass::Water;
-using PhysicalConstant::MolarMass::Air;
 using PhysicalConstant::IdealGasConstant;
 using PhysicalConstant::CelsiusZeroInKelvin;
 namespace Fluid
@@ -29,50 +29,50 @@ static const double h_wg = 2258000.0;  /// latent heat of water evaporation
 double WaterVaporProperties::calculateSaturatedVaporPressure(
     const double T) const
 {
-    return p_0 * std::exp(((1 / temperature_0) - (1 / T)) * Water * h_wg /
+    return p_0 * std::exp(((1 / temperature_0) - (1 / T)) * _water_mol_mass * h_wg /
                            IdealGasConstant);
 }
 
 double WaterVaporProperties::calculateDerivativedPsatdT(const double T) const
 {
-    return p_0 * (Water * h_wg / IdealGasConstant) * (1. / T / T) *
-           std::exp(((1. / temperature_0) - (1. / T)) * Water * h_wg /
+    return p_0 * (_water_mol_mass * h_wg / IdealGasConstant) * (1. / T / T) *
+           std::exp(((1. / temperature_0) - (1. / T)) * _water_mol_mass * h_wg /
                     IdealGasConstant);
 }
 
 double WaterVaporProperties::calculateVaporPressureNonwet(
-    const double pc /*capillary pressure*/, const double T /*temperature*/,
-    const double rho_mass_h2o /*mass density of water*/) const
+    const double pc, const double T,
+    const double mass_density_water) const
 {
     const double p_sat = calculateSaturatedVaporPressure(T);
-    const double c_w = Water / IdealGasConstant / T;
-    return p_sat * std::exp(-pc * c_w / rho_mass_h2o);
+    const double c_w = _water_mol_mass / IdealGasConstant / T;
+    return p_sat * std::exp(-pc * c_w / mass_density_water);
 }
 double WaterVaporProperties::calculateDerivativedPgwdT(
-    const double pc, const double T, const double rho_mass_h2o) const
+    const double pc, const double T, const double mass_density_water) const
 {
-    const double c_w = Water / IdealGasConstant / T;
+    const double c_w = _water_mol_mass / IdealGasConstant / T;
     const double p_sat = calculateSaturatedVaporPressure(T);
     const double dPsatdT = calculateDerivativedPsatdT(T);
-    return dPsatdT * std::exp(-pc * c_w / rho_mass_h2o) +
-           p_sat * std::exp(-pc * c_w / rho_mass_h2o) *
-               (pc * Water / rho_mass_h2o / IdealGasConstant / T / T);
+    return dPsatdT * std::exp(-pc * c_w / mass_density_water) +
+           p_sat * std::exp(-pc * c_w / mass_density_water) *
+               (pc * _water_mol_mass / mass_density_water / IdealGasConstant / T / T);
 }
 double WaterVaporProperties::calculateDerivativedPgwdPC(
-    const double pc, const double T, const double rho_mass_h2o) const
+    const double pc, const double T, const double mass_density_water) const
 {
-    const double c_w = Water / IdealGasConstant / T;
+    const double c_w = _water_mol_mass / IdealGasConstant / T;
     const double p_sat = calculateSaturatedVaporPressure(T);
-    return p_sat * std::exp(-pc * c_w / rho_mass_h2o) * (-c_w / rho_mass_h2o);
+    return p_sat * std::exp(-pc * c_w / mass_density_water) * (-c_w / mass_density_water);
 }
-double WaterVaporProperties::calculatedRhoNonwetdT(
+double WaterVaporProperties::calculatedDensityNonwetdT(
     const double p_air_nonwet, const double p_vapor_nonwet, const double pc,
-    const double T, const double rho_mass_h2o) const
+    const double T, const double mass_density_water) const
 {
-    const double dPgwdT = calculateDerivativedPgwdT(pc, T, rho_mass_h2o);
-    return -((p_air_nonwet * Air + p_vapor_nonwet * Water) / IdealGasConstant /
+    const double dPgwdT = calculateDerivativedPgwdT(pc, T, mass_density_water);
+    return -((p_air_nonwet * _air_mol_mass + p_vapor_nonwet * _water_mol_mass) / IdealGasConstant /
              T / T) +
-           (Water - Air) * dPgwdT / IdealGasConstant / T;
+           (_water_mol_mass - _air_mol_mass) * dPgwdT / IdealGasConstant / T;
 }
 double WaterVaporProperties::getWaterVaporEnthalpySimple(const double temperature,
     const double heat_capacity_water_vapor,

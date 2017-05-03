@@ -11,6 +11,7 @@
 
 #include <memory>
 #include <vector>
+
 #include "MaterialLib/Fluid/FluidPropertyHeaders.h"
 #include "MaterialLib/Fluid/WaterVaporProperties/WaterVaporProperties.h"
 #include "MaterialLib/PhysicalConstant.h"
@@ -86,20 +87,20 @@ public:
     /// partial water vapor pressure in nonwetting phase
     /// Kelvin equation
     double calculateVaporPressureNonwet(const double pc, const double T,
-                                        const double rho_mass_h2o) const;
+                                        const double mass_density_water) const;
     /// Derivative of SaturatedVaporPressure in terms of T
     double calculateDerivativedPsatdT(const double T) const;
     /// Derivative of partial vapor pressure in terms of T
     double calculateDerivativedPgwdT(const double pc, const double T,
-                                     const double rho_mass_h2o) const;
+                                     const double mass_density_water) const;
     /// Derivative of partial vapor pressure in terms of PC
     double calculateDerivativedPgwdPC(const double pc, const double T,
-                                      const double rho_mass_h2o) const;
+                                      const double mass_density_water) const;
     ///
-    double calculatedRhoNonwetdT(const double p_air_nonwet,
+    double calculatedDensityNonwetdT(const double p_air_nonwet,
                                  const double p_vapor_nonwetconst, double pc,
                                  const double T,
-                                 const double rho_mass_h2o) const;
+                                 const double mass_density_water) const;
     /// Specific enthalpy of water vapor
     double getWaterVaporEnthalpySimple(
         const double temperature,
@@ -121,6 +122,7 @@ public:
     }
 
 private:
+    double const& _air_mol_mass = MaterialLib::PhysicalConstant::MolarMass::Air;
     std::unique_ptr<MaterialLib::TwoPhaseFlowWithPP::
                         TwoPhaseFlowWithPPMaterialProperties> const
         _two_phase_material_model;

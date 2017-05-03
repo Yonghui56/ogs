@@ -13,6 +13,7 @@
 #include <array>
 #include <string>
 
+#include "MaterialLib/PhysicalConstant.h"
 namespace MaterialLib
 {
 namespace Fluid
@@ -21,7 +22,7 @@ namespace Fluid
 * This class provides a series of functions to calculate the water vapor
 * properties, including the saturation vapor pressure calculation(Kelvin
 * equation regularized vapor pressure), and corresponding derivatives
-* calculations.
+* calculations. The unit of temperature used here are all in Kelvin.
 */
 class WaterVaporProperties
 {
@@ -34,25 +35,31 @@ public:
     double calculateDerivativedPsatdT(const double T) const;
     /// partial water vapor pressure in nonwetting phase
     /// Kelvin equation
+    /// \param pc  capillary pressure
+    /// \param T   temperature
+    /// \param mass_density_water   mass density of water
     double calculateVaporPressureNonwet(
-        const double pc /*capillary pressure*/, const double T /*temperature*/,
-        const double rho_mass_h2o /*mass density of water*/) const;
+        const double pc, const double T,
+        const double mass_density_water) const;
     /// Derivative of partial vapor pressure in terms of T
     double calculateDerivativedPgwdT(const double pc, const double T,
-                                     const double rho_mass_h2o) const;
+                                     const double mass_density_water) const;
     /// Derivative of partial vapor pressure in terms of PC
     double calculateDerivativedPgwdPC(const double pc, const double T,
-                                      const double rho_mass_h2o) const;
+                                      const double mass_density_water) const;
     /// Derivative of vapor density in terms of T
-    double calculatedRhoNonwetdT(const double p_air_nonwet,
+    double calculatedDensityNonwetdT(const double p_air_nonwet,
                                  const double p_vapor_nonwet, const double pc,
                                  const double T,
-                                 const double rho_mass_h2o) const;
+                                 const double mass_density_water) const;
     /// Specific enthalpy of water vapor
     double getWaterVaporEnthalpySimple(const double temperature,
         const double heat_capacity_water_vapor,
         const double /*pressure*/,
         const double /*latent_heat_evaporation*/) const;
+private:
+    const double& _water_mol_mass = PhysicalConstant::MolarMass::Water;
+    const double& _air_mol_mass = PhysicalConstant::MolarMass::Air;
 };
 
 }  // end namespace

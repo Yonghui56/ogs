@@ -8,10 +8,12 @@
  */
 
 #include "TwoPhaseFlowWithPPMaterialProperties.h"
+
+#include <boost/math/special_functions/pow.hpp>
 #include <logog/include/logog.hpp>
 #include <utility>
+
 #include "BaseLib/reorderVector.h"
-#include <boost/math/special_functions/pow.hpp>
 #include "MaterialLib/Fluid/FluidProperty.h"
 #include "MaterialLib/PorousMedium/Porosity/Porosity.h"
 #include "MaterialLib/PorousMedium/Storage/Storage.h"
@@ -29,16 +31,11 @@ namespace TwoPhaseFlowWithPP
 {
 TwoPhaseFlowWithPPMaterialProperties::TwoPhaseFlowWithPPMaterialProperties(
     boost::optional<MeshLib::PropertyVector<int> const&> const material_ids,
-    std::unique_ptr<MaterialLib::Fluid::FluidProperty>&&
-        liquid_density,
-    std::unique_ptr<MaterialLib::Fluid::FluidProperty>&&
-        liquid_viscosity,
-    std::unique_ptr<MaterialLib::Fluid::FluidProperty>&&
-        gas_density,
-    std::unique_ptr<MaterialLib::Fluid::FluidProperty>&&
-        gas_viscosity,
-    std::vector<Eigen::MatrixXd>&&
-        intrinsic_permeability_models,
+    std::unique_ptr<MaterialLib::Fluid::FluidProperty>&& liquid_density,
+    std::unique_ptr<MaterialLib::Fluid::FluidProperty>&& liquid_viscosity,
+    std::unique_ptr<MaterialLib::Fluid::FluidProperty>&& gas_density,
+    std::unique_ptr<MaterialLib::Fluid::FluidProperty>&& gas_viscosity,
+    std::vector<Eigen::MatrixXd>&& intrinsic_permeability_models,
     std::vector<std::unique_ptr<MaterialLib::PorousMedium::Porosity>>&&
         porosity_models,
     std::vector<std::unique_ptr<MaterialLib::PorousMedium::Storage>>&&
@@ -170,7 +167,7 @@ double TwoPhaseFlowWithPPMaterialProperties::getNonwetRelativePermeability(
     const double Se = (saturation - 0.15) / (1 - 0.15);
     if (saturation < 0.15)
         return 1.0;
-    return boost::math::pow<3>(1-Se);
+    return boost::math::pow<3>(1 - Se);
 }
 
 double TwoPhaseFlowWithPPMaterialProperties::getWetRelativePermeability(

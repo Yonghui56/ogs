@@ -7,7 +7,9 @@
  *
  */
 #include "CreateThermalTwoPhaseFlowWithPPProcess.h"
+
 #include <cassert>
+
 #include "BaseLib/Functional.h"
 #include "MeshLib/MeshGenerators/MeshGenerator.h"
 #include "ProcessLib/Parameter/ConstantParameter.h"
@@ -15,6 +17,7 @@
 #include "ProcessLib/ThermalTwoPhaseFlowWithPP/ThermalTwoPhaseFlowWithPPMaterialProperties.h"
 #include "ProcessLib/Utils/ParseSecondaryVariables.h"
 #include "ProcessLib/Utils/ProcessUtils.h"
+
 #include "ThermalTwoPhaseFlowWithPPProcess.h"
 #include "ThermalTwoPhaseFlowWithPPProcessData.h"
 
