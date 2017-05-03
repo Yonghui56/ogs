@@ -101,9 +101,11 @@ public:
                                  const double T,
                                  const double rho_mass_h2o) const;
     /// Specific enthalpy of water vapor
-    double getWaterVaporEnthalpySimple(const double temperature,
-                                       const double heat_capacity_water_vapor,
-                                       const double pg) const;
+    double getWaterVaporEnthalpySimple(
+        const double temperature,
+        const double heat_capacity_water_vapor,
+        const double pg,
+        const double latent_heat_evaporation) const;
     /// Specific enthalpy of air
     double getAirEnthalpySimple(const double temperature,
                                 const double heat_capacity_water_air,

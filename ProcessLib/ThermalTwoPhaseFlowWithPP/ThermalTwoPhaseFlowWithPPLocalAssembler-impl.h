@@ -37,10 +37,8 @@
 * internal_energy_nonwet        specific internal energy for the nonwetting phase
 * internal_energy_wet           specific internal energy for the wetting phase
 * heat_conductivity_dry_solid   heat conductivity of the dry porous medium
-* heat_conductivity_wet_solid   heat conductivity of the fully saturated porous
-* medium
-* heat_conductivity_unsaturated   heat conductivity of the unsaturated porous
-* medium
+* heat_conductivity_wet_solid   heat conductivity of the fully saturated porous medium
+* heat_conductivity_unsaturated   heat conductivity of the unsaturated porous medium
 */
 #pragma once
 
@@ -63,12 +61,10 @@ void ThermalTwoPhaseFlowWithPPLocalAssembler<
                          std::vector<double>& local_K_data,
                          std::vector<double>& local_b_data)
 {
-    using MaterialLib::PhysicalConstant::CelsiusZeroInKelvin;
-    using MaterialLib::PhysicalConstant::MolarMass::Water;
-    using MaterialLib::PhysicalConstant::MolarMass::Air;
     using MaterialLib::PhysicalConstant::IdealGasConstant;
-    auto const& water_mol_mass = Water;
-    auto const& air_mol_mass = Air;
+    auto const& water_mol_mass =
+        MaterialLib::PhysicalConstant::MolarMass::Water;
+    auto const& air_mol_mass = MaterialLib::PhysicalConstant::MolarMass::Air;
 
     auto const local_matrix_size = local_x.size();
 
@@ -241,7 +237,6 @@ void ThermalTwoPhaseFlowWithPPLocalAssembler<
         double const heat_capacity_solid =
             _process_data.material->getSpecificHeatCapacitySolid(pg_int_pt,
                                                                  T_int_pt);
-
         double const latent_heat_evaporation =
             _process_data.latent_heat_evaporation(t, pos)[0];
 
@@ -255,7 +250,8 @@ void ThermalTwoPhaseFlowWithPPLocalAssembler<
 
         double const enthalpy_nonwet_vapor =
             _process_data.material->getWaterVaporEnthalpySimple(
-                T_int_pt, heat_capacity_water_vapor, pg_int_pt);
+                T_int_pt, heat_capacity_water_vapor, pg_int_pt,
+                latent_heat_evaporation);
         double const enthalpy_nonwet =
             enthalpy_nonwet_gas * X_gas_nonwet +
             enthalpy_nonwet_vapor * (1 - X_gas_nonwet);

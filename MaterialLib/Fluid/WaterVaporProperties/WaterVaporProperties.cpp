@@ -76,7 +76,8 @@ double WaterVaporProperties::calculatedRhoNonwetdT(
 }
 double WaterVaporProperties::getWaterVaporEnthalpySimple(const double temperature,
     const double heat_capacity_water_vapor,
-    const double /*pressure*/) const
+    const double /*pressure*/,
+    const double /*latent_heat_evaporation*/) const
 {
     return heat_capacity_water_vapor * (temperature - CelsiusZeroInKelvin) +
         h_wg;

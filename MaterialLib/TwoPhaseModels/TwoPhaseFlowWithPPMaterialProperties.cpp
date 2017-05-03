@@ -11,7 +11,7 @@
 #include <logog/include/logog.hpp>
 #include <utility>
 #include "BaseLib/reorderVector.h"
-#include <boost/math/special_functions/math_fwd.hpp>
+#include <boost/math/special_functions/pow.hpp>
 #include "MaterialLib/Fluid/FluidProperty.h"
 #include "MaterialLib/PorousMedium/Porosity/Porosity.h"
 #include "MaterialLib/PorousMedium/Storage/Storage.h"

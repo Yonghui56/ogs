@@ -27,10 +27,10 @@
 
 namespace ProcessLib
 {
-    using MaterialLib::PhysicalConstant::CelsiusZeroInKelvin;
-    using MaterialLib::PhysicalConstant::MolarMass::Water;
-    using MaterialLib::PhysicalConstant::MolarMass::Air;
-    using MaterialLib::PhysicalConstant::IdealGasConstant;
+using MaterialLib::PhysicalConstant::CelsiusZeroInKelvin;
+using MaterialLib::PhysicalConstant::MolarMass::Water;
+using MaterialLib::PhysicalConstant::MolarMass::Air;
+using MaterialLib::PhysicalConstant::IdealGasConstant;
 
 namespace ThermalTwoPhaseFlowWithPP
 {
@@ -179,22 +179,26 @@ double ThermalTwoPhaseFlowWithPPMaterialProperties::calculatedRhoNonwetdT(
         p_air_nonwet, p_vapor_nonwet, pc, T, rho_mass_h2o);
 }
 
-double ThermalTwoPhaseFlowWithPPMaterialProperties::getWaterVaporEnthalpySimple(const double temperature,
-    const double heat_capacity_water_vapor,
-    const double pg) const
+double ThermalTwoPhaseFlowWithPPMaterialProperties::getWaterVaporEnthalpySimple(
+    const double temperature, const double heat_capacity_water_vapor,
+    const double pg, const double latent_heat_evaporation) const
 {
-    return _water_vapor_properties->getWaterVaporEnthalpySimple(temperature, heat_capacity_water_vapor,pg);
+    return _water_vapor_properties->getWaterVaporEnthalpySimple(
+        temperature, heat_capacity_water_vapor, pg, latent_heat_evaporation);
 }
 
-double ThermalTwoPhaseFlowWithPPMaterialProperties::getAirEnthalpySimple(const double temperature,
+double ThermalTwoPhaseFlowWithPPMaterialProperties::getAirEnthalpySimple(
+    const double temperature,
     const double heat_capacity_dry_air,
     const double /*pg*/) const
 {
     return heat_capacity_dry_air * (temperature - CelsiusZeroInKelvin) +
-        IdealGasConstant * (temperature - CelsiusZeroInKelvin) / Air;
+           IdealGasConstant * (temperature - CelsiusZeroInKelvin) / Air;
 }
 
-double ThermalTwoPhaseFlowWithPPMaterialProperties::getLiquidWaterEnthalpySimple(const double temperature,
+double
+ThermalTwoPhaseFlowWithPPMaterialProperties::getLiquidWaterEnthalpySimple(
+    const double temperature,
     const double heat_capacity_liquid_water,
     const double /*pl*/) const
 {

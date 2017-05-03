@@ -51,7 +51,8 @@ public:
     /// Specific enthalpy of water vapor
     double getWaterVaporEnthalpySimple(const double temperature,
         const double heat_capacity_water_vapor,
-        const double /*pressure*/) const;
+        const double /*pressure*/,
+        const double /*latent_heat_evaporation*/) const;
 };
 
 }  // end namespace
