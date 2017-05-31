@@ -286,6 +286,7 @@ double TwoPhaseFlowWithPPMaterialProperties::getgasDiffCoeff(
                          // and 6 (stick condition)
     double const R_h = 1.72e-10;  // hydrodynamic radius of the solute
     const double mu = gasViscosity(temperature, pressure, rho_co2);  // CO2 viscosity
+    const double M_PI = 3.14159265358979323846;
     return k / (c * M_PI * R_h) * (temperature / mu);
 }
 
