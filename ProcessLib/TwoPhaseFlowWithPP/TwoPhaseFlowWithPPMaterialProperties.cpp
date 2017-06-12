@@ -164,6 +164,14 @@ double TwoPhaseFlowWithPPMaterialProperties::getSaturation(
     return _capillary_pressure_models[material_id]->getSaturation(pc);
     
 }
+double TwoPhaseFlowWithPPMaterialProperties::getCapillaryPressure(
+    const int material_id, const double /*t*/,
+    const ProcessLib::SpatialPosition& /*pos*/, const double /*p*/,
+    const double /*T*/, const double saturation) const
+{
+    return _capillary_pressure_models[material_id]->getCapillaryPressure(
+        saturation);
+}
 double TwoPhaseFlowWithPPMaterialProperties::getSaturationDerivative(
     const int material_id, const double /*t*/,
     const ProcessLib::SpatialPosition& /*pos*/, const double /*p*/,

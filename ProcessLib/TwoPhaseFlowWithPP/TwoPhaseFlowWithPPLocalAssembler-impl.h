@@ -122,22 +122,27 @@ void TwoPhaseFlowWithPPLocalAssembler<
         double pn_int_pt = 0.;
         NumLib::shapeFunctionInterpolate(local_x, sm.N, pn_int_pt, pc_int_pt);
         _pressure_wet[ip] = pn_int_pt - pc_int_pt;
-
+        pc_int_pt = 4e+5;
         const double temperature = _process_data.temperature(t, pos)[0];
         double const rho_nonwet =
             _process_data.material->getGasDensity(pn_int_pt, temperature);
         double const rho_wet = _process_data.material->getLiquidDensity(
             _pressure_wet[ip], temperature);
 
-        double const Sw = (pc_int_pt<0) ? 1 : _process_data.material->getSaturation(
+        double Sw = (pc_int_pt<0) ? 1 : _process_data.material->getSaturation(
             material_id, t, pos, pn_int_pt, temperature, pc_int_pt);
-
+        double pc_test= _process_data.material->getCapillaryPressure(material_id, t, pos, pn_int_pt, temperature, 0.409347627722080);
+        double const pc_max = _process_data.material->getCapillaryPressure(material_id, t, pos, pn_int_pt, temperature, 0);
+        if (pc_int_pt >= pc_max)
+            Sw = 0;
         _saturation[ip] = Sw;
 
         double dSw_dpc = (pc_int_pt < 0) ? 0 : _process_data.material->getSaturationDerivative(
             material_id, t, pos, pn_int_pt, temperature, Sw);
-        if (pc_int_pt > 4e+5)
+        if (pc_int_pt > 4e+5 && pc_int_pt < pc_max)
             dSw_dpc = (-0.409347627722080 / 4e+5);
+        else if (pc_int_pt >= pc_max)
+            dSw_dpc = 0;
 
         double const porosity = _process_data.material->getPorosity(
             material_id, t, pos, pn_int_pt, temperature, 0);
@@ -153,6 +158,7 @@ void TwoPhaseFlowWithPPLocalAssembler<
             d_kelvin_term_d_pc = 0;
         }
         double const x_vapor_nonwet = get_x_nonwet_vapor(pn_int_pt, p_sat, kelvin_term);
+        double const x_vapor_nonwet_test = p_sat / pn_int_pt;
         double const x_water_wet = pn_int_pt*x_vapor_nonwet*kelvin_term / p_sat;
         double const x_air_nonwet = 1- x_vapor_nonwet;
         double const x_air_wet = pn_int_pt*x_air_nonwet / _hen_L_air;
@@ -185,15 +191,15 @@ void TwoPhaseFlowWithPPLocalAssembler<
         Mgp.noalias() +=
             porosity * (d_rho_mol_nonwet_d_pg*(1 - Sw)*x_air_nonwet + rho_mol_nonwet*(1 - Sw)*d_x_air_nonwet_d_pg
                 + rho_mol_wet * Sw* d_x_air_nonwet_d_pg*pn_int_pt / _hen_L_air
-                + rho_mol_wet*Sw*x_air_wet / _hen_L_air)
+                + rho_mol_wet*Sw*x_air_nonwet / _hen_L_air)
             * _ip_data[ip].massOperator;//dpn
         Mgpc.noalias() +=
-            porosity * ((rho_mol_wet*x_air_nonwet-rho_mol_nonwet*x_air_nonwet) * dSw_dpc +
+            porosity * ((rho_mol_wet*x_air_wet-rho_mol_nonwet*x_air_nonwet) * dSw_dpc +
                 Sw*d_rho_mol_wet_d_pc*x_air_wet
                 +Sw*rho_mol_wet*d_x_air_wet_d_pc)* _ip_data[ip].massOperator;//dpc
 
         Mlp.noalias() += porosity *(d_rho_mol_nonwet_d_pg*(1 - Sw)
-            + d_rho_mol_wet_d_pg *Sw)*_ip_data[ip].massOperator;//dpn
+            + d_rho_mol_wet_d_pg *Sw)*_ip_data[ip].massOperator;//dpn rho_mol_nonwet *SG + rhol_mol_wet*SL
         Mlpc.noalias() +=
             porosity * (dSw_dpc * (rho_mol_wet-rho_mol_nonwet) +d_rho_mol_wet_d_pc*Sw)
             * _ip_data[ip].massOperator;//dpc
@@ -268,6 +274,8 @@ void TwoPhaseFlowWithPPLocalAssembler<
                     Mgp(row, column) = 0.0;
                     Mlpc(row, row) += Mlpc(row, column);
                     Mlpc(row, column) = 0.0;
+                    Mlp(row, row) += Mlp(row, column);
+                    Mlp(row, column) = 0.0;
                 }
             }
         }

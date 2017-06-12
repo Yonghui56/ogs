@@ -181,7 +181,8 @@ private:
 
     const double get_x_nonwet_vapor(double pg, double p_sat, double kelvin_term)
     {
-
+        //if (pg < p_sat)
+            //return 0;
         return (1 - pg/_hen_L_air)/(pg*kelvin_term/p_sat -pg/_hen_L_air);
     }
 
@@ -189,6 +190,8 @@ private:
         double const p_sat,
         double const kelvin_term)
     {
+        //if (pg < p_sat)
+            //return 0;
         return (1 / (kelvin_term / p_sat - 1 / _hen_L_air)) * (-1 / pg / pg);
     }
 
