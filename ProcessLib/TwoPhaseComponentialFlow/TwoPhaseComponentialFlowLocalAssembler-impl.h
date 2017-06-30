@@ -90,6 +90,8 @@ void TwoPhaseComponentialFlowLocalAssembler<
         _process_data._interpolated_Q_slow;
     MathLib::PiecewiseLinearInterpolation const& interpolated_Q_fast =
         _process_data._interpolated_Q_fast;
+    MathLib::PiecewiseLinearInterpolation const& interpolated_kinetic_rate =
+        _process_data._interpolated_kinetic_rate;
     for (unsigned ip = 0; ip < n_integration_points; ip++)
     {
         Eigen::VectorXd F_vec_coeff = Eigen::VectorXd::Zero(NUM_NODAL_DOF);
@@ -248,15 +250,22 @@ void TwoPhaseComponentialFlowLocalAssembler<
             x_wet_h2o / x_wet_h2o;
 
         // calculate the carbonation and ASR source/sink term
+        // For the backfill part
         double& rho_mol_sio2_wet_backfill = _ip_data[ip].rho_mol_sio2_backfill;
         double& rho_mol_co2_cumul_total_backfill =
             _ip_data[ip].rho_mol_co2_cumul_total_backfill;  // get cumulative co2
         double& porosity2 = _ip_data[ip].porosity_backfill;
         double rho_mol_total_co2_backfill = 0.;
-        //for the waste part
+        double rho_mol_co2_kinetic_rate_backfill = 0.;
+        const double rho_co2_max_consume = 8500;
+        // for the waste part
         double& porosity3= _ip_data[ip].porosity_waste;
         double& rho_mol_co2_cumul_total_waste = _ip_data[ip].rho_mol_co2_cumul_total_waste;
         double rho_mol_total_co2_waste = 0.;
+
+        //saturation dependent
+        double bazant_power = pow(1 + pow(7.5 - 7.5*Sw, 4), -1);
+
         if (_process_data._material->getMaterialID(pos.getElementID().get()) ==
             0)//backfill
         {
@@ -268,6 +277,24 @@ void TwoPhaseComponentialFlowLocalAssembler<
             rho_mol_total_co2_backfill = _ip_data[ip].porosity_prev_backfill *
                 (rho_mol_nonwet * X3_int_pt * (1 - Sw) +
                     rho_mol_wet * X_L_co2_gp * Sw);
+            double rho_mol_co2_consume_rate_backfill = rho_mol_total_co2_backfill / dt;
+
+            //rho_mol_co2_consume_rate_backfill =
+                //(rho_mol_co2_consume_rate_backfill < 0) ? 0.0 : rho_mol_co2_consume_rate_backfill;
+
+            double const dcarb_rate= 
+                interpolated_kinetic_rate.getValue(rho_mol_co2_cumul_total_backfill*100 / rho_co2_max_consume);
+            double const dcarb_rate_analytic
+                = 0.04*(94.32 - rho_mol_co2_cumul_total_backfill*100 / rho_co2_max_consume);
+            rho_mol_co2_kinetic_rate_backfill =
+                bazant_power*rho_co2_max_consume*dcarb_rate;
+            // impose a max rate bound
+            if (rho_mol_co2_kinetic_rate_backfill > rho_mol_co2_consume_rate_backfill)
+                //rho_mol_co2_kinetic_rate_backfill = rho_mol_co2_consume_rate_backfill;
+                rho_mol_co2_kinetic_rate_backfill =
+                (rho_mol_co2_consume_rate_backfill < 0) ? 0.0 : rho_mol_co2_consume_rate_backfill;
+            else
+                rho_mol_co2_kinetic_rate_backfill = rho_mol_co2_kinetic_rate_backfill;
             // get the pH value at this iteration based cumulated dissovled quatz and
             // cumulated co2
             double const pH = bi_interpolation(
@@ -275,7 +302,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
                 _ip_data[ip].rho_mol_co2_cumul_total_prev_backfill, _pH_at_supp_pnt_backfill);
             _pH_value[ip] = pH;//update the secondary variable
         }
-        else//waste
+        else//waste matrix
         {
             // calculate the current ammount of co2
             // calculate the total amount of co2 in this element(gp), which should
@@ -621,12 +648,13 @@ void TwoPhaseComponentialFlowLocalAssembler<
                 // update the current cumulated co2 consumption
                 rho_mol_co2_cumul_total_backfill =
                     _ip_data[ip].rho_mol_co2_cumul_total_prev_backfill +
-                    rho_mol_total_co2_backfill;
+                    rho_mol_co2_kinetic_rate_backfill*dt;
                 // co2 consumption
-                F_vec_coeff(2) -= (rho_mol_total_co2_backfill / dt);
+                F_vec_coeff(2) -= rho_mol_co2_kinetic_rate_backfill;
+                    //(rho_mol_total_co2_backfill / dt);
                 // water source/sink term
                 F_vec_coeff(4) +=
-                    (fluid_volume_rate) - (rho_mol_total_co2_backfill / dt);
+                    (fluid_volume_rate) -rho_mol_co2_kinetic_rate_backfill;
                 // update the amount of dissolved sio2
                 rho_mol_sio2_wet_backfill =
                     _ip_data[ip].rho_mol_sio2_prev_backfill -

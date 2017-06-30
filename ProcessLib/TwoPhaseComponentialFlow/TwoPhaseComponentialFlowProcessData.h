@@ -33,7 +33,9 @@ struct TwoPhaseComponentialFlowProcessData
         Parameter<double> const& temperature_,
         std::unique_ptr<TwoPhaseComponentialFlowMaterialProperties>&& material_,
         MathLib::PiecewiseLinearInterpolation const& interpolated_Q_slow_,
-        MathLib::PiecewiseLinearInterpolation const& interpolated_Q_fast_)
+        MathLib::PiecewiseLinearInterpolation const& interpolated_Q_fast_,
+        MathLib::PiecewiseLinearInterpolation const& interpolated_kinetic_rate_
+        )
         : _specific_body_force(specific_body_force_),
           _has_gravity(has_gravity_),
           _has_mass_lumping(has_mass_lumping_),
@@ -42,7 +44,9 @@ struct TwoPhaseComponentialFlowProcessData
           _temperature(temperature_),
           _material(std::move(material_)),
           _interpolated_Q_slow(interpolated_Q_slow_),
-          _interpolated_Q_fast(interpolated_Q_fast_)
+          _interpolated_Q_fast(interpolated_Q_fast_),
+          _interpolated_kinetic_rate(interpolated_kinetic_rate_)
+
 
     {
     }
@@ -57,6 +61,7 @@ struct TwoPhaseComponentialFlowProcessData
           _material(std::move(other._material)),
         _interpolated_Q_slow(other._interpolated_Q_slow),
         _interpolated_Q_fast(other._interpolated_Q_fast),
+        _interpolated_kinetic_rate(other._interpolated_kinetic_rate),
         _dt{ other._dt }
     {
     }
@@ -80,6 +85,7 @@ struct TwoPhaseComponentialFlowProcessData
     std::unique_ptr<TwoPhaseComponentialFlowMaterialProperties> _material;
     MathLib::PiecewiseLinearInterpolation const& _interpolated_Q_slow;
     MathLib::PiecewiseLinearInterpolation const& _interpolated_Q_fast;
+    MathLib::PiecewiseLinearInterpolation const& _interpolated_kinetic_rate;
     double _dt = 0;
 };
 

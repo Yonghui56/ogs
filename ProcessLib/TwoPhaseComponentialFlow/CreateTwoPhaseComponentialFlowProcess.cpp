@@ -112,7 +112,8 @@ std::unique_ptr<Process> createTwoPhaseComponentialFlowProcess(
     TwoPhaseComponentialFlowProcessData process_data{
         specific_body_force, has_gravity, mass_lumping,       diff_coeff_b,
         diff_coeff_a,        temperature, std::move(material), *curves.at("curveA"),
-        *curves.at("curveB") };
+        *curves.at("curveB"),*curves.at("curveC") };
+
 
     return std::unique_ptr<Process>{new TwoPhaseComponentialFlowProcess{
         mesh, std::move(jacobian_assembler), parameters, integration_order,
