@@ -723,6 +723,8 @@ bool UncoupledProcessesTimeLoop::loop()
 
     // init solution storage
     _process_solutions = setInitialConditions(_start_time, _per_process_data);
+    _process_solutions_prev =
+        setInitialConditions(_start_time, _per_process_data);
 
     // output initial conditions
     {
@@ -1021,6 +1023,8 @@ bool UncoupledProcessesTimeLoop::solveCoupledEquationSystemsByStaggeredScheme(
         }
 
         auto& pcs = spd->process;
+        *_process_solutions_prev[pcs_idx] = *_process_solutions[pcs_idx];
+
         auto& x = *_process_solutions[pcs_idx];
         pcs.postTimestep(x);
 
@@ -1039,6 +1043,9 @@ bool UncoupledProcessesTimeLoop::solveCoupledEquationSystemsByStaggeredScheme(
 UncoupledProcessesTimeLoop::~UncoupledProcessesTimeLoop()
 {
     for (auto* x : _process_solutions)
+        NumLib::GlobalVectorProvider::provider.releaseVector(*x);
+
+    for (auto* x : _process_solutions_prev)
         NumLib::GlobalVectorProvider::provider.releaseVector(*x);
 
     for (auto* x : _solutions_of_last_cpl_iteration)
