@@ -56,39 +56,122 @@ void TwoPhaseComponentialFlowProcess::initializeConcreteProcess(
         mesh.isAxiallySymmetric(), integration_order, _process_data);
 
     _secondary_variables.addSecondaryVariable(
-        "saturation", 1,
-        makeExtrapolator(
+        "saturation", 
+        makeExtrapolator(1,
             getExtrapolator(), _local_assemblers,
             &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtSaturation));
 
     _secondary_variables.addSecondaryVariable(
-        "pressure_wetting", 1,
-        makeExtrapolator(getExtrapolator(), _local_assemblers,
+        "pressure_wetting",
+        makeExtrapolator(1, getExtrapolator(), _local_assemblers,
                          &TwoPhaseComponentialFlowLocalAssemblerInterface::
                              getIntPtWettingPressure));
+
     _secondary_variables.addSecondaryVariable(
-        "mol_frac_nonwet_vapor", 1,
-        makeExtrapolator(getExtrapolator(), _local_assemblers,
+        "mol_frac_nonwet_vapor",
+        makeExtrapolator(1, getExtrapolator(), _local_assemblers,
             &TwoPhaseComponentialFlowLocalAssemblerInterface::
             getIntPtMolFracNonwetVapor));
+
     _secondary_variables.addSecondaryVariable(
-        "co2_concentration", 1,
-        makeExtrapolator(getExtrapolator(), _local_assemblers,
+        "mol_frac_nonwet_air",
+        makeExtrapolator(1, getExtrapolator(), _local_assemblers,
+            &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtMolFracNonwetAir));
+
+    _secondary_variables.addSecondaryVariable(
+        "co2_concentration",
+        makeExtrapolator(1, getExtrapolator(), _local_assemblers,
             &TwoPhaseComponentialFlowLocalAssemblerInterface::
             getIntPtCO2Concentration));
+
     _secondary_variables.addSecondaryVariable(
-        "porosity", 1,
-        makeExtrapolator(getExtrapolator(), _local_assemblers,
+        "porosity",
+        makeExtrapolator(1, getExtrapolator(), _local_assemblers,
             &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtPorosityValue));
+
     _secondary_variables.addSecondaryVariable(
-        "pH_value", 1,
-        makeExtrapolator(getExtrapolator(), _local_assemblers,
+        "pH_value",
+        makeExtrapolator(1, getExtrapolator(), _local_assemblers,
             &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtpHValue));
+
     _secondary_variables.addSecondaryVariable(
-        "co2_cumulated_prev", 1,
-        makeExtrapolator(getExtrapolator(), _local_assemblers,
+        "co2_cumulated_prev",
+        makeExtrapolator(1, getExtrapolator(), _local_assemblers,
             &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtRhoMolCo2CumulTotalPrev));
 
+    _secondary_variables.addSecondaryVariable(
+        "moldensity_gasphase",
+        makeExtrapolator(1, getExtrapolator(), _local_assemblers,
+            &TwoPhaseComponentialFlowLocalAssemblerInterface::
+            getIntPtMolDensityGasPhase));
+
+    _secondary_variables.addSecondaryVariable(
+        "moldensity_liquidphase",
+        makeExtrapolator(1, getExtrapolator(), _local_assemblers,
+            &TwoPhaseComponentialFlowLocalAssemblerInterface::
+            getIntPtMolDensityLiquidPhase));
+
+    _secondary_variables.addSecondaryVariable(
+        "total_velocity_gas_x",
+        makeExtrapolator(
+            1, getExtrapolator(), _local_assemblers,
+            &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtTotalVelocityGasX));
+
+    if (mesh.getDimension() > 1)
+    {
+        _secondary_variables.addSecondaryVariable(
+            "total_velocity_gas_y",
+            makeExtrapolator(
+                1, getExtrapolator(), _local_assemblers,
+                &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtTotalVelocityGasY));
+    }
+    if (mesh.getDimension() > 2)
+    {
+        _secondary_variables.addSecondaryVariable(
+            "total_velocity_gas_z",
+            makeExtrapolator(
+                1, getExtrapolator(), _local_assemblers,
+                &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtTotalVelocityGasZ));
+    }
+
+    _secondary_variables.addSecondaryVariable(
+        "total_velocity_liquid_x",
+        makeExtrapolator(
+            1, getExtrapolator(), _local_assemblers,
+            &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtTotalVelocityLiquidX));
+
+    if (mesh.getDimension() > 1)
+    {
+        _secondary_variables.addSecondaryVariable(
+            "total_velocity_y",
+            makeExtrapolator(
+                1, getExtrapolator(), _local_assemblers,
+                &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtTotalVelocityLiquidY));
+    }
+    if (mesh.getDimension() > 2)
+    {
+        _secondary_variables.addSecondaryVariable(
+            "total_velocity_z",
+            makeExtrapolator(
+                1, getExtrapolator(), _local_assemblers,
+                &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtTotalVelocityLiquidZ));
+    }
+
+
+    _secondary_variables.addSecondaryVariable(
+        "overall_velocity_gas_phase",
+        makeExtrapolator(mesh.getDimension(), getExtrapolator(), _local_assemblers,
+            &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtOverallVelocityGas));
+
+    _secondary_variables.addSecondaryVariable(
+        "overall_velocity_liquid_phase",
+        makeExtrapolator(mesh.getDimension(), getExtrapolator(), _local_assemblers,
+            &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtOverallVelocityLiquid));
+
+    _secondary_variables.addSecondaryVariable(
+        "overall_gas_generation_rate",
+        makeExtrapolator(1, getExtrapolator(), _local_assemblers,
+            &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtGasGenerationRate));
 }
 
 void TwoPhaseComponentialFlowProcess::assembleConcreteProcess(const double t,

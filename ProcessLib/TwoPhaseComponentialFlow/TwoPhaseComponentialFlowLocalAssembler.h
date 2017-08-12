@@ -46,7 +46,12 @@ struct IntegrationPointData final
           rho_mol_co2_cumul_total_waste(0.0),
           rho_mol_co2_cumul_total_prev_waste(0.0),
           fluid_volume_waste(9.0687704),
-          fluid_volume_prev_waste(9.0687704)
+          fluid_volume_prev_waste(9.0687704),
+          pressure_pre(751115.103768),
+          pressure_cur(751115.103768),
+          mol_frac_h2_pre(0.00001),
+          mol_frac_h2_cur(0.00001)
+
 
     {
     }
@@ -66,6 +71,10 @@ struct IntegrationPointData final
     double fluid_volume_waste;
     double fluid_volume_prev_waste;
     double integration_weight;
+    double pressure_pre;
+    double pressure_cur;
+    double mol_frac_h2_pre;
+    double mol_frac_h2_cur;
     NodalMatrixType massOperator;
     NodalMatrixType diffusionOperator;
 
@@ -79,6 +88,8 @@ struct IntegrationPointData final
         porosity_prev_waste = porosity_waste;
         rho_mol_co2_cumul_total_prev_waste = rho_mol_co2_cumul_total_waste;
         fluid_volume_prev_waste = fluid_volume_waste;
+        pressure_pre = pressure_cur;
+        mol_frac_h2_pre = mol_frac_h2_cur;
     }
 };
 const unsigned NUM_NODAL_DOF = 5;
@@ -89,25 +100,119 @@ class TwoPhaseComponentialFlowLocalAssemblerInterface
 {
 public:
     virtual std::vector<double> const& getIntPtSaturation(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
         std::vector<double>& /*cache*/) const = 0;
 
     virtual std::vector<double> const& getIntPtWettingPressure(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
         std::vector<double>& /*cache*/) const = 0;
 
     virtual std::vector<double> const& getIntPtpHValue(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
         std::vector<double>& /*cache*/) const = 0;
 
     virtual std::vector<double> const& getIntPtPorosityValue(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
         std::vector<double>& /*cache*/) const = 0;
 
     virtual std::vector<double> const& getIntPtMolFracNonwetVapor(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const = 0;
+
+    virtual std::vector<double> const& getIntPtMolFracNonwetAir(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
         std::vector<double>& /*cache*/) const = 0;
 
     virtual std::vector<double> const& getIntPtCO2Concentration(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
         std::vector<double>& /*cache*/) const = 0;
 
     virtual std::vector<double> const& getIntPtRhoMolCo2CumulTotalPrev(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
         std::vector<double>& /*cache*/) const = 0;
+
+    virtual std::vector<double> const& getIntPtMolDensityGasPhase(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const = 0;
+
+    virtual std::vector<double> const& getIntPtMolDensityLiquidPhase(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const = 0;
+
+    
+    virtual std::vector<double> const& getIntPtTotalVelocityGasX(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const = 0;
+
+    virtual std::vector<double> const& getIntPtTotalVelocityGasY(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const = 0;
+
+    virtual std::vector<double> const& getIntPtTotalVelocityGasZ(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const = 0;
+
+    virtual std::vector<double> const& getIntPtTotalVelocityLiquidX(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const = 0;
+
+    virtual std::vector<double> const& getIntPtTotalVelocityLiquidY(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const = 0;
+
+    virtual std::vector<double> const& getIntPtTotalVelocityLiquidZ(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const = 0;
+
+    virtual std::vector<double> const& getIntPtOverallVelocityGas(
+        const double t,
+        GlobalVector const& current_solution,
+        NumLib::LocalToGlobalIndexMap const& dof_table,
+        std::vector<double>& cache) const = 0;
+
+    virtual std::vector<double> const& getIntPtOverallVelocityLiquid(
+        const double t,
+        GlobalVector const& current_solution,
+        NumLib::LocalToGlobalIndexMap const& dof_table,
+        std::vector<double>& cache) const = 0;
+    //output secondary variable of gas generation rate
+    virtual std::vector<double> const& getIntPtGasGenerationRate(
+        const double t,
+        GlobalVector const& current_solution,
+        NumLib::LocalToGlobalIndexMap const& dof_table,
+        std::vector<double>& cache) const = 0;
 };
 
 template <typename ShapeFunction, typename IntegrationMethod,
@@ -151,10 +256,28 @@ public:
               std::vector<double>(_integration_method.getNumberOfPoints())),
           _mol_fraction_nonwet_vapor(
               std::vector<double>(_integration_method.getNumberOfPoints())),
+          _mol_fraction_nonwet_air(
+              std::vector<double>(_integration_method.getNumberOfPoints())),
           _co2_concentration(
               std::vector<double>(_integration_method.getNumberOfPoints())),
           _rho_mol_co2_cumulated_prev(
-              std::vector<double>(_integration_method.getNumberOfPoints()))
+              std::vector<double>(_integration_method.getNumberOfPoints())),
+          _rho_mol_gas_phase(
+            std::vector<double>(_integration_method.getNumberOfPoints())),
+          _rho_mol_liquid_phase(
+            std::vector<double>(_integration_method.getNumberOfPoints())),
+          _total_velocities_gas(
+            GlobalDim,
+            std::vector<double>(_integration_method.getNumberOfPoints())),
+          _total_velocities_liquid(
+            GlobalDim,
+            std::vector<double>(_integration_method.getNumberOfPoints())),
+          _overall_velocity_gas(
+            std::vector<double>(GlobalDim *_integration_method.getNumberOfPoints())),
+          _overall_velocity_liquid(
+            std::vector<double>(GlobalDim* _integration_method.getNumberOfPoints())),
+          _gas_generation_rate(
+            std::vector<double>(_integration_method.getNumberOfPoints()))
     {
         unsigned const n_integration_points =
             _integration_method.getNumberOfPoints();
@@ -205,6 +328,9 @@ public:
     }
 
     std::vector<double> const& getIntPtSaturation(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
         std::vector<double>& /*cache*/) const override
     {
         assert(_saturation.size() > 0);
@@ -212,6 +338,9 @@ public:
     }
 
     std::vector<double> const& getIntPtWettingPressure(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
         std::vector<double>& /*cache*/) const override
     {
         assert(_pressure_wetting.size() > 0);
@@ -219,12 +348,18 @@ public:
     }
 
     std::vector<double> const& getIntPtpHValue(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
         std::vector<double>& /*cache*/) const override
     {
         assert(_pH_value.size() > 0);
         return _pH_value;
     }
     std::vector<double> const& getIntPtPorosityValue(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
         std::vector<double>& /*cache*/) const override
     {
         assert(_porosity_value.size() > 0);
@@ -232,13 +367,29 @@ public:
     }
 
     std::vector<double> const& getIntPtMolFracNonwetVapor(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
         std::vector<double>& /*cache*/) const override
     {
         assert(_mol_fraction_nonwet_vapor.size() > 0);
         return _mol_fraction_nonwet_vapor;
     }
 
+    std::vector<double> const& getIntPtMolFracNonwetAir(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(_mol_fraction_nonwet_air.size() > 0);
+        return _mol_fraction_nonwet_air;
+    }
+
     std::vector<double> const& getIntPtCO2Concentration(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
         std::vector<double>& /*cache*/) const override
     {
         assert(_co2_concentration.size() > 0);
@@ -248,11 +399,139 @@ public:
     * used to store previous time step value of rho_mol_co2_cumul_total_prev
     */
     std::vector<double> const& getIntPtRhoMolCo2CumulTotalPrev(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
         std::vector<double>& /*cache*/) const override
     {
         assert(_rho_mol_co2_cumulated_prev.size() > 0);
         return _rho_mol_co2_cumulated_prev;
     }
+
+    /*
+    * used to output molar density of the gas phase
+    */
+    std::vector<double> const& getIntPtMolDensityGasPhase(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(_rho_mol_gas_phase.size() > 0);
+        return _rho_mol_gas_phase;
+    }
+
+    /*
+    * used to output molar density of the liquid phase
+    */
+    std::vector<double> const& getIntPtMolDensityLiquidPhase(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(_rho_mol_liquid_phase.size() > 0);
+        return _rho_mol_liquid_phase;
+    }
+    /*
+    * used to output total velocity of gas phase
+    */
+    std::vector<double> const& getIntPtTotalVelocityGasX(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(!_total_velocities_gas.empty());
+        return _total_velocities_gas[0];
+    }
+
+    std::vector<double> const& getIntPtTotalVelocityGasY(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(_total_velocities_gas.size() > 1);
+        return _total_velocities_gas[1];
+    }
+
+    std::vector<double> const& getIntPtTotalVelocityGasZ(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(_total_velocities_gas.size() > 2);
+        return _total_velocities_gas[2];
+    }
+
+    /*
+    * used to output total velocity of liquid phase
+    */
+    std::vector<double> const& getIntPtTotalVelocityLiquidX(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(!_total_velocities_liquid.empty());
+        return _total_velocities_liquid[0];
+    }
+
+    std::vector<double> const& getIntPtTotalVelocityLiquidY(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(_total_velocities_liquid.size() > 1);
+        return _total_velocities_liquid[1];
+    }
+
+    std::vector<double> const& getIntPtTotalVelocityLiquidZ(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(_total_velocities_liquid.size() > 2);
+        return _total_velocities_liquid[2];
+    }
+
+    /*
+    * used to output overall velocity of the gas phase
+    */
+    std::vector<double> const& getIntPtOverallVelocityGas(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(_overall_velocity_gas.size() > 0);
+        return _overall_velocity_gas;
+    }
+
+    std::vector<double> const& getIntPtOverallVelocityLiquid(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(_overall_velocity_liquid .size() > 0);
+        return _overall_velocity_liquid;
+    }
+
+    std::vector<double> const& getIntPtGasGenerationRate(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(_gas_generation_rate.size() > 0);
+        return _gas_generation_rate;
+    }
+
 
 private:
     MeshLib::Element const& _element;
@@ -266,13 +545,28 @@ private:
                 Eigen::aligned_allocator<IntegrationPointData<NodalMatrixType>>>
         _ip_data;
 
-    std::vector<double> _saturation;  /// used for secondary variable output
+    // used for secondary variable output
+    std::vector<double> _saturation;  
     std::vector<double> _pressure_wetting;
     std::vector<double> _pH_value;
     std::vector<double> _porosity_value;
     std::vector<double> _mol_fraction_nonwet_vapor;
+    std::vector<double> _mol_fraction_nonwet_air;
     std::vector<double> _co2_concentration;
     std::vector<double> _rho_mol_co2_cumulated_prev;
+    std::vector<double> _rho_mol_gas_phase;
+    std::vector<double> _rho_mol_liquid_phase;
+    std::vector<double> _gas_generation_rate;
+
+    // used for velocity in x y z direction
+    std::vector<std::vector<double>> _total_velocities_gas;
+    std::vector<std::vector<double>> _total_velocities_liquid;
+
+    //used for the integrated velocity
+
+    std::vector<double> _overall_velocity_gas;
+    std::vector<double> _overall_velocity_liquid;
+
     static const int nonwet_pressure_coeff_index = 0;
     static const int mol_fraction_h_coeff_index = 1;
     static const int mol_fraction_ch4_coeff_index = 2;
