@@ -580,8 +580,13 @@ void TwoPhaseComponentialFlowLocalAssembler<
         GlobalDimVectorType diffuse_velocity_ch4_gas = porosity * D_G * (1 - Sw)*sm.dNdx*x2_nodal_values;
         GlobalDimVectorType diffuse_velocity_co2_gas = porosity * D_G * (1 - Sw)*sm.dNdx*x3_nodal_values;
 
-        GlobalDimVectorType diffuse_velocity_vapor_gas = porosity * D_G * (1 - Sw)*sm.dNdx*x4_nodal_values;
-        GlobalDimVectorType diffuse_velocity_air_gas = porosity * D_G * (1 - Sw)*sm.dNdx*x5_nodal_values;
+        GlobalDimVectorType diffuse_velocity_air_gas = porosity * D_G * (1 - Sw)*sm.dNdx*(
+            p_nodal_values*d_x_nonwet_air_d_pg
+            + x1_nodal_values*d_x_nonwet_air_d_x1
+            + x2_nodal_values* d_x_nonwet_air_d_x2
+            + x3_nodal_values* d_x_nonwet_air_d_x3
+            + pc_nodal_values*d_x_nonwet_air_d_pc);
+        GlobalDimVectorType diffuse_velocity_vapor_gas = porosity * D_G * (1 - Sw)*sm.dNdx*x5_nodal_values;
 
         if (_process_data._has_gravity)
         {
@@ -609,22 +614,12 @@ void TwoPhaseComponentialFlowLocalAssembler<
             H_vec_coeff(4) = (-lambda_G * rho_mol_nonwet * rho_mass_G_gp -
                               lambda_L * rho_mol_wet * rho_mass_wet);
 
-            cache_mat_gas_vel.col(ip).noalias() = darcy_velocity_gas_phase
-                + diffuse_velocity_h2_gas
-                + diffuse_velocity_ch4_gas
-                + diffuse_velocity_co2_gas
-                + diffuse_velocity_vapor_gas
-                + diffuse_velocity_air_gas;
+            cache_mat_gas_vel.col(ip).noalias() = darcy_velocity_gas_phase;
 
             cache_mat_liquid_vel.col(ip).noalias() = darcy_velocity_liquid_phase;;
             for (unsigned d = 0; d < GlobalDim; ++d)
             {
-                _total_velocities_gas[d][ip] = darcy_velocity_gas_phase[d]
-                    + diffuse_velocity_h2_gas[d]
-                    + diffuse_velocity_ch4_gas[d]
-                    + diffuse_velocity_co2_gas[d]
-                    + diffuse_velocity_vapor_gas[d]
-                    + diffuse_velocity_air_gas[d];
+                _total_velocities_gas[d][ip] = darcy_velocity_gas_phase[d];
 
                 _total_velocities_liquid[d][ip] = darcy_velocity_liquid_phase[d];
             }
