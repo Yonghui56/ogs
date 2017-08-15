@@ -92,8 +92,13 @@ void TwoPhaseComponentialFlowLocalAssembler<
         _process_data._interpolated_Q_fast;
     MathLib::PiecewiseLinearInterpolation const& interpolated_kinetic_rate =
         _process_data._interpolated_kinetic_rate;
+    
     _overall_velocity_gas.clear();
     _overall_velocity_liquid.clear();
+    _gas_co2_velocity.clear();
+    _gas_hydrogen_velocity.clear();
+    _gas_methane_velocity.clear();
+
     auto cache_mat_gas_vel = MathLib::createZeroedMatrix<
         Eigen::Matrix<double, GlobalDim, Eigen::Dynamic, Eigen::RowMajor>>(
             _overall_velocity_gas, GlobalDim, n_integration_points);
@@ -101,6 +106,18 @@ void TwoPhaseComponentialFlowLocalAssembler<
     auto cache_mat_liquid_vel = MathLib::createZeroedMatrix<
         Eigen::Matrix<double, GlobalDim, Eigen::Dynamic, Eigen::RowMajor>>(
             _overall_velocity_liquid, GlobalDim, n_integration_points);
+
+    auto cache_mat_gas_co2_vel = MathLib::createZeroedMatrix<
+        Eigen::Matrix<double, GlobalDim, Eigen::Dynamic, Eigen::RowMajor>>(
+            _gas_co2_velocity, GlobalDim, n_integration_points);
+
+    auto cache_mat_gas_hydrogen_vel = MathLib::createZeroedMatrix<
+        Eigen::Matrix<double, GlobalDim, Eigen::Dynamic, Eigen::RowMajor>>(
+            _gas_hydrogen_velocity, GlobalDim, n_integration_points);
+
+    auto cache_mat_gas_methane_vel = MathLib::createZeroedMatrix<
+        Eigen::Matrix<double, GlobalDim, Eigen::Dynamic, Eigen::RowMajor>>(
+            _gas_methane_velocity, GlobalDim, n_integration_points);
 
     for (unsigned ip = 0; ip < n_integration_points; ip++)
     {
@@ -115,6 +132,8 @@ void TwoPhaseComponentialFlowLocalAssembler<
 
         NumLib::shapeFunctionInterpolate(local_x, sm.N, pg_int_pt, X1_int_pt,
                                          X2_int_pt, X3_int_pt, PC_int_pt);
+        auto nodes = _element.getNodes();
+        auto r = (*nodes[0])[0];
 
         _pressure_wetting[ip] = pg_int_pt - PC_int_pt;
         const double dt = _process_data._dt;
@@ -576,18 +595,18 @@ void TwoPhaseComponentialFlowLocalAssembler<
         GlobalDimVectorType darcy_velocity_liquid_phase =
             -K_mat_coeff_liquid * sm.dNdx * (p_nodal_values- pc_nodal_values);
         // for simplify only consider the gaseous specices diffusion velocity
-        GlobalDimVectorType diffuse_velocity_h2_gas = porosity * D_G * (1 - Sw)*sm.dNdx*x1_nodal_values;
-        GlobalDimVectorType diffuse_velocity_ch4_gas = porosity * D_G * (1 - Sw)*sm.dNdx*x2_nodal_values;
-        GlobalDimVectorType diffuse_velocity_co2_gas = porosity * D_G * (1 - Sw)*sm.dNdx*x3_nodal_values;
+        GlobalDimVectorType diffuse_velocity_h2_gas = -porosity * D_G * (1 - Sw)*sm.dNdx*x1_nodal_values;
+        GlobalDimVectorType diffuse_velocity_ch4_gas = -porosity * D_G * (1 - Sw)*sm.dNdx*x2_nodal_values;
+        GlobalDimVectorType diffuse_velocity_co2_gas = -porosity * D_G * (1 - Sw)*sm.dNdx*x3_nodal_values;
 
-        GlobalDimVectorType diffuse_velocity_air_gas = porosity * D_G * (1 - Sw)*sm.dNdx*(
+        GlobalDimVectorType diffuse_velocity_air_gas = -porosity * D_G * (1 - Sw)*sm.dNdx*(
             p_nodal_values*d_x_nonwet_air_d_pg
             + x1_nodal_values*d_x_nonwet_air_d_x1
             + x2_nodal_values* d_x_nonwet_air_d_x2
             + x3_nodal_values* d_x_nonwet_air_d_x3
             + pc_nodal_values*d_x_nonwet_air_d_pc);
-        GlobalDimVectorType diffuse_velocity_vapor_gas = porosity * D_G * (1 - Sw)*sm.dNdx*x5_nodal_values;
-
+        GlobalDimVectorType diffuse_velocity_vapor_gas = -porosity * D_G * (1 - Sw)*sm.dNdx*x5_nodal_values;
+        double co2_degradation_rate = 0;
         if (_process_data._has_gravity)
         {
             auto const& b = _process_data._specific_body_force;
@@ -616,7 +635,17 @@ void TwoPhaseComponentialFlowLocalAssembler<
 
             cache_mat_gas_vel.col(ip).noalias() = darcy_velocity_gas_phase;
 
-            cache_mat_liquid_vel.col(ip).noalias() = darcy_velocity_liquid_phase;;
+            cache_mat_liquid_vel.col(ip).noalias() = darcy_velocity_liquid_phase;
+
+            cache_mat_gas_co2_vel.col(ip).noalias() = 
+                X3_int_pt * darcy_velocity_gas_phase + diffuse_velocity_co2_gas;
+            
+            cache_mat_gas_hydrogen_vel.col(ip).noalias() =
+                X1_int_pt * darcy_velocity_gas_phase + diffuse_velocity_h2_gas;
+
+            cache_mat_gas_methane_vel.col(ip).noalias() =
+                X2_int_pt * darcy_velocity_gas_phase + diffuse_velocity_ch4_gas;
+
             for (unsigned d = 0; d < GlobalDim; ++d)
             {
                 _total_velocities_gas[d][ip] = darcy_velocity_gas_phase[d];
@@ -670,11 +699,15 @@ void TwoPhaseComponentialFlowLocalAssembler<
                     rho_mol_total_co2_waste;
 
                 F_vec_coeff(1) += (Q_organic_slow_co2 * 31 / 19);
+
                 F_vec_coeff(2) += Q_organic_slow_co2;
+                //store the secondary variable
+                co2_degradation_rate += Q_organic_slow_co2;
 
                 F_vec_coeff(1) += Q_organic_fast_co2;
 
                 F_vec_coeff(2) += Q_organic_fast_co2;
+                co2_degradation_rate += Q_organic_fast_co2;
 
                 F_vec_coeff(2) -= (rho_mol_total_co2_waste / dt);//consumption of carbonation
 
@@ -745,6 +778,12 @@ void TwoPhaseComponentialFlowLocalAssembler<
                 _porosity_value[ip] = porosity2;
                 _rho_mol_co2_cumulated_prev[ip] = rho_mol_co2_cumul_total_backfill;
             }
+            //store the source term for each component 
+            // thanks to the facts that the source terms are all for gas phase
+            _gas_h2_generation_rate[ip] = F_vec_coeff(0);
+            _gas_ch4_generation_rate[ip] = F_vec_coeff(1);
+            _gas_co2_generation_rate[ip]= F_vec_coeff(2);
+            _gas_co2_degradation_rate[ip] = co2_degradation_rate;
             for (int idx = 0; idx < NUM_NODAL_DOF; idx++)
             {
                 // since no primary vairable involved
