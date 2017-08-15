@@ -172,6 +172,42 @@ void TwoPhaseComponentialFlowProcess::initializeConcreteProcess(
         "overall_gas_generation_rate",
         makeExtrapolator(1, getExtrapolator(), _local_assemblers,
             &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtGasGenerationRate));
+
+    _secondary_variables.addSecondaryVariable(
+        "gas_hydrogen_generation_rate",
+        makeExtrapolator(1, getExtrapolator(), _local_assemblers,
+            &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtGasHydrogenGenerateRate));
+
+    _secondary_variables.addSecondaryVariable(
+        "gas_methane_generation_rate",
+        makeExtrapolator(1, getExtrapolator(), _local_assemblers,
+            &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtGasMethaneGenerateRate));
+
+    _secondary_variables.addSecondaryVariable(
+        "gas_carbon_degradation_rate",
+        makeExtrapolator(1, getExtrapolator(), _local_assemblers,
+            &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtGasCarbonDegradationRate));
+
+    _secondary_variables.addSecondaryVariable(
+        "gas_carbon_generation_rate",
+        makeExtrapolator(1, getExtrapolator(), _local_assemblers,
+            &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtGasCarbonGenerateRate));
+
+    _secondary_variables.addSecondaryVariable(
+        "gas_co2_transport_velocity",
+        makeExtrapolator(mesh.getDimension(), getExtrapolator(), _local_assemblers,
+            &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtGasCO2Velocity));
+
+    _secondary_variables.addSecondaryVariable(
+        "gas_hydrogen_transport_velocity",
+        makeExtrapolator(mesh.getDimension(), getExtrapolator(), _local_assemblers,
+            &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtGasHydrogenVelocity));
+
+    _secondary_variables.addSecondaryVariable(
+        "gas_methane_transport_velocity",
+        makeExtrapolator(mesh.getDimension(), getExtrapolator(), _local_assemblers,
+            &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtGasMethaneVelocity));
+
 }
 
 void TwoPhaseComponentialFlowProcess::assembleConcreteProcess(const double t,

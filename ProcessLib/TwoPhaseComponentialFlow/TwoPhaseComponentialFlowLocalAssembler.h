@@ -213,6 +213,48 @@ public:
         GlobalVector const& current_solution,
         NumLib::LocalToGlobalIndexMap const& dof_table,
         std::vector<double>& cache) const = 0;
+
+    virtual std::vector<double> const& getIntPtGasHydrogenGenerateRate(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const = 0;
+
+    virtual std::vector<double> const& getIntPtGasMethaneGenerateRate(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const = 0;
+
+    virtual std::vector<double> const& getIntPtGasCarbonDegradationRate(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const = 0;
+
+    virtual std::vector<double> const& getIntPtGasCarbonGenerateRate(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const = 0;
+
+    virtual std::vector<double> const& getIntPtGasCO2Velocity(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const = 0;
+
+    virtual std::vector<double> const& getIntPtGasHydrogenVelocity(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const = 0;
+
+    virtual std::vector<double> const& getIntPtGasMethaneVelocity(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const = 0;
 };
 
 template <typename ShapeFunction, typename IntegrationMethod,
@@ -276,7 +318,21 @@ public:
             std::vector<double>(GlobalDim *_integration_method.getNumberOfPoints())),
           _overall_velocity_liquid(
             std::vector<double>(GlobalDim* _integration_method.getNumberOfPoints())),
+          _gas_co2_velocity(
+            std::vector<double>(GlobalDim* _integration_method.getNumberOfPoints())),
+          _gas_hydrogen_velocity(
+            std::vector<double>(GlobalDim* _integration_method.getNumberOfPoints())),
+          _gas_methane_velocity(
+            std::vector<double>(GlobalDim* _integration_method.getNumberOfPoints())),
           _gas_generation_rate(
+            std::vector<double>(_integration_method.getNumberOfPoints())),
+          _gas_h2_generation_rate (
+            std::vector<double>(_integration_method.getNumberOfPoints())),
+          _gas_ch4_generation_rate(
+            std::vector<double>(_integration_method.getNumberOfPoints())),
+          _gas_co2_generation_rate(
+            std::vector<double>(_integration_method.getNumberOfPoints())),
+          _gas_co2_degradation_rate(
             std::vector<double>(_integration_method.getNumberOfPoints()))
     {
         unsigned const n_integration_points =
@@ -511,7 +567,9 @@ public:
         assert(_overall_velocity_gas.size() > 0);
         return _overall_velocity_gas;
     }
-
+    /*
+    * used to output overall velocity of the liquid phase
+    */
     std::vector<double> const& getIntPtOverallVelocityLiquid(
         const double /*t*/,
         GlobalVector const& /*current_solution*/,
@@ -522,6 +580,47 @@ public:
         return _overall_velocity_liquid;
     }
 
+    /*
+    * used to output velocity of the gaseous co2
+    */
+    std::vector<double> const& getIntPtGasCO2Velocity(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(_gas_co2_velocity.size() > 0);
+        return _gas_co2_velocity;
+    }
+
+    /*
+    * used to output velocity of the gaseous hydrogen
+    * Darcy velocity + diffusion velocity
+    */
+    std::vector<double> const& getIntPtGasHydrogenVelocity(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(_gas_hydrogen_velocity.size() > 0);
+        return _gas_hydrogen_velocity;
+    }
+
+    /*
+    * used to output velocity of the gaseous Methane
+    * Darcy velocity + diffusion velocity
+    */
+    std::vector<double> const& getIntPtGasMethaneVelocity(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(_gas_methane_velocity.size() > 0);
+        return _gas_methane_velocity;
+    }
+
     std::vector<double> const& getIntPtGasGenerationRate(
         const double /*t*/,
         GlobalVector const& /*current_solution*/,
@@ -530,6 +629,46 @@ public:
     {
         assert(_gas_generation_rate.size() > 0);
         return _gas_generation_rate;
+    }
+
+    std::vector<double> const& getIntPtGasHydrogenGenerateRate(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(_gas_h2_generation_rate.size() > 0);
+        return _gas_h2_generation_rate;
+    }
+
+    std::vector<double> const& getIntPtGasMethaneGenerateRate(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(_gas_ch4_generation_rate.size() > 0);
+        return _gas_ch4_generation_rate;
+    }
+
+    std::vector<double> const& getIntPtGasCarbonGenerateRate(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(_gas_co2_generation_rate.size() > 0);
+        return _gas_co2_generation_rate;
+    }
+
+    std::vector<double> const& getIntPtGasCarbonDegradationRate(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(_gas_co2_degradation_rate.size() > 0);
+        return _gas_co2_degradation_rate;
     }
 
 
@@ -557,6 +696,10 @@ private:
     std::vector<double> _rho_mol_gas_phase;
     std::vector<double> _rho_mol_liquid_phase;
     std::vector<double> _gas_generation_rate;
+    std::vector<double> _gas_h2_generation_rate;
+    std::vector<double> _gas_ch4_generation_rate;
+    std::vector<double> _gas_co2_generation_rate;
+    std::vector<double> _gas_co2_degradation_rate;
 
     // used for velocity in x y z direction
     std::vector<std::vector<double>> _total_velocities_gas;
@@ -566,6 +709,9 @@ private:
 
     std::vector<double> _overall_velocity_gas;
     std::vector<double> _overall_velocity_liquid;
+    std::vector<double> _gas_co2_velocity;
+    std::vector<double> _gas_hydrogen_velocity;
+    std::vector<double> _gas_methane_velocity;
 
     static const int nonwet_pressure_coeff_index = 0;
     static const int mol_fraction_h_coeff_index = 1;
