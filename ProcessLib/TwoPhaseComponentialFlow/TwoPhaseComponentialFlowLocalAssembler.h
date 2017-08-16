@@ -735,10 +735,16 @@ private:
     const double Hen_L_co2 = 0.163e+9;  // Henry constant in [Pa]
     const double rho_l_std = 1000.0;
     const double& R = MaterialLib::PhysicalConstant::IdealGasConstant;
-    const double Q_steel = 7.8591 * 4 / 3;  // generate H2
-    const double para_slow = 401.55;
-    const double para_fast = 191.47286;
-
+    const double Q_steel_waste_matrix = 5.903876 * 4 / 3;  // generate H2
+    const double Q_steel_inner_surface = 7.814 * 4 / 3;  // generate H2
+    double Q_steel_outer_surface= 0.03953 * 4 / 3;  // generate H2
+    double Q_steel_outer_backfill = 0.021851 * 4 / 3;  // generate H2
+    const double para_slow = 401.55;//51.8/0.129
+    const double para_fast = 191.47286;//24.7kg/0,129
+    const double k_d_cellulose = 1.89e-3;//rate consts for cellulose degradation
+    const double k_d_polystyrene = 6.51e-5;//rate consts for polystyrene degradation
+    const double m0_cellulose = 0.035;
+    const double m0_polystyrene = 0.0019;
 private:
     const double get_P_sat(double T)
     {

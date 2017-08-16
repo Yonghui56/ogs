@@ -132,8 +132,8 @@ void TwoPhaseComponentialFlowLocalAssembler<
 
         NumLib::shapeFunctionInterpolate(local_x, sm.N, pg_int_pt, X1_int_pt,
                                          X2_int_pt, X3_int_pt, PC_int_pt);
-        auto nodes = _element.getNodes();
-        auto r = (*nodes[0])[0];
+        //auto nodes = _element.getNodes();
+        //auto r = (*nodes[0])[0];
 
         _pressure_wetting[ip] = pg_int_pt - PC_int_pt;
         const double dt = _process_data._dt;
@@ -666,13 +666,15 @@ void TwoPhaseComponentialFlowLocalAssembler<
             }
         }  // end of hasGravityEffect
         // load the source term
-        if (Sw > 0.3 && dt > 0)
+        if (Sw > 0.2 && dt > 0)
         {
             Eigen::VectorXd F_vec_coeff = Eigen::VectorXd::Zero(NUM_NODAL_DOF);
-            double Q_organic_slow_co2_ini =
-                interpolated_Q_slow.getValue(t);  // read from curves
+            // instead of reading curve, now use analytical formular
             double Q_organic_fast_co2_ini =
-                interpolated_Q_fast.getValue(t);  // read from curves
+                m0_cellulose*(std::exp(-k_d_cellulose*t));  
+            // read from curvesinterpolated_Q_fast.getValue(0)
+            double Q_organic_slow_co2_ini =
+                m0_polystyrene*interpolated_Q_slow.getValue(0)*(std::exp(-k_d_polystyrene*t));  // read from curves
             if (_process_data._material->getMaterialID(
                     pos.getElementID().get()) == 1)//waste matrix
             {
@@ -682,8 +684,9 @@ void TwoPhaseComponentialFlowLocalAssembler<
                     _ip_data[ip].rho_mol_co2_cumul_total_prev_waste, _fluid_volume_suppt_pnt_waste);
                 double const fluid_volume_rate_waste =
                     (fluid_volume_waste - _ip_data[ip].fluid_volume_prev_waste) / dt;
-
-                F_vec_coeff(0) = Q_steel;
+                
+                F_vec_coeff(0) += Q_steel_inner_surface;
+                F_vec_coeff(0) += Q_steel_waste_matrix;
 
                 const double Q_organic_slow_co2 =
                     Q_organic_slow_co2_ini * para_slow;
@@ -728,6 +731,14 @@ void TwoPhaseComponentialFlowLocalAssembler<
             else if (_process_data._material->getMaterialID(
                          pos.getElementID().get()) == 0)//backfill, cement and concrete
             {
+                // for the case when pH drops below 10.5, the corrosion rate accelarate 100 times
+                if (_pH_value[ip] < 10.5) {
+                    Q_steel_outer_backfill *= 100;
+                    Q_steel_outer_surface *= 100;
+                }
+
+                F_vec_coeff(0) += Q_steel_outer_backfill;
+                F_vec_coeff(0) += Q_steel_outer_surface;
                 double& fluid_volume_backfill = _ip_data[ip].fluid_volume_backfill;
                 fluid_volume_backfill = bi_interpolation(
                     _ip_data[ip].rho_mol_sio2_prev_backfill,
