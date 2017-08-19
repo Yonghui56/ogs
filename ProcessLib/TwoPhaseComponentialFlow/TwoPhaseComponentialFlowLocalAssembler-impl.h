@@ -50,7 +50,6 @@ void TwoPhaseComponentialFlowLocalAssembler<
     Eigen::MatrixXd K_mat_coeff =
         Eigen::MatrixXd::Zero(NUM_NODAL_DOF, NUM_NODAL_DOF);
     Eigen::VectorXd H_vec_coeff = Eigen::VectorXd::Zero(NUM_NODAL_DOF);
-    //Eigen::VectorXd F_vec_coeff = Eigen::VectorXd::Zero(NUM_NODAL_DOF);
 
     NodalMatrixType localMass_tmp;
     localMass_tmp.setZero(ShapeFunction::NPOINTS, ShapeFunction::NPOINTS);
@@ -59,6 +58,10 @@ void TwoPhaseComponentialFlowLocalAssembler<
     Eigen::VectorXd localGravity_tmp =
         Eigen::VectorXd::Zero(ShapeFunction::NPOINTS);
     Eigen::VectorXd localSource_tmp =
+        Eigen::VectorXd::Zero(ShapeFunction::NPOINTS);
+    Eigen::VectorXd localNeumann_tmp =
+        Eigen::VectorXd::Zero(ShapeFunction::NPOINTS);
+    Eigen::VectorXd localNeumann_steelwall_tmp =
         Eigen::VectorXd::Zero(ShapeFunction::NPOINTS);
 
     NodalMatrixType mass_operator;
@@ -74,6 +77,14 @@ void TwoPhaseComponentialFlowLocalAssembler<
 
     SpatialPosition pos;
     pos.setElementID(_element.getID());
+    auto nodes = _element.getNodes();
+    auto rx0 = (*nodes[0])[0];
+    auto rx1= (*nodes[1])[0];
+    auto rx2=(*nodes[2])[0];
+    auto ry0 = (*nodes[0])[1];
+    auto ry1 = (*nodes[1])[1];
+    auto ry2 = (*nodes[2])[1];
+
     const int material_id =
         _process_data._material->getMaterialID(pos.getElementID().get());
 
@@ -118,7 +129,16 @@ void TwoPhaseComponentialFlowLocalAssembler<
     auto cache_mat_gas_methane_vel = MathLib::createZeroedMatrix<
         Eigen::Matrix<double, GlobalDim, Eigen::Dynamic, Eigen::RowMajor>>(
             _gas_methane_velocity, GlobalDim, n_integration_points);
+    accelerate_flag = false;
+    int gp_carb_neutral_count = 0;
+    // vector for neumann boundary condition on each node
+    Eigen::VectorXd neumann_vector = Eigen::VectorXd::Zero(local_x.size());
+    auto neumann_vec = neumann_vector.template segment<ShapeFunction::NPOINTS>(
+        0);
 
+    Eigen::VectorXd _neumann_vector_output = Eigen::VectorXd::Zero(local_x.size());
+    auto _neumann_vec_output = _neumann_vector_output.template segment<ShapeFunction::NPOINTS>(
+        0);
     for (unsigned ip = 0; ip < n_integration_points; ip++)
     {
         Eigen::VectorXd F_vec_coeff = Eigen::VectorXd::Zero(NUM_NODAL_DOF);
@@ -132,8 +152,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
 
         NumLib::shapeFunctionInterpolate(local_x, sm.N, pg_int_pt, X1_int_pt,
                                          X2_int_pt, X3_int_pt, PC_int_pt);
-        //auto nodes = _element.getNodes();
-        //auto r = (*nodes[0])[0];
+
 
         _pressure_wetting[ip] = pg_int_pt - PC_int_pt;
         const double dt = _process_data._dt;
@@ -674,7 +693,8 @@ void TwoPhaseComponentialFlowLocalAssembler<
                 m0_cellulose*(std::exp(-k_d_cellulose*t));  
             // read from curvesinterpolated_Q_fast.getValue(0)
             double Q_organic_slow_co2_ini =
-                m0_polystyrene*interpolated_Q_slow.getValue(0)*(std::exp(-k_d_polystyrene*t));  // read from curves
+                m0_polystyrene*(std::exp(-k_d_polystyrene*t));  // read from curves
+            //interpolated_Q_slow.getValue(0)*
             if (_process_data._material->getMaterialID(
                     pos.getElementID().get()) == 1)//waste matrix
             {
@@ -684,8 +704,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
                     _ip_data[ip].rho_mol_co2_cumul_total_prev_waste, _fluid_volume_suppt_pnt_waste);
                 double const fluid_volume_rate_waste =
                     (fluid_volume_waste - _ip_data[ip].fluid_volume_prev_waste) / dt;
-                
-                F_vec_coeff(0) += Q_steel_inner_surface;
+
                 F_vec_coeff(0) += Q_steel_waste_matrix;
 
                 const double Q_organic_slow_co2 =
@@ -731,14 +750,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
             else if (_process_data._material->getMaterialID(
                          pos.getElementID().get()) == 0)//backfill, cement and concrete
             {
-                // for the case when pH drops below 10.5, the corrosion rate accelarate 100 times
-                if (_pH_value[ip] < 10.5) {
-                    Q_steel_outer_backfill *= 100;
-                    Q_steel_outer_surface *= 100;
-                }
 
-                F_vec_coeff(0) += Q_steel_outer_backfill;
-                F_vec_coeff(0) += Q_steel_outer_surface;
                 double& fluid_volume_backfill = _ip_data[ip].fluid_volume_backfill;
                 fluid_volume_backfill = bi_interpolation(
                     _ip_data[ip].rho_mol_sio2_prev_backfill,
@@ -806,9 +818,223 @@ void TwoPhaseComponentialFlowLocalAssembler<
                 local_b.block(n_nodes * idx, 0, n_nodes, 1).noalias() +=
                     localSource_tmp;
             }
+            
         }
     }  // end of GP asm
+    //for the outer drum
+       //apply the neumann boundary condition on the line element
+       //first search the nodes
+       //axissymmetric
+    if (rx0 > 0.303 - eps  && rx1 > 0.303 - eps)
+    {
+        //indicates edge 0-1 located on the boundary
+        auto const l = std::sqrt(std::pow(rx0 - rx1, 2) + std::pow(ry0 - ry1, 2));
+        neumann_vec[2] = 0;
+        double const radial_sym_fac = 2 * 3.1415926*rx0;
+        neumn_h2 = 0.003733333*radial_sym_fac;
+        if (accelerate_flag) {
+            if (gp_carb_neutral_count <= 2) {
+                if (ry0 > ry1)
+                {
+                    neumann_vec[0] = 100 * neumn_h2;
+                    neumann_vec[1] = neumn_h2;
+                }
+                else
+                {
+                    neumann_vec[0] = neumn_h2;
+                    neumann_vec[1] = 100 * neumn_h2;
+                }
+            }
+            else {
+                neumann_vec[0] = 100 * neumn_h2;
+                neumann_vec[1] = 100 * neumn_h2;
+            }
+        }
+        else {
+            neumann_vec[0] = neumn_h2;
+            neumann_vec[1] = neumn_h2;
+        }
+        localNeumann_tmp = neumann_vec*l / 2;
+        _neumann_vec_output = neumann_vec / radial_sym_fac;
+    }
+    else if (rx1 > 0.303 - eps  && rx2 > 0.303 - eps)
+    {
+        auto const l = std::sqrt(std::pow(rx1 - rx2, 2) + std::pow(ry1 - ry2, 2));
+        neumann_vec[0] = 0.0;
+        double const radial_sym_fac = 2 * 3.1415926*rx1;
+        neumn_h2 = 0.003733333* radial_sym_fac;
+        if (accelerate_flag) {
+            if (gp_carb_neutral_count <= 2) {
+                if (ry1 > ry2)
+                {
+                    neumann_vec[1] = 100 * neumn_h2;
+                    neumann_vec[2] = neumn_h2;
+                }
+                else
+                {
+                    neumann_vec[1] = neumn_h2;
+                    neumann_vec[2] = 100 * neumn_h2;
+                }
+            }
+            else {
+                neumann_vec[1] = 100 * neumn_h2;
+                neumann_vec[2] = 100 * neumn_h2;
+            }
+        }
+        else {
+            neumann_vec[1] = neumn_h2;
+            neumann_vec[2] = neumn_h2;
+        }
+        localNeumann_tmp = neumann_vec*l / 2;
+        _neumann_vec_output = neumann_vec / radial_sym_fac;
+    }
+    else if (rx2 > 0.303 - eps  && rx0 > 0.303 - eps)
+    {
+        auto const l = std::sqrt(std::pow(rx0 - rx2, 2) + std::pow(ry0 - ry2, 2));
+        neumann_vec[1] = 0.0;
+        double const radial_sym_fac = 2 * 3.1415926*rx2;
+        neumn_h2 = 0.003733333* radial_sym_fac;
+        if (accelerate_flag) {
+            if (gp_carb_neutral_count <= 2) {
+                if (ry0 > ry2)
+                {
+                    neumann_vec[0] = 100 * neumn_h2;
+                    neumann_vec[2] = neumn_h2;
+                }
+                else
+                {
+                    neumann_vec[0] = neumn_h2;
+                    neumann_vec[2] = 100 * neumn_h2;
+                }
+            }
+            else {
+                neumann_vec[0] = 100 * neumn_h2;
+                neumann_vec[2] = 100 * neumn_h2;
+            }
+        }
+        else {
+            neumann_vec[0] = neumn_h2;
+            neumann_vec[2] = neumn_h2;
+        }
+        localNeumann_tmp = neumann_vec*l / 2;
+        _neumann_vec_output = neumann_vec / radial_sym_fac;
+    }
 
+    // for the second Neumann boundary condition
+    if (std::abs(rx0 - 0.245)<0.0025 + eps && std::abs(rx1 - 0.245)<0.0025 + eps &&
+        ry1<0.795 && ry1>0.088 && ry0<0.795 && ry0>0.088)
+    {
+        //indicates edge 0-1 located on the boundary
+        auto const l = std::sqrt(std::pow(rx0 - rx1, 2) + std::pow(ry0 - ry1, 2));
+        neumann_vec[2] = 0;
+        double const radial_sym_fac = 2 * 3.1415926*rx0;
+        neumn_h2 = 0.0124*radial_sym_fac;
+        if (accelerate_flag) {
+            if (gp_carb_neutral_count <= 2) {
+                if (ry0 > ry1)
+                {
+                    neumann_vec[0] = 100 * neumn_h2;
+                    neumann_vec[1] = neumn_h2;
+                }
+                else
+                {
+                    neumann_vec[0] = neumn_h2;
+                    neumann_vec[1] = 100 * neumn_h2;
+                }
+            }
+            else {
+                neumann_vec[0] = 100 * neumn_h2;
+                neumann_vec[1] = 100 * neumn_h2;
+            }
+        }
+        else {
+            neumann_vec[0] = neumn_h2;
+            neumann_vec[1] = neumn_h2;
+        }
+        localNeumann_tmp = neumann_vec*l / 2;
+        _neumann_vec_output = neumann_vec / radial_sym_fac;
+    }
+    else if (std::abs(rx1 - 0.245)<0.0025 + eps && std::abs(rx2 - 0.245)<0.0025 + eps &&
+        ry1<0.795 && ry1>0.088 && ry2<0.795 && ry2>0.088)
+    {
+        auto const l = std::sqrt(std::pow(rx1 - rx2, 2) + std::pow(ry1 - ry2, 2));
+        neumann_vec[0] = 0.0;
+        double const radial_sym_fac = 2 * 3.1415926*rx1;
+        neumn_h2 = 0.0124* radial_sym_fac;
+        if (accelerate_flag) {
+            if (gp_carb_neutral_count <= 2) {
+                if (ry1 > ry2)
+                {
+                    neumann_vec[1] = 100 * neumn_h2;
+                    neumann_vec[2] = neumn_h2;
+                }
+                else
+                {
+                    neumann_vec[1] = neumn_h2;
+                    neumann_vec[2] = 100 * neumn_h2;
+                }
+            }
+            else {
+                neumann_vec[1] = 100 * neumn_h2;
+                neumann_vec[2] = 100 * neumn_h2;
+            }
+        }
+        else {
+            neumann_vec[1] = neumn_h2;
+            neumann_vec[2] = neumn_h2;
+        }
+        localNeumann_tmp = neumann_vec*l / 2;
+        _neumann_vec_output = neumann_vec / radial_sym_fac;
+    }
+    else if (std::abs(rx2 - 0.245)<0.0025 + eps && std::abs(rx0 - 0.245)<0.0025 + eps &&
+        ry2<0.795 && ry2>0.088 && ry0<0.795 && ry0>0.088)
+    {
+        auto const l = std::sqrt(std::pow(rx0 - rx2, 2) + std::pow(ry0 - ry2, 2));
+        neumann_vec[1] = 0.0;
+        double const radial_sym_fac = 2 * 3.1415926*rx2;
+        neumn_h2 = 0.0124* radial_sym_fac;
+        if (accelerate_flag) {
+            if (gp_carb_neutral_count <= 2) {
+                if (ry0 > ry2)
+                {
+                    neumann_vec[0] = 100 * neumn_h2;
+                    neumann_vec[2] = neumn_h2;
+                }
+                else
+                {
+                    neumann_vec[0] = neumn_h2;
+                    neumann_vec[2] = 100 * neumn_h2;
+                }
+            }
+            else {
+                neumann_vec[0] = 100 * neumn_h2;
+                neumann_vec[2] = 100 * neumn_h2;
+            }
+        }
+        else {
+            neumann_vec[0] = neumn_h2;
+            neumann_vec[2] = neumn_h2;
+        }
+        localNeumann_tmp = neumann_vec*l / 2;
+        _neumann_vec_output = neumann_vec / radial_sym_fac;
+    }
+    local_b.block(n_nodes * 0, 0, n_nodes, 1).noalias() += localNeumann_tmp;
+    //output secondary variable
+    for (unsigned ip = 0; ip < n_integration_points; ip++)
+    {
+        // interpolate the node value on the element
+        auto const& sm = _shape_matrices[ip];
+
+        double h2_flux = 0.0;
+        double h2_flux2 = 0.0;
+        double h2_flux3 = 0.0;
+        double h2_flux4 = 0.0;
+        double h2_flux5 = 0.0;
+
+        NumLib::shapeFunctionInterpolate(_neumann_vector_output, sm.N, h2_flux, h2_flux2,
+            h2_flux3, h2_flux4, h2_flux5);
+        _gas_h2_generation_rate[ip] += h2_flux;
+    }
     if (_process_data._has_mass_lumping)
     {
         auto Mhpg =
