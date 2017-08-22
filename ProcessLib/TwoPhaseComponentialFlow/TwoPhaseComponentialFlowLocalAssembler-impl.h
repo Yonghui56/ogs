@@ -84,7 +84,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
     auto ry0 = (*nodes[0])[1];
     auto ry1 = (*nodes[1])[1];
     auto ry2 = (*nodes[2])[1];
-
+    const auto rx= (*nodes)[0];
     const int material_id =
         _process_data._material->getMaterialID(pos.getElementID().get());
 
@@ -152,8 +152,9 @@ void TwoPhaseComponentialFlowLocalAssembler<
 
         NumLib::shapeFunctionInterpolate(local_x, sm.N, pg_int_pt, X1_int_pt,
                                          X2_int_pt, X3_int_pt, PC_int_pt);
-
-
+        //calculate the gauss point coordinates
+        const auto _interpolateGaussNode_coord = interpolateNodeCoordinates(
+            _element, sm.N);
         _pressure_wetting[ip] = pg_int_pt - PC_int_pt;
         const double dt = _process_data._dt;
         auto const& wp = _integration_method.getWeightedPoint(ip);
@@ -324,7 +325,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
         double rho_mol_total_co2_waste = 0.;
 
         //saturation dependent
-        double bazant_power = pow(1 + pow(7.5 - 7.5*Sw, 4), -1);
+        double bazant_power = 1;// pow(1 + pow(7.5 - 7.5*Sw, 4), -1);
 
         if (_process_data._material->getMaterialID(pos.getElementID().get()) ==
             0)//backfill
@@ -347,7 +348,8 @@ void TwoPhaseComponentialFlowLocalAssembler<
             double const dcarb_rate_analytic
                 = 0.04*(94.32 - rho_mol_co2_cumul_total_backfill*100 / rho_co2_max_consume);
             rho_mol_co2_kinetic_rate_backfill =
-                bazant_power*rho_co2_max_consume*dcarb_rate;
+                bazant_power*rho_co2_max_consume*dcarb_rate/100;
+
             // impose a max rate bound
             if (rho_mol_co2_kinetic_rate_backfill > rho_mol_co2_consume_rate_backfill)
                 //rho_mol_co2_kinetic_rate_backfill = rho_mol_co2_consume_rate_backfill;
@@ -755,7 +757,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
                 fluid_volume_backfill = bi_interpolation(
                     _ip_data[ip].rho_mol_sio2_prev_backfill,
                     _ip_data[ip].rho_mol_co2_cumul_total_prev_backfill, _fluid_volume_suppt_pnt_backfill);
-                double quartz_dissolute_rate_backfill = bi_interpolation(
+                double quartz_dissolute_rate_backfill = 31557600 * bi_interpolation(
                     _ip_data[ip].rho_mol_sio2_prev_backfill,
                     _ip_data[ip].rho_mol_co2_cumul_total_prev_backfill, _quartz_rate_suppt_pnt_backfill);
                 double saturation_index_interpolated= bi_interpolation(
@@ -768,13 +770,13 @@ void TwoPhaseComponentialFlowLocalAssembler<
                 // small), for values bigger than 1 Quartz will precipitate...->positive rates.
                 if (saturation_index_interpolated > 0.95)
                     quartz_dissolute_rate_backfill = 0;
-                const double rho_co2_ele_backfill =
-                    porosity * ((1 - Sw) * rho_mol_nonwet * X3_int_pt +
-                                Sw * rho_mol_wet * X_L_co2_gp);
+                //const double rho_co2_ele_backfill =
+                    //porosity * ((1 - Sw) * rho_mol_nonwet * X3_int_pt +
+                                //Sw * rho_mol_wet * X_L_co2_gp);
                 if (_ip_data[ip].rho_mol_co2_cumul_total_prev_backfill >=
                     7500)  // means carbonation stops, no more co2 will be consumed
                     rho_mol_total_co2_backfill = 0.0;
-                double test = rho_mol_total_co2_backfill - rho_co2_ele_backfill;
+                //double test = rho_mol_total_co2_backfill - rho_co2_ele_backfill;
                 double const fluid_volume_rate =
                     (fluid_volume_backfill - _ip_data[ip].fluid_volume_prev_backfill) / dt;
 
@@ -828,9 +830,9 @@ void TwoPhaseComponentialFlowLocalAssembler<
     if (rx0 > 0.303 - eps  && rx1 > 0.303 - eps)
     {
         //indicates edge 0-1 located on the boundary
-        auto const l = std::sqrt(std::pow(rx0 - rx1, 2) + std::pow(ry0 - ry1, 2));
+        length = std::sqrt(std::pow(rx0 - rx1, 2) + std::pow(ry0 - ry1, 2));
         neumann_vec[2] = 0;
-        double const radial_sym_fac = 2 * 3.1415926*rx0;
+        radial_sym_fac = 2 * 3.1415926*rx0;
         neumn_h2 = 0.003733333*radial_sym_fac;
         if (accelerate_flag) {
             if (gp_carb_neutral_count <= 2) {
@@ -854,14 +856,14 @@ void TwoPhaseComponentialFlowLocalAssembler<
             neumann_vec[0] = neumn_h2;
             neumann_vec[1] = neumn_h2;
         }
-        localNeumann_tmp = neumann_vec*l / 2;
+        localNeumann_tmp = neumann_vec*length / 2;
         _neumann_vec_output = neumann_vec / radial_sym_fac;
     }
     else if (rx1 > 0.303 - eps  && rx2 > 0.303 - eps)
     {
-        auto const l = std::sqrt(std::pow(rx1 - rx2, 2) + std::pow(ry1 - ry2, 2));
+        length = std::sqrt(std::pow(rx1 - rx2, 2) + std::pow(ry1 - ry2, 2));
         neumann_vec[0] = 0.0;
-        double const radial_sym_fac = 2 * 3.1415926*rx1;
+        radial_sym_fac = 2 * 3.1415926*rx1;
         neumn_h2 = 0.003733333* radial_sym_fac;
         if (accelerate_flag) {
             if (gp_carb_neutral_count <= 2) {
@@ -885,14 +887,14 @@ void TwoPhaseComponentialFlowLocalAssembler<
             neumann_vec[1] = neumn_h2;
             neumann_vec[2] = neumn_h2;
         }
-        localNeumann_tmp = neumann_vec*l / 2;
+        localNeumann_tmp = neumann_vec*length / 2;
         _neumann_vec_output = neumann_vec / radial_sym_fac;
     }
     else if (rx2 > 0.303 - eps  && rx0 > 0.303 - eps)
     {
-        auto const l = std::sqrt(std::pow(rx0 - rx2, 2) + std::pow(ry0 - ry2, 2));
+        length = std::sqrt(std::pow(rx0 - rx2, 2) + std::pow(ry0 - ry2, 2));
         neumann_vec[1] = 0.0;
-        double const radial_sym_fac = 2 * 3.1415926*rx2;
+        radial_sym_fac = 2 * 3.1415926*rx2;
         neumn_h2 = 0.003733333* radial_sym_fac;
         if (accelerate_flag) {
             if (gp_carb_neutral_count <= 2) {
@@ -916,7 +918,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
             neumann_vec[0] = neumn_h2;
             neumann_vec[2] = neumn_h2;
         }
-        localNeumann_tmp = neumann_vec*l / 2;
+        localNeumann_tmp = neumann_vec*length / 2;
         _neumann_vec_output = neumann_vec / radial_sym_fac;
     }
 
@@ -925,9 +927,9 @@ void TwoPhaseComponentialFlowLocalAssembler<
         ry1<0.795 && ry1>0.088 && ry0<0.795 && ry0>0.088)
     {
         //indicates edge 0-1 located on the boundary
-        auto const l = std::sqrt(std::pow(rx0 - rx1, 2) + std::pow(ry0 - ry1, 2));
+        length = std::sqrt(std::pow(rx0 - rx1, 2) + std::pow(ry0 - ry1, 2));
         neumann_vec[2] = 0;
-        double const radial_sym_fac = 2 * 3.1415926*rx0;
+        radial_sym_fac = 2 * 3.1415926*rx0;
         neumn_h2 = 0.0124*radial_sym_fac;
         if (accelerate_flag) {
             if (gp_carb_neutral_count <= 2) {
@@ -951,15 +953,15 @@ void TwoPhaseComponentialFlowLocalAssembler<
             neumann_vec[0] = neumn_h2;
             neumann_vec[1] = neumn_h2;
         }
-        localNeumann_tmp = neumann_vec*l / 2;
+        localNeumann_tmp = neumann_vec*length / 2;
         _neumann_vec_output = neumann_vec / radial_sym_fac;
     }
     else if (std::abs(rx1 - 0.245)<0.0025 + eps && std::abs(rx2 - 0.245)<0.0025 + eps &&
         ry1<0.795 && ry1>0.088 && ry2<0.795 && ry2>0.088)
     {
-        auto const l = std::sqrt(std::pow(rx1 - rx2, 2) + std::pow(ry1 - ry2, 2));
+        length = std::sqrt(std::pow(rx1 - rx2, 2) + std::pow(ry1 - ry2, 2));
         neumann_vec[0] = 0.0;
-        double const radial_sym_fac = 2 * 3.1415926*rx1;
+        radial_sym_fac = 2 * 3.14159*rx1;
         neumn_h2 = 0.0124* radial_sym_fac;
         if (accelerate_flag) {
             if (gp_carb_neutral_count <= 2) {
@@ -983,15 +985,15 @@ void TwoPhaseComponentialFlowLocalAssembler<
             neumann_vec[1] = neumn_h2;
             neumann_vec[2] = neumn_h2;
         }
-        localNeumann_tmp = neumann_vec*l / 2;
+        localNeumann_tmp = neumann_vec*length / 2;
         _neumann_vec_output = neumann_vec / radial_sym_fac;
     }
     else if (std::abs(rx2 - 0.245)<0.0025 + eps && std::abs(rx0 - 0.245)<0.0025 + eps &&
         ry2<0.795 && ry2>0.088 && ry0<0.795 && ry0>0.088)
     {
-        auto const l = std::sqrt(std::pow(rx0 - rx2, 2) + std::pow(ry0 - ry2, 2));
+        length = std::sqrt(std::pow(rx0 - rx2, 2) + std::pow(ry0 - ry2, 2));
         neumann_vec[1] = 0.0;
-        double const radial_sym_fac = 2 * 3.1415926*rx2;
+        radial_sym_fac = 2 * 3.1415926*rx2;
         neumn_h2 = 0.0124* radial_sym_fac;
         if (accelerate_flag) {
             if (gp_carb_neutral_count <= 2) {
@@ -1015,7 +1017,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
             neumann_vec[0] = neumn_h2;
             neumann_vec[2] = neumn_h2;
         }
-        localNeumann_tmp = neumann_vec*l / 2;
+        localNeumann_tmp = neumann_vec*length / 2;
         _neumann_vec_output = neumann_vec / radial_sym_fac;
     }
     local_b.block(n_nodes * 0, 0, n_nodes, 1).noalias() += localNeumann_tmp;

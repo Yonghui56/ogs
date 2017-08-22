@@ -671,7 +671,25 @@ public:
         return _gas_co2_degradation_rate;
     }
 
+    template <typename Shp>
+    static std::array<double, 3> interpolateNodeCoordinates(
+        MeshLib::Element const& e, Shp const& N)
+         {
+        std::array<double, 3> res;
+        
+            auto const* const nodes = e.getNodes();
+        auto node_coords = N;
 
+            for (std::size_t d = 0; d < 3; ++d)
+            {
+            for (unsigned ip = 0; ip < N.size(); ++ip)
+                {
+                node_coords[ip] = (*nodes[ip])[d];
+                }
+                res[d] = N.dot(node_coords);
+            }
+            return res;
+        }
 private:
     MeshLib::Element const& _element;
 
@@ -748,6 +766,8 @@ private:
     double neumn_h2 = 0.003733333;// multiply 2*pi*r to represent the radial symmetric
     const double eps = 1e-5;
     bool accelerate_flag = false;
+    double radial_sym_fac = 0.0;
+    double length = 0.0;
 private:
     const double get_P_sat(double T)
     {
