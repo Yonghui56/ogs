@@ -38,6 +38,19 @@ void TwoPhaseComponentialFlowLocalAssembler<
     auto const n_nodes = ShapeFunction::NPOINTS;
     assert(local_matrix_size == ShapeFunction::NPOINTS * NUM_NODAL_DOF);
 
+    auto const p_nodal_values = Eigen::Map<const NodalVectorType>(
+        &local_x[0], ShapeFunction::NPOINTS);
+    auto const pc_nodal_values = Eigen::Map<const NodalVectorType>(
+        &local_x[4 * ShapeFunction::NPOINTS], ShapeFunction::NPOINTS);
+    auto const x1_nodal_values = Eigen::Map<const NodalVectorType>(
+        &local_x[ShapeFunction::NPOINTS], ShapeFunction::NPOINTS);
+    auto const x2_nodal_values = Eigen::Map<const NodalVectorType>(
+        &local_x[2 * ShapeFunction::NPOINTS], ShapeFunction::NPOINTS);
+    auto const x3_nodal_values = Eigen::Map<const NodalVectorType>(
+        &local_x[3 * ShapeFunction::NPOINTS], ShapeFunction::NPOINTS);
+    GlobalDimVectorType x4_nodal_values = x3_nodal_values;//initialize
+    GlobalDimVectorType x5_nodal_values = x3_nodal_values;//initialize
+
     auto local_M = MathLib::createZeroedMatrix<LocalMatrixType>(
         local_M_data, local_matrix_size, local_matrix_size);
     auto local_K = MathLib::createZeroedMatrix<LocalMatrixType>(
@@ -55,14 +68,13 @@ void TwoPhaseComponentialFlowLocalAssembler<
     localMass_tmp.setZero(ShapeFunction::NPOINTS, ShapeFunction::NPOINTS);
     NodalMatrixType localDispersion_tmp;
     localDispersion_tmp.setZero(ShapeFunction::NPOINTS, ShapeFunction::NPOINTS);
-    Eigen::VectorXd localGravity_tmp =
-        Eigen::VectorXd::Zero(ShapeFunction::NPOINTS);
-    Eigen::VectorXd localSource_tmp =
-        Eigen::VectorXd::Zero(ShapeFunction::NPOINTS);
-    Eigen::VectorXd localNeumann_tmp =
-        Eigen::VectorXd::Zero(ShapeFunction::NPOINTS);
-    Eigen::VectorXd localNeumann_steelwall_tmp =
-        Eigen::VectorXd::Zero(ShapeFunction::NPOINTS);
+    NodalVectorType localGravity_tmp;
+    localGravity_tmp.setZero(ShapeFunction::NPOINTS);
+
+    NodalVectorType localSource_tmp;
+    localSource_tmp.setZero(ShapeFunction::NPOINTS);
+    NodalVectorType localNeumann_tmp;
+    localNeumann_tmp.setZero(ShapeFunction::NPOINTS);
 
     NodalMatrixType mass_operator;
     mass_operator.setZero(ShapeFunction::NPOINTS, ShapeFunction::NPOINTS);
@@ -84,7 +96,6 @@ void TwoPhaseComponentialFlowLocalAssembler<
     auto ry0 = (*nodes[0])[1];
     auto ry1 = (*nodes[1])[1];
     auto ry2 = (*nodes[2])[1];
-    const auto rx= (*nodes)[0];
     const int material_id =
         _process_data._material->getMaterialID(pos.getElementID().get());
 
@@ -132,16 +143,18 @@ void TwoPhaseComponentialFlowLocalAssembler<
     accelerate_flag = false;
     int gp_carb_neutral_count = 0;
     // vector for neumann boundary condition on each node
+
     Eigen::VectorXd neumann_vector = Eigen::VectorXd::Zero(local_x.size());
-    auto neumann_vec = neumann_vector.template segment<ShapeFunction::NPOINTS>(
+    auto neumann_vec = neumann_vector.segment<ShapeFunction::NPOINTS>(
         0);
 
     Eigen::VectorXd _neumann_vector_output = Eigen::VectorXd::Zero(local_x.size());
-    auto _neumann_vec_output = _neumann_vector_output.template segment<ShapeFunction::NPOINTS>(
+    auto _neumann_vec_output = _neumann_vector_output.segment<ShapeFunction::NPOINTS>(
         0);
+    Eigen::VectorXd F_vec_coeff = Eigen::VectorXd::Zero(NUM_NODAL_DOF);
     for (unsigned ip = 0; ip < n_integration_points; ip++)
     {
-        Eigen::VectorXd F_vec_coeff = Eigen::VectorXd::Zero(NUM_NODAL_DOF);
+        F_vec_coeff.setZero(NUM_NODAL_DOF);
         auto const& sm = _shape_matrices[ip];
 
         double pg_int_pt = 0.0;
@@ -177,7 +190,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
         double X_L_c_gp = pg_int_pt * X2_int_pt / Hen_L_c;
         double X_L_co2_gp = pg_int_pt * X3_int_pt / Hen_L_co2;
 
-        double P_sat_gp = get_P_sat(temperature);
+        double P_sat_gp = 1*get_P_sat(temperature);
 
         double K_G_w = pg_int_pt / P_sat_gp;  // henry law ratio
         double K_G_air = pg_int_pt / Hen_L_air;
@@ -325,8 +338,9 @@ void TwoPhaseComponentialFlowLocalAssembler<
         double rho_mol_total_co2_waste = 0.;
 
         //saturation dependent
-        double bazant_power = 1;// pow(1 + pow(7.5 - 7.5*Sw, 4), -1);
-
+        double bazant_power = pow(1 + pow(7.5 - 7.5*Sw, 4), -1);
+        if ((ry0 > 0.883 - eps && ry1 > 0.883 - eps) || (ry1 > 0.883 - eps && ry2 > 0.883 - eps) || (ry0 > 0.883 - eps && ry2 > 0.883 - eps))
+            bazant_power = 1;// assume the top area are not affected by the saturation 
         if (_process_data._material->getMaterialID(pos.getElementID().get()) ==
             0)//backfill
         {
@@ -591,25 +605,14 @@ void TwoPhaseComponentialFlowLocalAssembler<
         auto const K_mat_coeff_gas = permeability * (k_rel_G / mu_gas);
         auto const K_mat_coeff_liquid = permeability * (k_rel_L / mu_liquid);
 
-        auto const p_nodal_values = Eigen::Map<const NodalVectorType>(
-            &local_x[0], ShapeFunction::NPOINTS);
-        auto const pc_nodal_values = Eigen::Map<const NodalVectorType>(
-            &local_x[4* ShapeFunction::NPOINTS], ShapeFunction::NPOINTS);
-        auto const x1_nodal_values = Eigen::Map<const NodalVectorType>(
-            &local_x[ShapeFunction::NPOINTS], ShapeFunction::NPOINTS);
-        auto const x2_nodal_values = Eigen::Map<const NodalVectorType>(
-            &local_x[2*ShapeFunction::NPOINTS], ShapeFunction::NPOINTS);
-        auto const x3_nodal_values = Eigen::Map<const NodalVectorType>(
-            &local_x[3 * ShapeFunction::NPOINTS], ShapeFunction::NPOINTS);
-        GlobalDimVectorType x4_nodal_values= x3_nodal_values;//initialize
-        GlobalDimVectorType x5_nodal_values= x3_nodal_values;//initialize
-        for (int nn = 0; nn < ShapeFunction::NPOINTS; nn++) {
+
+        /*for (int nn = 0; nn < ShapeFunction::NPOINTS; nn++) {
             x4_nodal_values[nn] =get_x_nonwet_h2o(
                 pg_int_pt, x1_nodal_values[nn], x2_nodal_values[nn], x2_nodal_values[nn], P_sat_gp, kelvin_term);
             
             x5_nodal_values[nn] = 1 - x4_nodal_values[nn] - x3_nodal_values[nn]
                 - x2_nodal_values[nn] - x1_nodal_values[nn];
-        }
+        }*/
         //calculate the velocity
         GlobalDimVectorType darcy_velocity_gas_phase =
             -K_mat_coeff_gas * sm.dNdx * p_nodal_values;
@@ -689,7 +692,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
         // load the source term
         if (Sw > 0.2 && dt > 0)
         {
-            Eigen::VectorXd F_vec_coeff = Eigen::VectorXd::Zero(NUM_NODAL_DOF);
+            F_vec_coeff.setZero(NUM_NODAL_DOF);
             // instead of reading curve, now use analytical formular
             double Q_organic_fast_co2_ini =
                 m0_cellulose*(std::exp(-k_d_cellulose*t));  
@@ -783,7 +786,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
                 // update the current cumulated co2 consumption
                 rho_mol_co2_cumul_total_backfill =
                     _ip_data[ip].rho_mol_co2_cumul_total_prev_backfill +
-                    rho_mol_co2_kinetic_rate_backfill*dt;
+                    (rho_mol_co2_kinetic_rate_backfill*dt)*2*3.1415926*_interpolateGaussNode_coord[0];
                 // co2 consumption
                 F_vec_coeff(2) -= rho_mol_co2_kinetic_rate_backfill;
                     //(rho_mol_total_co2_backfill / dt);
@@ -791,9 +794,11 @@ void TwoPhaseComponentialFlowLocalAssembler<
                 F_vec_coeff(4) +=
                     (fluid_volume_rate) -rho_mol_co2_kinetic_rate_backfill;
                 // update the amount of dissolved sio2
+                // cumulative dissolved sio2
                 rho_mol_sio2_wet_backfill =
                     _ip_data[ip].rho_mol_sio2_prev_backfill -
-                    quartz_dissolute_rate_backfill * dt;  // cumulative dissolved sio2
+                    (quartz_dissolute_rate_backfill * dt) * 2 * 3.1415926*_interpolateGaussNode_coord[0];  
+
                                                  // porosity update
                 porosity2 = bi_interpolation(
                     _ip_data[ip].rho_mol_sio2_prev_backfill,
@@ -802,6 +807,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
                 //store the secondary variable
                 _porosity_value[ip] = porosity2;
                 _rho_mol_co2_cumulated_prev[ip] = rho_mol_co2_cumul_total_backfill;
+                _rho_mol_sio2_cumulated_prev[ip] = rho_mol_sio2_wet_backfill;
             }
             //store the source term for each component 
             // thanks to the facts that the source terms are all for gas phase
@@ -827,6 +833,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
        //apply the neumann boundary condition on the line element
        //first search the nodes
        //axissymmetric
+
     if (rx0 > 0.303 - eps  && rx1 > 0.303 - eps)
     {
         //indicates edge 0-1 located on the boundary
@@ -924,7 +931,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
 
     // for the second Neumann boundary condition
     if (std::abs(rx0 - 0.245)<0.0025 + eps && std::abs(rx1 - 0.245)<0.0025 + eps &&
-        ry1<0.795 && ry1>0.088 && ry0<0.795 && ry0>0.088)
+        ry1<0.795+eps && ry1>0.088-eps && ry0<0.795+eps && ry0>0.088-eps)
     {
         //indicates edge 0-1 located on the boundary
         length = std::sqrt(std::pow(rx0 - rx1, 2) + std::pow(ry0 - ry1, 2));
@@ -957,7 +964,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
         _neumann_vec_output = neumann_vec / radial_sym_fac;
     }
     else if (std::abs(rx1 - 0.245)<0.0025 + eps && std::abs(rx2 - 0.245)<0.0025 + eps &&
-        ry1<0.795 && ry1>0.088 && ry2<0.795 && ry2>0.088)
+        ry1<0.795+eps && ry1>0.088-eps && ry2<0.795+eps && ry2>0.088-eps)
     {
         length = std::sqrt(std::pow(rx1 - rx2, 2) + std::pow(ry1 - ry2, 2));
         neumann_vec[0] = 0.0;
@@ -989,7 +996,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
         _neumann_vec_output = neumann_vec / radial_sym_fac;
     }
     else if (std::abs(rx2 - 0.245)<0.0025 + eps && std::abs(rx0 - 0.245)<0.0025 + eps &&
-        ry2<0.795 && ry2>0.088 && ry0<0.795 && ry0>0.088)
+        ry2<0.795 + eps && ry2>0.088 - eps && ry0<0.795 + eps && ry0>0.088 - eps)
     {
         length = std::sqrt(std::pow(rx0 - rx2, 2) + std::pow(ry0 - ry2, 2));
         neumann_vec[1] = 0.0;
@@ -1037,6 +1044,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
             h2_flux3, h2_flux4, h2_flux5);
         _gas_h2_generation_rate[ip] += h2_flux;
     }
+
     if (_process_data._has_mass_lumping)
     {
         auto Mhpg =

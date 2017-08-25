@@ -100,6 +100,11 @@ void TwoPhaseComponentialFlowProcess::initializeConcreteProcess(
             &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtRhoMolCo2CumulTotalPrev));
 
     _secondary_variables.addSecondaryVariable(
+        "sio2_cumulated_prev",
+        makeExtrapolator(1, getExtrapolator(), _local_assemblers,
+            &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtMolRhoSiO2CumulPrev));
+
+    _secondary_variables.addSecondaryVariable(
         "moldensity_gasphase",
         makeExtrapolator(1, getExtrapolator(), _local_assemblers,
             &TwoPhaseComponentialFlowLocalAssemblerInterface::

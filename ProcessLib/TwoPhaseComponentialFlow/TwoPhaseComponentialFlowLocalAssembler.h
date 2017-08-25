@@ -147,6 +147,12 @@ public:
         NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
         std::vector<double>& /*cache*/) const = 0;
 
+    virtual std::vector<double> const& getIntPtMolRhoSiO2CumulPrev(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const = 0;
+
     virtual std::vector<double> const& getIntPtMolDensityGasPhase(
         const double /*t*/,
         GlobalVector const& /*current_solution*/,
@@ -304,6 +310,8 @@ public:
               std::vector<double>(_integration_method.getNumberOfPoints())),
           _rho_mol_co2_cumulated_prev(
               std::vector<double>(_integration_method.getNumberOfPoints())),
+          _rho_mol_sio2_cumulated_prev(
+            std::vector<double>(_integration_method.getNumberOfPoints())),
           _rho_mol_gas_phase(
             std::vector<double>(_integration_method.getNumberOfPoints())),
           _rho_mol_liquid_phase(
@@ -462,6 +470,19 @@ public:
     {
         assert(_rho_mol_co2_cumulated_prev.size() > 0);
         return _rho_mol_co2_cumulated_prev;
+    }
+
+    /*
+    * used to store previous time step value of cumulative dissoved sio2 (unit mol/m3)
+    */
+    std::vector<double> const& getIntPtMolRhoSiO2CumulPrev(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(_rho_mol_sio2_cumulated_prev.size() > 0);
+        return _rho_mol_sio2_cumulated_prev;
     }
 
     /*
@@ -711,6 +732,7 @@ private:
     std::vector<double> _mol_fraction_nonwet_air;
     std::vector<double> _co2_concentration;
     std::vector<double> _rho_mol_co2_cumulated_prev;
+    std::vector<double> _rho_mol_sio2_cumulated_prev;
     std::vector<double> _rho_mol_gas_phase;
     std::vector<double> _rho_mol_liquid_phase;
     std::vector<double> _gas_generation_rate;
@@ -882,7 +904,7 @@ private:
             return _values_at_supp_pnts.back();
         }
 
-        const double x_supp_pnt_size = _supp_pnts_x.size();
+        const auto x_supp_pnt_size = _supp_pnts_x.size();
         if (pnt_x_to_interpolate <= _supp_pnts_x.front() &&
             pnt_y_to_interpolate >= _supp_pnts_y.back())
         {
