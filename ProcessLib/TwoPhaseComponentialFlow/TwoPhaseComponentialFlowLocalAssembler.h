@@ -147,6 +147,12 @@ public:
         NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
         std::vector<double>& /*cache*/) const = 0;
 
+    virtual std::vector<double> const& getIntPtMolRhoSiO2CumulPrev(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const = 0;
+
     virtual std::vector<double> const& getIntPtMolDensityGasPhase(
         const double /*t*/,
         GlobalVector const& /*current_solution*/,
@@ -304,6 +310,8 @@ public:
               std::vector<double>(_integration_method.getNumberOfPoints())),
           _rho_mol_co2_cumulated_prev(
               std::vector<double>(_integration_method.getNumberOfPoints())),
+          _rho_mol_sio2_cumulated_prev(
+            std::vector<double>(_integration_method.getNumberOfPoints())),
           _rho_mol_gas_phase(
             std::vector<double>(_integration_method.getNumberOfPoints())),
           _rho_mol_liquid_phase(
@@ -462,6 +470,19 @@ public:
     {
         assert(_rho_mol_co2_cumulated_prev.size() > 0);
         return _rho_mol_co2_cumulated_prev;
+    }
+
+    /*
+    * used to store previous time step value of cumulative dissoved sio2 (unit mol/m3)
+    */
+    std::vector<double> const& getIntPtMolRhoSiO2CumulPrev(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(_rho_mol_sio2_cumulated_prev.size() > 0);
+        return _rho_mol_sio2_cumulated_prev;
     }
 
     /*
@@ -671,7 +692,25 @@ public:
         return _gas_co2_degradation_rate;
     }
 
+    template <typename Shp>
+    static std::array<double, 3> interpolateNodeCoordinates(
+        MeshLib::Element const& e, Shp const& N)
+         {
+        std::array<double, 3> res;
+        
+            auto const* const nodes = e.getNodes();
+        auto node_coords = N;
 
+            for (std::size_t d = 0; d < 3; ++d)
+            {
+            for (unsigned ip = 0; ip < N.size(); ++ip)
+                {
+                node_coords[ip] = (*nodes[ip])[d];
+                }
+                res[d] = N.dot(node_coords);
+            }
+            return res;
+        }
 private:
     MeshLib::Element const& _element;
 
@@ -693,6 +732,7 @@ private:
     std::vector<double> _mol_fraction_nonwet_air;
     std::vector<double> _co2_concentration;
     std::vector<double> _rho_mol_co2_cumulated_prev;
+    std::vector<double> _rho_mol_sio2_cumulated_prev;
     std::vector<double> _rho_mol_gas_phase;
     std::vector<double> _rho_mol_liquid_phase;
     std::vector<double> _gas_generation_rate;
@@ -735,10 +775,21 @@ private:
     const double Hen_L_co2 = 0.163e+9;  // Henry constant in [Pa]
     const double rho_l_std = 1000.0;
     const double& R = MaterialLib::PhysicalConstant::IdealGasConstant;
-    const double Q_steel = 7.8591 * 4 / 3;  // generate H2
-    const double para_slow = 401.55;
-    const double para_fast = 191.47286;
+    const double Q_steel_waste_matrix = 5.903876 * 4 / 3;  // generate H2
+    const double Q_steel_inner_surface = 0.0093 * 4 / 3;  // generate H2
 
+    const double para_slow = 401.55;//51.8/0.129
+    const double para_fast = 191.47286;//24.7kg/0,129
+    const double k_d_cellulose = 1.89e-3;//rate consts for cellulose degradation
+    const double k_d_polystyrene = 6.51e-5;//rate consts for polystyrene degradation
+    const double m0_cellulose = 0.035;
+    const double m0_polystyrene = 0.0019;
+    //for neumann condition on the outer drum
+    double neumn_h2 = 0.003733333;// multiply 2*pi*r to represent the radial symmetric
+    const double eps = 1e-5;
+    bool accelerate_flag = false;
+    double radial_sym_fac = 0.0;
+    double length = 0.0;
 private:
     const double get_P_sat(double T)
     {
@@ -853,7 +904,7 @@ private:
             return _values_at_supp_pnts.back();
         }
 
-        const int x_supp_pnt_size = _supp_pnts_x.size();
+        const auto x_supp_pnt_size = _supp_pnts_x.size();
         if (pnt_x_to_interpolate <= _supp_pnts_x.front() &&
             pnt_y_to_interpolate >= _supp_pnts_y.back())
         {
