@@ -853,7 +853,7 @@ private:
             return _values_at_supp_pnts.back();
         }
 
-        const double x_supp_pnt_size = _supp_pnts_x.size();
+        const int x_supp_pnt_size = _supp_pnts_x.size();
         if (pnt_x_to_interpolate <= _supp_pnts_x.front() &&
             pnt_y_to_interpolate >= _supp_pnts_y.back())
         {

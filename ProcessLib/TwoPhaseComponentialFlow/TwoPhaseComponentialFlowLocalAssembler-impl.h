@@ -38,6 +38,19 @@ void TwoPhaseComponentialFlowLocalAssembler<
     auto const n_nodes = ShapeFunction::NPOINTS;
     assert(local_matrix_size == ShapeFunction::NPOINTS * NUM_NODAL_DOF);
 
+    auto const p_nodal_values = Eigen::Map<const NodalVectorType>(
+        local_x.data()+ nonwet_pressure_matrix_index, ShapeFunction::NPOINTS);
+    auto const pc_nodal_values = Eigen::Map<const NodalVectorType>(
+        local_x.data() + cap_pressure_matrix_index, ShapeFunction::NPOINTS);
+    auto const x1_nodal_values = Eigen::Map<const NodalVectorType>(
+        local_x.data() + mol_fraction_h2_matrix_index, ShapeFunction::NPOINTS);
+    auto const x2_nodal_values = Eigen::Map<const NodalVectorType>(
+        local_x.data() + mol_fraction_ch4_matrix_index, ShapeFunction::NPOINTS);
+    auto const x3_nodal_values = Eigen::Map<const NodalVectorType>(
+        local_x.data() + mol_fraction_co2_matrix_index, ShapeFunction::NPOINTS);
+    GlobalDimVectorType x4_nodal_values = x3_nodal_values;//initialize
+    GlobalDimVectorType x5_nodal_values = x3_nodal_values;//initialize
+
     auto local_M = MathLib::createZeroedMatrix<LocalMatrixType>(
         local_M_data, local_matrix_size, local_matrix_size);
     auto local_K = MathLib::createZeroedMatrix<LocalMatrixType>(
@@ -570,18 +583,6 @@ void TwoPhaseComponentialFlowLocalAssembler<
         auto const K_mat_coeff_gas = permeability * (k_rel_G / mu_gas);
         auto const K_mat_coeff_liquid = permeability * (k_rel_L / mu_liquid);
 
-        auto const p_nodal_values = Eigen::Map<const NodalVectorType>(
-            &local_x[0], ShapeFunction::NPOINTS);
-        auto const pc_nodal_values = Eigen::Map<const NodalVectorType>(
-            &local_x[4* ShapeFunction::NPOINTS], ShapeFunction::NPOINTS);
-        auto const x1_nodal_values = Eigen::Map<const NodalVectorType>(
-            &local_x[ShapeFunction::NPOINTS], ShapeFunction::NPOINTS);
-        auto const x2_nodal_values = Eigen::Map<const NodalVectorType>(
-            &local_x[2*ShapeFunction::NPOINTS], ShapeFunction::NPOINTS);
-        auto const x3_nodal_values = Eigen::Map<const NodalVectorType>(
-            &local_x[3 * ShapeFunction::NPOINTS], ShapeFunction::NPOINTS);
-        GlobalDimVectorType x4_nodal_values= x3_nodal_values;//initialize
-        GlobalDimVectorType x5_nodal_values= x3_nodal_values;//initialize
         for (int nn = 0; nn < ShapeFunction::NPOINTS; nn++) {
             x4_nodal_values[nn] =get_x_nonwet_h2o(
                 pg_int_pt, x1_nodal_values[nn], x2_nodal_values[nn], x2_nodal_values[nn], P_sat_gp, kelvin_term);
@@ -666,7 +667,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
             }
         }  // end of hasGravityEffect
         // load the source term
-        if (Sw > 0.3 && dt > 0)
+        if (Sw > 0.2 && dt > 0)
         {
             Eigen::VectorXd F_vec_coeff = Eigen::VectorXd::Zero(NUM_NODAL_DOF);
             double Q_organic_slow_co2_ini =
