@@ -213,6 +213,11 @@ void TwoPhaseComponentialFlowProcess::initializeConcreteProcess(
         makeExtrapolator(mesh.getDimension(), getExtrapolator(), _local_assemblers,
             &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtGasMethaneVelocity));
 
+    _secondary_variables.addSecondaryVariable(
+        "CO2_Consumed_For_Current_Step",
+        makeExtrapolator(1, getExtrapolator(), _local_assemblers,
+            &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtCO2ConsumedcurrentStep));
+
 }
 
 void TwoPhaseComponentialFlowProcess::assembleConcreteProcess(const double t,

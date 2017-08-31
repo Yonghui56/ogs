@@ -261,6 +261,12 @@ public:
         GlobalVector const& /*current_solution*/,
         NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
         std::vector<double>& /*cache*/) const = 0;
+
+    virtual std::vector<double> const& getIntPtCO2ConsumedcurrentStep(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const = 0;
 };
 
 template <typename ShapeFunction, typename IntegrationMethod,
@@ -341,6 +347,8 @@ public:
           _gas_co2_generation_rate(
             std::vector<double>(_integration_method.getNumberOfPoints())),
           _gas_co2_degradation_rate(
+            std::vector<double>(_integration_method.getNumberOfPoints())),
+          _co2_consumed_current_step(
             std::vector<double>(_integration_method.getNumberOfPoints()))
     {
         unsigned const n_integration_points =
@@ -691,6 +699,15 @@ public:
         assert(_gas_co2_degradation_rate.size() > 0);
         return _gas_co2_degradation_rate;
     }
+    std::vector<double> const& getIntPtCO2ConsumedcurrentStep(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(_co2_consumed_current_step.size() > 0);
+        return _co2_consumed_current_step;
+    }
 
     template <typename Shp>
     static std::array<double, 3> interpolateNodeCoordinates(
@@ -740,6 +757,7 @@ private:
     std::vector<double> _gas_ch4_generation_rate;
     std::vector<double> _gas_co2_generation_rate;
     std::vector<double> _gas_co2_degradation_rate;
+    std::vector<double> _co2_consumed_current_step;
 
     // used for velocity in x y z direction
     std::vector<std::vector<double>> _total_velocities_gas;

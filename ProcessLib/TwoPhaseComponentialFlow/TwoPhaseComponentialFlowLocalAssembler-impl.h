@@ -48,8 +48,8 @@ void TwoPhaseComponentialFlowLocalAssembler<
         local_x.data() + mol_fraction_ch4_matrix_index, ShapeFunction::NPOINTS);
     auto const x3_nodal_values = Eigen::Map<const NodalVectorType>(
         local_x.data() + mol_fraction_co2_matrix_index, ShapeFunction::NPOINTS);
-    GlobalDimVectorType x4_nodal_values = x3_nodal_values;//initialize
-    GlobalDimVectorType x5_nodal_values = x3_nodal_values;//initialize
+    //GlobalDimVectorType x4_nodal_values = x3_nodal_values;//initialize
+    //GlobalDimVectorType x5_nodal_values = x3_nodal_values;//initialize
 
     auto local_M = MathLib::createZeroedMatrix<LocalMatrixType>(
         local_M_data, local_matrix_size, local_matrix_size);
@@ -344,9 +344,10 @@ void TwoPhaseComponentialFlowLocalAssembler<
 
         //saturation dependent
         double bazant_power = pow(1 + pow(7.5 - 7.5*Sw, 4), -1);
-        if ((ry0 > 0.883 - eps && ry1 > 0.883 - eps) || (ry1 > 0.883 - eps && ry2 > 0.883 - eps) || (ry0 > 0.883 - eps && ry2 > 0.883 - eps))
-            bazant_power = 1;// assume the top area are not affected by the saturation 
-
+        //if ((ry0 > 0.883 - eps && ry1 > 0.883 - eps) || (ry1 > 0.883 - eps && ry2 > 0.883 - eps) || (ry0 > 0.883 - eps && ry2 > 0.883 - eps))
+            //bazant_power = 1;// assume the top area are not affected by the saturation 
+        //if (_interpolateGaussNode_coord[1] > 0.86 + eps)
+           // bazant_power = 1;
         if (_process_data._material->getMaterialID(pos.getElementID().get()) ==
             0)//backfill
         {
@@ -396,6 +397,8 @@ void TwoPhaseComponentialFlowLocalAssembler<
                 _ip_data[ip].rho_mol_co2_cumul_total_prev_waste, _pH_at_supp_pnt_waste);
             _pH_value[ip] = pH;
         }
+        //consumed CO2 for current step
+        _co2_consumed_current_step[ip] = rho_mol_co2_kinetic_rate_backfill*dt;
         //calculate the co2 concentration
         _co2_concentration[ip] = rho_mol_nonwet*X3_int_pt + rho_mol_wet*X_L_co2_gp;
         // store the molar density of gas phase
@@ -610,13 +613,13 @@ void TwoPhaseComponentialFlowLocalAssembler<
         auto const K_mat_coeff_gas = permeability * (k_rel_G / mu_gas);
         auto const K_mat_coeff_liquid = permeability * (k_rel_L / mu_liquid);
 
-        for (int nn = 0; nn < ShapeFunction::NPOINTS; nn++) {
+        /*for (int nn = 0; nn < ShapeFunction::NPOINTS; nn++) {
             x4_nodal_values[nn] =get_x_nonwet_h2o(
                 pg_int_pt, x1_nodal_values[nn], x2_nodal_values[nn], x2_nodal_values[nn], P_sat_gp, kelvin_term);
             
             x5_nodal_values[nn] = 1 - x4_nodal_values[nn] - x3_nodal_values[nn]
                 - x2_nodal_values[nn] - x1_nodal_values[nn];
-        }
+        }*/
         //calculate the velocity
         GlobalDimVectorType darcy_velocity_gas_phase =
             -K_mat_coeff_gas * sm.dNdx * p_nodal_values;
@@ -633,7 +636,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
             + x2_nodal_values* d_x_nonwet_air_d_x2
             + x3_nodal_values* d_x_nonwet_air_d_x3
             + pc_nodal_values*d_x_nonwet_air_d_pc);
-        GlobalDimVectorType diffuse_velocity_vapor_gas = -porosity * D_G * (1 - Sw)*sm.dNdx*x5_nodal_values;
+        //GlobalDimVectorType diffuse_velocity_vapor_gas = -porosity * D_G * (1 - Sw)*sm.dNdx*x5_nodal_values;
         double co2_degradation_rate = 0;
         if (_process_data._has_gravity)
         {
@@ -732,8 +735,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
                     rho_mol_total_co2_waste = 0.0;
                 //update the cumulated co2 consumption
                 rho_mol_co2_cumul_total_waste =
-                    _ip_data[ip].rho_mol_co2_cumul_total_prev_waste +
-                    rho_mol_total_co2_waste;
+                    _ip_data[ip].rho_mol_co2_cumul_total_prev_waste;// +rho_mol_total_co2_waste;
 
                 F_vec_coeff(1) += (Q_organic_slow_co2 * 31 / 19);
 
@@ -746,12 +748,12 @@ void TwoPhaseComponentialFlowLocalAssembler<
                 F_vec_coeff(2) += Q_organic_fast_co2;
                 co2_degradation_rate += Q_organic_fast_co2;
 
-                F_vec_coeff(2) -= (rho_mol_total_co2_waste / dt);//consumption of carbonation
+                //F_vec_coeff(2) -= (rho_mol_total_co2_waste / dt);//consumption of carbonation
 
                 F_vec_coeff(4) += (Q_organic_slow_co2 * 12 / 19) +
                                  (Q_organic_fast_co2 * 5 / 3);
-                F_vec_coeff(4) +=
-                    (fluid_volume_rate_waste)-(rho_mol_total_co2_waste / dt);
+                //F_vec_coeff(4) +=
+                    //(fluid_volume_rate_waste) -(rho_mol_total_co2_waste / dt);
                 //update the porosity
                 //= previous porosity + porosity change
                 double const poro=_process_data._material->getPorosity(
@@ -795,7 +797,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
                 // update the current cumulated co2 consumption
                 rho_mol_co2_cumul_total_backfill =
                     _ip_data[ip].rho_mol_co2_cumul_total_prev_backfill +
-                    (rho_mol_co2_kinetic_rate_backfill*dt) * 2 * 3.1415926*_interpolateGaussNode_coord[0];
+                    (rho_mol_co2_kinetic_rate_backfill*dt);// *2 * 3.1415926*_interpolateGaussNode_coord[0];
                 // co2 consumption
                 F_vec_coeff(2) -= rho_mol_co2_kinetic_rate_backfill;
                     //(rho_mol_total_co2_backfill / dt);
