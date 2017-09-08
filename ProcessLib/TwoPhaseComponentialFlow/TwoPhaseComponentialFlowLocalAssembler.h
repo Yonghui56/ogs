@@ -267,6 +267,18 @@ public:
         GlobalVector const& /*current_solution*/,
         NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
         std::vector<double>& /*cache*/) const = 0;
+
+    virtual std::vector<double> const& getIntPtVaporVelocity(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const = 0;
+
+    virtual std::vector<double> const& getIntPtGasNitrogenVelocity(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const = 0;
 };
 
 template <typename ShapeFunction, typename IntegrationMethod,
@@ -709,6 +721,26 @@ public:
         return _co2_consumed_current_step;
     }
 
+    std::vector<double> const& getIntPtVaporVelocity(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(_gas_vapor_velocity.size() > 0);
+        return _gas_vapor_velocity;
+    }
+
+    std::vector<double> const& getIntPtGasNitrogenVelocity(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(_gas_nitrogen_velocity.size() > 0);
+        return _gas_nitrogen_velocity;
+    }
+
     template <typename Shp>
     static std::array<double, 3> interpolateNodeCoordinates(
         MeshLib::Element const& e, Shp const& N)
@@ -770,6 +802,8 @@ private:
     std::vector<double> _gas_co2_velocity;
     std::vector<double> _gas_hydrogen_velocity;
     std::vector<double> _gas_methane_velocity;
+    std::vector<double> _gas_vapor_velocity;
+    std::vector<double> _gas_nitrogen_velocity;
 
     static const int nonwet_pressure_coeff_index = 0;
     static const int mol_fraction_h_coeff_index = 1;

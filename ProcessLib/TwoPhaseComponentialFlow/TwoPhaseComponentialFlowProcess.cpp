@@ -218,6 +218,16 @@ void TwoPhaseComponentialFlowProcess::initializeConcreteProcess(
         makeExtrapolator(1, getExtrapolator(), _local_assemblers,
             &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtCO2ConsumedcurrentStep));
 
+    _secondary_variables.addSecondaryVariable(
+        "water_vapor_transport_velocity",
+        makeExtrapolator(1, getExtrapolator(), _local_assemblers,
+            &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtVaporVelocity));
+
+    _secondary_variables.addSecondaryVariable(
+        "gas_nitrogen_transport_velocity",
+        makeExtrapolator(1, getExtrapolator(), _local_assemblers,
+            &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtGasNitrogenVelocity));
+
 }
 
 void TwoPhaseComponentialFlowProcess::assembleConcreteProcess(const double t,
