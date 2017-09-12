@@ -361,7 +361,11 @@ public:
           _gas_co2_degradation_rate(
             std::vector<double>(_integration_method.getNumberOfPoints())),
           _co2_consumed_current_step(
-            std::vector<double>(_integration_method.getNumberOfPoints()))
+            std::vector<double>(_integration_method.getNumberOfPoints())),
+          _gas_vapor_velocity(
+            std::vector<double>(GlobalDim*_integration_method.getNumberOfPoints())),
+          _gas_nitrogen_velocity(
+            std::vector<double>(GlobalDim*_integration_method.getNumberOfPoints()))
     {
         unsigned const n_integration_points =
             _integration_method.getNumberOfPoints();

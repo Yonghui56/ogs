@@ -219,13 +219,13 @@ void TwoPhaseComponentialFlowProcess::initializeConcreteProcess(
             &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtCO2ConsumedcurrentStep));
 
     _secondary_variables.addSecondaryVariable(
-        "water_vapor_transport_velocity",
-        makeExtrapolator(1, getExtrapolator(), _local_assemblers,
+        "gas_water_vapor_transport_velocity",
+        makeExtrapolator(mesh.getDimension(), getExtrapolator(), _local_assemblers,
             &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtVaporVelocity));
 
     _secondary_variables.addSecondaryVariable(
         "gas_nitrogen_transport_velocity",
-        makeExtrapolator(1, getExtrapolator(), _local_assemblers,
+        makeExtrapolator(mesh.getDimension(), getExtrapolator(), _local_assemblers,
             &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtGasNitrogenVelocity));
 
 }
