@@ -368,24 +368,24 @@ void TwoPhaseComponentialFlowLocalAssembler<
             rho_mol_total_co2_backfill = _ip_data[ip].porosity_prev_backfill *
                 (rho_mol_nonwet * X3_int_pt * (1 - Sw) +
                     rho_mol_wet * X_L_co2_gp * Sw);
-            double rho_mol_co2_consume_rate_backfill = rho_mol_total_co2_backfill / dt;
+            double rho_mol_co2_consume_rate_backfill = bazant_power*rho_mol_total_co2_backfill / dt;
 
             //rho_mol_co2_consume_rate_backfill =
                 //(rho_mol_co2_consume_rate_backfill < 0) ? 0.0 : rho_mol_co2_consume_rate_backfill;
 
-            double const dcarb_rate= 
-                interpolated_kinetic_rate.getValue(rho_mol_co2_cumul_total_backfill*100 / rho_co2_max_consume);
-            double const dcarb_rate_analytic
-                = 0.04*(94.32 - rho_mol_co2_cumul_total_backfill*100 / rho_co2_max_consume);
-            rho_mol_co2_kinetic_rate_backfill =
-                bazant_power*rho_co2_max_consume*dcarb_rate/100;
+            //double const dcarb_rate= 
+                //interpolated_kinetic_rate.getValue(rho_mol_co2_cumul_total_backfill*100 / rho_co2_max_consume);
+            //double const dcarb_rate_analytic
+                //= 0.04*(94.32 - rho_mol_co2_cumul_total_backfill*100 / rho_co2_max_consume);
+            rho_mol_co2_kinetic_rate_backfill = rho_mol_co2_consume_rate_backfill;
+                //bazant_power*rho_co2_max_consume*dcarb_rate/100;
             // impose a max rate bound
-            if (rho_mol_co2_kinetic_rate_backfill > rho_mol_co2_consume_rate_backfill)
+            /*if (rho_mol_co2_kinetic_rate_backfill > rho_mol_co2_consume_rate_backfill)
                 //rho_mol_co2_kinetic_rate_backfill = rho_mol_co2_consume_rate_backfill;
                 rho_mol_co2_kinetic_rate_backfill =
                 (rho_mol_co2_consume_rate_backfill < 0) ? 0.0 : rho_mol_co2_consume_rate_backfill;
             else
-                rho_mol_co2_kinetic_rate_backfill = rho_mol_co2_kinetic_rate_backfill;
+                rho_mol_co2_kinetic_rate_backfill = rho_mol_co2_kinetic_rate_backfill;*/
             // get the pH value at this iteration based cumulated dissovled quatz and
             // cumulated co2
             double const pH = bi_interpolation(
@@ -530,6 +530,8 @@ void TwoPhaseComponentialFlowLocalAssembler<
         // diffusion coefficient in gas phase
         double const D_G =
             _process_data._diffusion_coeff_component_a(t, pos)[0];
+        double const D_G_co2=
+            _process_data._diffusion_coeff_component_c(t, pos)[0];
         //permeability(0, 0) = 1e-19*std::pow((1 - 0.095228012) / (1 - 0.13), 2)*std::pow(0.13 / 0.095228012, 3);
         K_mat_coeff(0, 0) =
             (lambda_G * rho_mol_nonwet * X1_int_pt +
@@ -565,7 +567,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
         K_mat_coeff(2, 1) = 0.0;
         K_mat_coeff(2, 2) = 0.0;
         K_mat_coeff(2, 3) =
-            (porosity * D_G * (1 - Sw) * rho_mol_nonwet +
+            (porosity * D_G_co2 * (1 - Sw) * rho_mol_nonwet +
              porosity * D_L * Sw * rho_mol_wet * pg_int_pt / Hen_L_co2);
         K_mat_coeff(2, 4) =
             (-lambda_L * rho_mol_wet * X_L_co2_gp) * permeability(0, 0);
@@ -630,19 +632,19 @@ void TwoPhaseComponentialFlowLocalAssembler<
         // for simplify only consider the gaseous specices diffusion velocity
         GlobalDimVectorType diffuse_velocity_h2_gas = -porosity * D_G * (1 - Sw)*sm.dNdx*x1_nodal_values;
         GlobalDimVectorType diffuse_velocity_ch4_gas = -porosity * D_G * (1 - Sw)*sm.dNdx*x2_nodal_values;
-        GlobalDimVectorType diffuse_velocity_co2_gas = -porosity * D_G * (1 - Sw)*sm.dNdx*x3_nodal_values;
+        GlobalDimVectorType diffuse_velocity_co2_gas = -porosity * D_G_co2 * (1 - Sw)*sm.dNdx*x3_nodal_values;
 
         GlobalDimVectorType diffuse_velocity_air_gas = -porosity * D_G * (1 - Sw)*sm.dNdx*(
             p_nodal_values*d_x_nonwet_air_d_pg
             + x1_nodal_values*d_x_nonwet_air_d_x1
             + x2_nodal_values* d_x_nonwet_air_d_x2
-            + x3_nodal_values* d_x_nonwet_air_d_x3
+            + (D_G_co2/ D_G)*x3_nodal_values* d_x_nonwet_air_d_x3
             + pc_nodal_values*d_x_nonwet_air_d_pc);
         GlobalDimVectorType diffuse_velocity_vapor_gas = -porosity * D_G * (1 - Sw)*sm.dNdx*(
             p_nodal_values*d_x_nonwet_h2o_d_pg
             + x1_nodal_values*d_x_nonwet_h2o_d_x1
             + x2_nodal_values* d_x_nonwet_h2o_d_x2
-            + x3_nodal_values* d_x_nonwet_h2o_d_x3
+            + (D_G_co2 / D_G)*x3_nodal_values* d_x_nonwet_h2o_d_x3
             + pc_nodal_values*d_x_nonwet_h2o_d_pc);
         double co2_degradation_rate = 0;
         if (_process_data._has_gravity)

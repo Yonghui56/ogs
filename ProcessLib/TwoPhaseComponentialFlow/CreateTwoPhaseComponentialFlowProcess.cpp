@@ -82,6 +82,10 @@ std::unique_ptr<Process> createTwoPhaseComponentialFlowProcess(
         config,
         //! \ogs_file_param{prj__processes__process__TWOPHASE_FLOW_PRHO__diffusion_coeff_component_a}
         "diffusion_coeff_component_a", parameters, 1);
+    auto& diff_coeff_c = findParameter<double>(
+        config,
+        //! \ogs_file_param{prj__processes__process__TWOPHASE_FLOW_PRHO__diffusion_coeff_component_c}
+        "diffusion_coeff_component_c", parameters, 1);
     auto& temperature = findParameter<double>(
         config,
         //! \ogs_file_param{prj__processes__process__TWOPHASE_FLOW_PRHO__temperature}
@@ -111,7 +115,7 @@ std::unique_ptr<Process> createTwoPhaseComponentialFlowProcess(
 
     TwoPhaseComponentialFlowProcessData process_data{
         specific_body_force, has_gravity, mass_lumping,       diff_coeff_b,
-        diff_coeff_a,        temperature, std::move(material), *curves.at("curveA"),
+        diff_coeff_a, diff_coeff_c,   temperature, std::move(material), *curves.at("curveA"),
         *curves.at("curveB"),*curves.at("curveC") };
 
 

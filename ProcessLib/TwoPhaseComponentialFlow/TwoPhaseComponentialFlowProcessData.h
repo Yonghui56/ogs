@@ -30,6 +30,7 @@ struct TwoPhaseComponentialFlowProcessData
         bool const has_mass_lumping_,
         Parameter<double> const& diffusion_coeff_component_b_,
         Parameter<double> const& diffusion_coeff_component_a_,
+        Parameter<double> const& diffusion_coeff_component_c_,
         Parameter<double> const& temperature_,
         std::unique_ptr<TwoPhaseComponentialFlowMaterialProperties>&& material_,
         MathLib::PiecewiseLinearInterpolation const& interpolated_Q_slow_,
@@ -41,6 +42,7 @@ struct TwoPhaseComponentialFlowProcessData
           _has_mass_lumping(has_mass_lumping_),
           _diffusion_coeff_component_b(diffusion_coeff_component_b_),
           _diffusion_coeff_component_a(diffusion_coeff_component_a_),
+          _diffusion_coeff_component_c(diffusion_coeff_component_c_),
           _temperature(temperature_),
           _material(std::move(material_)),
           _interpolated_Q_slow(interpolated_Q_slow_),
@@ -57,6 +59,7 @@ struct TwoPhaseComponentialFlowProcessData
           _has_mass_lumping(other._has_mass_lumping),
           _diffusion_coeff_component_b(other._diffusion_coeff_component_b),
           _diffusion_coeff_component_a(other._diffusion_coeff_component_a),
+          _diffusion_coeff_component_c(other._diffusion_coeff_component_c),
           _temperature(other._temperature),
           _material(std::move(other._material)),
         _interpolated_Q_slow(other._interpolated_Q_slow),
@@ -81,6 +84,7 @@ struct TwoPhaseComponentialFlowProcessData
     bool const _has_mass_lumping;
     Parameter<double> const& _diffusion_coeff_component_b;
     Parameter<double> const& _diffusion_coeff_component_a;
+    Parameter<double> const& _diffusion_coeff_component_c;//diffusion coefficient of CO2 in gas
     Parameter<double> const& _temperature;
     std::unique_ptr<TwoPhaseComponentialFlowMaterialProperties> _material;
     MathLib::PiecewiseLinearInterpolation const& _interpolated_Q_slow;
