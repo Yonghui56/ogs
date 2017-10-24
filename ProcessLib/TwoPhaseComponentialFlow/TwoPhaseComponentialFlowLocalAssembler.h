@@ -279,6 +279,12 @@ public:
         GlobalVector const& /*current_solution*/,
         NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
         std::vector<double>& /*cache*/) const = 0;
+
+    virtual std::vector<double> const& getIntPtRelHumidity(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const = 0;
 };
 
 template <typename ShapeFunction, typename IntegrationMethod,
@@ -369,7 +375,9 @@ public:
           _gas_vapor_velocity(
             std::vector<double>(GlobalDim*_integration_method.getNumberOfPoints())),
           _gas_nitrogen_velocity(
-            std::vector<double>(GlobalDim*_integration_method.getNumberOfPoints()))
+            std::vector<double>(GlobalDim*_integration_method.getNumberOfPoints())),
+          _rel_humidity(
+            std::vector<double>(_integration_method.getNumberOfPoints()))
     {
         unsigned const n_integration_points =
             _integration_method.getNumberOfPoints();
@@ -749,6 +757,18 @@ public:
         return _gas_nitrogen_velocity;
     }
 
+    std::vector<double> const& getIntPtRelHumidity(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(_rel_humidity.size() > 0);
+        return _rel_humidity;
+    }
+
+
+
     template <typename Shp>
     static std::array<double, 3> interpolateNodeCoordinates(
         MeshLib::Element const& e, Shp const& N)
@@ -800,6 +820,8 @@ private:
     std::vector<double> _gas_co2_generation_rate;
     std::vector<double> _gas_co2_degradation_rate;
     std::vector<double> _co2_consumed_current_step;
+
+    std::vector<double> _rel_humidity;
 
     // used for velocity in x y z direction
     std::vector<std::vector<double>> _total_velocities_gas;

@@ -176,6 +176,8 @@ void TwoPhaseComponentialFlowLocalAssembler<
         double PC_int_pt = 0.0;
 
         double gas_h2_generation_rate = 0.0;
+        double gas_ch4_generation_rate = 0.0;
+
         NumLib::shapeFunctionInterpolate(local_x, sm.N, pg_int_pt, X1_int_pt,
                                          X2_int_pt, X3_int_pt, PC_int_pt);
 
@@ -233,7 +235,6 @@ void TwoPhaseComponentialFlowLocalAssembler<
 
         double Sw = _process_data._material->getSaturation(
             material_id, t, pos, pg_int_pt, temperature, PC_int_pt);
-        Sw = 0.205;
         _saturation[ip] = Sw;//store the secondary variable
         double const S_G_gp = 1 - Sw;
 
@@ -354,6 +355,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
 
         //saturation dependent chemical reactivity
         double const rel_humidity = std::exp(-PC_int_pt*0.018 / rho_mass_wet / 8.314 / temperature);
+        _rel_humidity[ip] = rel_humidity;
         double const bazant_power= std::pow(1 + pow(7.5 - 7.5*rel_humidity, 4), -1);
         if (_process_data._material->getMaterialID(pos.getElementID().get()) ==
             0)//backfill
@@ -389,6 +391,8 @@ void TwoPhaseComponentialFlowLocalAssembler<
             double const pH = bi_interpolation(
                 _ip_data[ip].rho_mol_sio2_prev_backfill,
                 _ip_data[ip].rho_mol_co2_cumul_total_prev_backfill, _pH_at_supp_pnt_backfill);
+            if (pH < 10.5)
+                accelerate_flag = true;
             _pH_value[ip] = pH;//update the secondary variable
         }
         else//waste matrix
@@ -402,6 +406,8 @@ void TwoPhaseComponentialFlowLocalAssembler<
             porosity = porosity3;
             double const pH = piecewiselinear_interpolation(
                 _ip_data[ip].rho_mol_co2_cumul_total_prev_waste, _pH_at_supp_pnt_waste);
+            if (pH < 10.5)
+                accelerate_flag = true;
             _pH_value[ip] = pH;
         }
         //consumed CO2 for current step
@@ -412,6 +418,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
         _rho_mol_gas_phase[ip] = rho_mol_nonwet;
         // store the molar density of liquid phase
         _rho_mol_liquid_phase[ip] = rho_mol_wet;
+        //Assembly
         // H2
         mass_mat_coeff(0, 0) =
             porosity * ((1 - Sw) * X1_int_pt * d_rho_mol_nonwet_d_pg +

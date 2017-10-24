@@ -228,6 +228,11 @@ void TwoPhaseComponentialFlowProcess::initializeConcreteProcess(
         makeExtrapolator(mesh.getDimension(), getExtrapolator(), _local_assemblers,
             &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtGasNitrogenVelocity));
 
+    _secondary_variables.addSecondaryVariable(
+        "relative_humidity",
+        makeExtrapolator(mesh.getDimension(), getExtrapolator(), _local_assemblers,
+            &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtRelHumidity));
+
 }
 
 void TwoPhaseComponentialFlowProcess::assembleConcreteProcess(const double t,
