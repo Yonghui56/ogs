@@ -50,6 +50,7 @@
 #include "ProcessLib/ThermoMechanics/CreateThermoMechanicsProcess.h"
 #include "ProcessLib/TwoPhaseFlowWithPP/CreateTwoPhaseFlowWithPPProcess.h"
 #include "ProcessLib/TwoPhaseFlowWithPrho/CreateTwoPhaseFlowWithPrhoProcess.h"
+#include "ProcessLib/TwoPhaseComponentialFlow/CreateTwoPhaseComponentialFlowProcess.h"
 
 namespace detail
 {
@@ -519,6 +520,15 @@ void ProjectData::parseProcesses(BaseLib::ConfigTree const& processes_config,
         {
             process = ProcessLib::ThermalTwoPhaseFlowWithPP::
                 createThermalTwoPhaseFlowWithPPProcess(
+                    *_mesh_vec[0], std::move(jacobian_assembler),
+                    _process_variables, _parameters, integration_order,
+                    process_config, _curves);
+        }
+
+        else if (type == "TWOPHASE_COMPONENTIAL_FLOW")
+        {
+            process =
+                ProcessLib::TwoPhaseComponentialFlow::createTwoPhaseComponentialFlowProcess(
                     *_mesh_vec[0], std::move(jacobian_assembler),
                     _process_variables, _parameters, integration_order,
                     process_config, _curves);
