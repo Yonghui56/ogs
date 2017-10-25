@@ -356,7 +356,12 @@ void TwoPhaseComponentialFlowLocalAssembler<
         //saturation dependent chemical reactivity
         double const rel_humidity = std::exp(-PC_int_pt*0.018 / rho_mass_wet / 8.314 / temperature);
         _rel_humidity[ip] = rel_humidity;
-        double const bazant_power= std::pow(1 + pow(7.5 - 7.5*rel_humidity, 4), -1);
+        double bazant_power= std::pow(1 + pow(7.5 - 7.5*rel_humidity, 4), -1);
+        if (bazant_power > 1)
+            bazant_power = 1;
+        else if (bazant_power < 0)
+            bazant_power = 1e-6;
+
         if (_process_data._material->getMaterialID(pos.getElementID().get()) ==
             0)//backfill
         {
@@ -367,12 +372,13 @@ void TwoPhaseComponentialFlowLocalAssembler<
             // be consumed at this time step
             rho_mol_total_co2_backfill = _ip_data[ip].porosity_prev_backfill *
                 (rho_mol_nonwet * X3_int_pt * (1 - Sw) +
-                    rho_mol_wet * X_L_co2_gp * Sw);
+                    rho_mol_wet * X_L_co2_gp * 0.0);//assume only gas co2 will carbonate
             double rho_mol_co2_consume_rate_backfill = bazant_power*rho_mol_total_co2_backfill / dt;
 
             rho_mol_co2_consume_rate_backfill =
                 (rho_mol_co2_consume_rate_backfill < 0) ? 0.0 : rho_mol_co2_consume_rate_backfill;
-
+            if (rho_mol_co2_consume_rate_backfill < 0.0)
+                rho_mol_co2_consume_rate_backfill = 0.0;
             //double const dcarb_rate= 
                 //interpolated_kinetic_rate.getValue(rho_mol_co2_cumul_total_backfill*100 / rho_co2_max_consume);
             //double const dcarb_rate_analytic
@@ -818,7 +824,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
 
                 if (_ip_data[ip].rho_mol_co2_cumul_total_prev_backfill >=
                     7500)  // means carbonation stops, no more co2 will be consumed
-                    rho_mol_total_co2_backfill = 0.0;
+                    rho_mol_co2_kinetic_rate_backfill = 0.0;
                 double const fluid_volume_rate =
                     (fluid_volume_backfill - _ip_data[ip].fluid_volume_prev_backfill) / dt;
 

@@ -230,7 +230,7 @@ void TwoPhaseComponentialFlowProcess::initializeConcreteProcess(
 
     _secondary_variables.addSecondaryVariable(
         "relative_humidity",
-        makeExtrapolator(mesh.getDimension(), getExtrapolator(), _local_assemblers,
+        makeExtrapolator(1, getExtrapolator(), _local_assemblers,
             &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtRelHumidity));
 
 }
