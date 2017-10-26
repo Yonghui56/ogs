@@ -360,7 +360,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
         double bazant_power = 5 * rel_humidity - 4;
         if (bazant_power > 1)
             bazant_power = 1;
-        else if (bazant_power < 0)
+        else if (bazant_power <= 0)
             bazant_power = 1e-6;
         _reactivity_bazant_power[ip] = bazant_power;
         if (_process_data._material->getMaterialID(pos.getElementID().get()) ==
@@ -733,7 +733,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
             }
         }  // end of hasGravityEffect
         // load the source term
-        if (Sw > 0.21 && dt > 0)
+        if (Sw > 0.20 && dt > 0)
         {
             F_vec_coeff.setZero(NUM_NODAL_DOF);
             // instead of reading curve, now use analytical formular
