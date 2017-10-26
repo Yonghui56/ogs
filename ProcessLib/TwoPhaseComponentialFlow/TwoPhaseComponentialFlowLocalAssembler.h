@@ -285,6 +285,12 @@ public:
         GlobalVector const& /*current_solution*/,
         NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
         std::vector<double>& /*cache*/) const = 0;
+
+    virtual std::vector<double> const& getIntPtReactivity(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const = 0;
 };
 
 template <typename ShapeFunction, typename IntegrationMethod,
@@ -377,6 +383,8 @@ public:
           _gas_nitrogen_velocity(
             std::vector<double>(GlobalDim*_integration_method.getNumberOfPoints())),
           _rel_humidity(
+            std::vector<double>(_integration_method.getNumberOfPoints())),
+          _reactivity_bazant_power(
             std::vector<double>(_integration_method.getNumberOfPoints()))
     {
         unsigned const n_integration_points =
@@ -767,6 +775,15 @@ public:
         return _rel_humidity;
     }
 
+    std::vector<double> const& getIntPtReactivity(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(_reactivity_bazant_power.size() > 0);
+        return _reactivity_bazant_power;
+    }
 
 
     template <typename Shp>
@@ -836,6 +853,7 @@ private:
     std::vector<double> _gas_methane_velocity;
     std::vector<double> _gas_vapor_velocity;
     std::vector<double> _gas_nitrogen_velocity;
+    std::vector<double> _reactivity_bazant_power;
 
     static const int nonwet_pressure_coeff_index = 0;
     static const int mol_fraction_h_coeff_index = 1;
@@ -859,7 +877,7 @@ private:
     const double Hen_L_co2 = 0.163e+9;  // Henry constant in [Pa]
     const double rho_l_std = 1000.0;
     const double& R = MaterialLib::PhysicalConstant::IdealGasConstant;
-    const double Q_steel_waste_matrix = 5.903876 * 4 / 3;  // generate H2
+    double Q_steel_waste_matrix = 5.903876 * 4 / 3;  // generate H2
     const double Q_steel_inner_surface = 0.0093 * 4 / 3;  // generate H2
 
     const double para_slow = 401.55;//51.8/0.129

@@ -356,12 +356,13 @@ void TwoPhaseComponentialFlowLocalAssembler<
         //saturation dependent chemical reactivity
         double const rel_humidity = std::exp(-PC_int_pt*0.018 / rho_mass_wet / 8.314 / temperature);
         _rel_humidity[ip] = rel_humidity;
-        double bazant_power= std::pow(1 + pow(7.5 - 7.5*rel_humidity, 4), -1);
+        //double bazant_power= std::pow(1 + pow(7.5 - 7.5*rel_humidity, 4), -1);
+        double bazant_power = 5 * rel_humidity - 4;
         if (bazant_power > 1)
             bazant_power = 1;
         else if (bazant_power < 0)
             bazant_power = 1e-6;
-
+        _reactivity_bazant_power[ip] = bazant_power;
         if (_process_data._material->getMaterialID(pos.getElementID().get()) ==
             0)//backfill
         {
@@ -757,14 +758,16 @@ void TwoPhaseComponentialFlowLocalAssembler<
                     _ip_data[ip].rho_mol_co2_cumul_total_prev_waste, _fluid_volume_suppt_pnt_waste);
                 double const fluid_volume_rate_waste =
                     (fluid_volume_waste - _ip_data[ip].fluid_volume_prev_waste) / dt;
-
+                // steel corrosion rate multiply reactivity
+                Q_steel_waste_matrix *= bazant_power;
                 F_vec_coeff(0) += Q_steel_waste_matrix;
 
                 const double Q_organic_slow_co2 =
-                    Q_organic_slow_co2_ini * para_slow;
+                    Q_organic_slow_co2_ini * para_slow*bazant_power;
 
                 const double Q_organic_fast_co2 =
-                    Q_organic_fast_co2_ini * para_fast;
+                    Q_organic_fast_co2_ini * para_fast*bazant_power;
+
                 if (_ip_data[ip].rho_mol_co2_cumul_total_prev_waste >=
                     400)  // means carbonation stops, no more co2 will be consumed
                     rho_mol_total_co2_waste = 0.0;
@@ -821,7 +824,8 @@ void TwoPhaseComponentialFlowLocalAssembler<
                     quartz_dissolute_rate_backfill = 0;
                 if(quartz_dissolute_rate_backfill>0)
                     quartz_dissolute_rate_backfill=0;
-
+                //quartz_dissolute multiply reactivity
+                quartz_dissolute_rate_backfill = bazant_power*quartz_dissolute_rate_backfill;
                 if (_ip_data[ip].rho_mol_co2_cumul_total_prev_backfill >=
                     7500)  // means carbonation stops, no more co2 will be consumed
                     rho_mol_co2_kinetic_rate_backfill = 0.0;

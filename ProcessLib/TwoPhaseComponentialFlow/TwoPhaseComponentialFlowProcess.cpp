@@ -233,6 +233,11 @@ void TwoPhaseComponentialFlowProcess::initializeConcreteProcess(
         makeExtrapolator(1, getExtrapolator(), _local_assemblers,
             &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtRelHumidity));
 
+    _secondary_variables.addSecondaryVariable(
+        "bazant_power",
+        makeExtrapolator(1, getExtrapolator(), _local_assemblers,
+            &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtReactivity));
+
 }
 
 void TwoPhaseComponentialFlowProcess::assembleConcreteProcess(const double t,
