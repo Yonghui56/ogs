@@ -49,6 +49,11 @@ void HTProcess::initializeConcreteProcess(
         makeExtrapolator(mesh.getDimension(), getExtrapolator(),
                          _local_assemblers,
                          &HTLocalAssemblerInterface::getIntPtDarcyVelocity));
+    _secondary_variables.addSecondaryVariable(
+        "temperatureK",
+        makeExtrapolator(1, getExtrapolator(),
+            _local_assemblers,
+            &HTLocalAssemblerInterface::getIntPtTemperatureK));
 }
 
 void HTProcess::assembleConcreteProcess(const double t,

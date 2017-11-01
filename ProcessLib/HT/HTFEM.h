@@ -58,6 +58,11 @@ public:
         GlobalVector const& /*current_solution*/,
         NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
         std::vector<double>& /*cache*/) const = 0;
+    virtual std::vector<double> const& getIntPtTemperatureK(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const = 0;
 };
 
 template <typename ShapeFunction, typename IntegrationMethod,
@@ -90,7 +95,8 @@ public:
                        HTProcessData const& process_data)
         : _element(element),
           _process_data(process_data),
-          _integration_method(integration_order)
+          _integration_method(integration_order),
+          _temperatureK(std::vector<double>(_integration_method.getNumberOfPoints()))
     {
         // This assertion is valid only if all nodal d.o.f. use the same shape
         // matrices.
@@ -135,8 +141,16 @@ public:
 
         auto const num_nodes = ShapeFunction::NPOINTS;
 
-        auto Ktt = local_K.template block<num_nodes, num_nodes>(0, 0);
-        auto Mtt = local_M.template block<num_nodes, num_nodes>(0, 0);
+        auto Kth = local_K.template block<num_nodes, num_nodes>(0, 0);
+        auto Mth = local_M.template block<num_nodes, num_nodes>(0, 0);
+        auto Ktp = local_K.template block<num_nodes, num_nodes>(0, num_nodes);
+        auto Mtp= local_M.template block<num_nodes, num_nodes>(0, num_nodes);
+
+        auto Kph =
+            local_K.template block<num_nodes, num_nodes>(num_nodes, 0);
+        auto Mph =
+            local_M.template block<num_nodes, num_nodes>(num_nodes, 0);
+
         auto Kpp =
             local_K.template block<num_nodes, num_nodes>(num_nodes, num_nodes);
         auto Mpp =
@@ -186,16 +200,16 @@ public:
             auto const& dNdx = ip_data.dNdx;
             auto const& w = ip_data.integration_weight;
 
-            double T_int_pt = 0.0;
+            double h_int_pt = 0.0;
             double p_int_pt = 0.0;
-            // Order matters: First T, then P!
-            NumLib::shapeFunctionInterpolate(local_x, N, T_int_pt, p_int_pt);
+            // Order matters: First h, then P!
+            NumLib::shapeFunctionInterpolate(local_x, N, h_int_pt, p_int_pt);
 
             // \todo the first argument has to be changed for non constant
             // porosity model
             auto const porosity =
                 _process_data.porous_media_properties.getPorosity(t, pos)
-                    .getValue(0.0, T_int_pt);
+                    .getValue(0.0, h_int_pt);
 
             double const thermal_conductivity =
                 thermal_conductivity_solid * (1 - porosity) +
@@ -204,10 +218,16 @@ public:
             auto const specific_heat_capacity_solid =
                 _process_data.specific_heat_capacity_solid(t, pos)[0];
 
+            // for pure liquid water
+            double const T_int_pt = 273.15 - 2.41231 + 2.56222e-4 * h_int_pt - 9.31415e-15*p_int_pt*p_int_pt
+                - 2.2568e-11*h_int_pt*h_int_pt;
+            _temperatureK[ip] = T_int_pt;
+            double const dTdh = 2.56222e-4 - 2 * 2.2568e-11*h_int_pt;
+            double const dTdp = -2* 9.31415e-15*p_int_pt;
             vars[static_cast<int>(
-                MaterialLib::Fluid::PropertyVariableType::T)] = T_int_pt;
+                MaterialLib::Fluid::PropertyVariableType::T)] = T_int_pt;//here use enthalpy
             vars[static_cast<int>(
-                MaterialLib::Fluid::PropertyVariableType::p)] = p_int_pt;
+                MaterialLib::Fluid::PropertyVariableType::p)] = p_int_pt;//here use pressure
             auto const specific_heat_capacity_fluid =
                 _process_data.fluid_properties->getValue(
                     MaterialLib::Fluid::FluidPropertyType::HeatCapacity, vars);
@@ -218,29 +238,34 @@ public:
                 _process_data.thermal_dispersivity_transversal(t, pos)[0];
 
             // Use the fluid density model to compute the density
-            auto const density = _process_data.fluid_properties->getValue(
-                MaterialLib::Fluid::FluidPropertyType::Density, vars);
+            // hard code
+            auto const density_w = 1e3*(1.00207 + 4.42607e-10*p_int_pt - 5.47456e-8*h_int_pt
+                + 5.02875e-16*h_int_pt*p_int_pt - 1.24791e-13*h_int_pt*h_int_pt);
+            auto const d_density_w_d_h = 1e3*(-5.47456e-8 + 5.02875e-16*p_int_pt
+                - 2 * 1.24791e-13*h_int_pt);
+            auto const d_density_w_d_p = 1e3*(4.42607e-10 + 5.02875e-16*h_int_pt);
+
+            //auto const density = _process_data.fluid_properties->getValue(
+                //MaterialLib::Fluid::FluidPropertyType::Density, vars);
 
             // Use the viscosity model to compute the viscosity
             auto const viscosity = _process_data.fluid_properties->getValue(
                 MaterialLib::Fluid::FluidPropertyType::Viscosity, vars);
+            auto const mu = 1e-4*(241.4*std::pow(10, 247.8 / ((T_int_pt - 273.15) + 133.15)));
             GlobalDimMatrixType K_over_mu = intrinsic_permeability / viscosity;
 
             GlobalDimVectorType const velocity =
                 _process_data.has_gravity
                     ? GlobalDimVectorType(-K_over_mu *
-                                          (dNdx * p_nodal_values - density * b))
-                    : GlobalDimVectorType(-K_over_mu * dNdx * p_nodal_values);
+                                          (dNdx * p_nodal_values - density_w * b))
+                    : GlobalDimVectorType(1.28e-7*I);//K_over_mu * dNdx * p_nodal_values
 
-
+            GlobalDimVectorType const TEST = velocity.transpose();
             double const velocity_magnitude = velocity.norm();
             GlobalDimMatrixType const thermal_dispersivity =
                 fluid_reference_density * specific_heat_capacity_fluid *
                 (thermal_dispersivity_transversal * velocity_magnitude *
-                     I +
-                 (thermal_dispersivity_longitudinal -
-                  thermal_dispersivity_transversal) /
-                     velocity_magnitude * velocity * velocity.transpose());
+                     I);
 
             GlobalDimMatrixType const hydrodynamic_thermodispersion =
                 thermal_conductivity * I + thermal_dispersivity;
@@ -250,16 +275,27 @@ public:
                 fluid_reference_density * specific_heat_capacity_fluid * porosity;
 
             // matrix assembly
-            Ktt.noalias() +=
-                (dNdx.transpose() * hydrodynamic_thermodispersion * dNdx +
+            //energy balance
+            Mth.noalias() += w * N.transpose() * (porosity*density_w+ porosity*h_int_pt*d_density_w_d_h +
+                density_solid * specific_heat_capacity_solid * (1 - porosity)*dTdh) * N;
+            Mtp.noalias() += w * N.transpose() *(density_solid * specific_heat_capacity_solid * (1 - porosity)*dTdp
+                + porosity*h_int_pt*d_density_w_d_p)* N;
+            Kth.noalias() +=
+                (dNdx.transpose() * hydrodynamic_thermodispersion *dTdh * dNdx +
                  N.transpose() * velocity.transpose() * dNdx *
-                     fluid_reference_density * specific_heat_capacity_fluid) *
-                w;
-            Kpp.noalias() += w * dNdx.transpose() * K_over_mu * dNdx;
-            Mtt.noalias() += w * N.transpose() * heat_capacity * N;
-            Mpp.noalias() += w * N.transpose() * specific_storage * N;
+                     density_w ) * w;
+            Ktp.noalias() += w* dNdx.transpose() *
+                (hydrodynamic_thermodispersion *dTdp + K_over_mu*density_w*h_int_pt) * dNdx;
+            //mass balance
+            Mph.noalias() +=w*N.transpose() * (porosity*d_density_w_d_h)* N;
+            Mpp.noalias() += w * N.transpose() * (porosity*d_density_w_d_p)* N;
+
+            Kpp.noalias() += w * (dNdx.transpose() * density_w* K_over_mu * dNdx);
+                + N.transpose() * velocity.transpose() * dNdx *d_density_w_d_p);
+            Kph.noalias() += w * (N.transpose() * velocity.transpose() * dNdx *d_density_w_d_h);
+
             if (_process_data.has_gravity)
-                Bp += w * density * dNdx.transpose() * K_over_mu * b;
+                Bp += w * density_w * dNdx.transpose() * K_over_mu * b;
             /* with Oberbeck-Boussing assumption density difference only exists
              * in buoyancy effects */
         }
@@ -272,6 +308,16 @@ public:
 
         // assumes N is stored contiguously in memory
         return Eigen::Map<const Eigen::RowVectorXd>(N.data(), N.size());
+    }
+
+    std::vector<double> const& getIntPtTemperatureK(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(!_temperatureK.empty());
+        return _temperatureK;
     }
 
     std::vector<double> const& getIntPtDarcyVelocity(
@@ -306,9 +352,11 @@ public:
             auto const& N = ip_data.N;
             auto const& dNdx = ip_data.dNdx;
 
-            double T_int_pt = 0.0;
+            double h_int_pt = 0.0;
             double p_int_pt = 0.0;
-            NumLib::shapeFunctionInterpolate(local_x, N, T_int_pt, p_int_pt);
+            NumLib::shapeFunctionInterpolate(local_x, N, h_int_pt, p_int_pt);
+            double const T_int_pt = 273.15 - 2.41231 + 2.56222e-4 * h_int_pt - 9.31415e-15*p_int_pt*p_int_pt
+                - 2.2568e-11*h_int_pt*h_int_pt;
             vars[static_cast<int>(
                 MaterialLib::Fluid::PropertyVariableType::T)] = T_int_pt;
             vars[static_cast<int>(
@@ -320,14 +368,17 @@ public:
 
             auto const mu = _process_data.fluid_properties->getValue(
                 MaterialLib::Fluid::FluidPropertyType::Viscosity, vars);
+            auto const viscosity= 1e-3*1e-4*(241.4*std::pow(10, 247.8 / ((T_int_pt - 273.15) + 133.15)));
             GlobalDimMatrixType const K_over_mu = K / mu;
 
             cache_mat.col(ip).noalias() = -K_over_mu * dNdx * p_nodal_values;
 
             if (_process_data.has_gravity)
             {
-                auto const rho_w = _process_data.fluid_properties->getValue(
-                    MaterialLib::Fluid::FluidPropertyType::Density, vars);
+                auto const rho_w = 1e3*(1.00207 + 4.42607e-10*p_int_pt - 5.47456e-8*h_int_pt
+                    + 5.02875e-16*h_int_pt*p_int_pt - 1.24791e-13*h_int_pt*h_int_pt);
+                //auto const rho_w = _process_data.fluid_properties->getValue(
+                    //MaterialLib::Fluid::FluidPropertyType::Density, vars);
                 auto const b = _process_data.specific_body_force;
                 // here it is assumed that the vector b is directed 'downwards'
                 cache_mat.col(ip).noalias() += K_over_mu * rho_w * b;
@@ -342,6 +393,9 @@ private:
     HTProcessData const& _process_data;
 
     IntegrationMethod const _integration_method;
+    // output vector for wetting phase saturation with
+    // respect to each integration point
+    std::vector<double> _temperatureK;
     std::vector<
         IntegrationPointData<NodalRowVectorType, GlobalDimNodalMatrixType>,
         Eigen::aligned_allocator<
