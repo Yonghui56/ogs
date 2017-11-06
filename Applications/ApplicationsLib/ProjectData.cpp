@@ -50,6 +50,8 @@
 #include "ProcessLib/ThermoMechanics/CreateThermoMechanicsProcess.h"
 #include "ProcessLib/TwoPhaseFlowWithPP/CreateTwoPhaseFlowWithPPProcess.h"
 #include "ProcessLib/TwoPhaseFlowWithPrho/CreateTwoPhaseFlowWithPrhoProcess.h"
+#include "ProcessLib/GeothermalFormulation/CreateGeothermalFormulationProcess.h"
+
 
 namespace detail
 {
@@ -492,6 +494,14 @@ void ProjectData::parseProcesses(BaseLib::ConfigTree const& processes_config,
         else if (type == "RICHARDS_FLOW")
         {
             process = ProcessLib::RichardsFlow::createRichardsFlowProcess(
+                *_mesh_vec[0], std::move(jacobian_assembler),
+                _process_variables, _parameters, integration_order,
+                process_config, _curves);
+        }
+
+        else if (type == "Geothermal_Reservoir_Formulation")
+        {
+            process = ProcessLib::GeothermalFormulation::createGeothermalFormulationProcess (
                 *_mesh_vec[0], std::move(jacobian_assembler),
                 _process_variables, _parameters, integration_order,
                 process_config, _curves);
