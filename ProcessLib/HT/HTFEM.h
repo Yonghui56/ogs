@@ -251,14 +251,14 @@ public:
             // Use the viscosity model to compute the viscosity
             auto const viscosity = _process_data.fluid_properties->getValue(
                 MaterialLib::Fluid::FluidPropertyType::Viscosity, vars);
-            auto const mu = 1e-4*(241.4*std::pow(10, 247.8 / ((T_int_pt - 273.15) + 133.15)));
-            GlobalDimMatrixType K_over_mu = intrinsic_permeability / viscosity;
+            auto const mu = 1e-7*(241.4*std::pow(10, 247.8 / ((T_int_pt - 273.15) + 133.15)));
+            GlobalDimMatrixType K_over_mu = intrinsic_permeability / mu;
 
             GlobalDimVectorType const velocity =
                 _process_data.has_gravity
                     ? GlobalDimVectorType(-K_over_mu *
                                           (dNdx * p_nodal_values - density_w * b))
-                    : GlobalDimVectorType(1.28e-7*I);//K_over_mu * dNdx * p_nodal_values
+                    : GlobalDimVectorType(-K_over_mu * dNdx * p_nodal_values);//1.28e-7*I
 
             GlobalDimVectorType const TEST = velocity.transpose();
             double const velocity_magnitude = velocity.norm();
@@ -290,12 +290,12 @@ public:
             Mph.noalias() +=w*N.transpose() * (porosity*d_density_w_d_h)* N;
             Mpp.noalias() += w * N.transpose() * (porosity*d_density_w_d_p)* N;
 
-            Kpp.noalias() += w * (dNdx.transpose() * density_w* K_over_mu * dNdx);
+            Kpp.noalias() += w * (dNdx.transpose() * density_w* K_over_mu * dNdx
                 + N.transpose() * velocity.transpose() * dNdx *d_density_w_d_p);
             Kph.noalias() += w * (N.transpose() * velocity.transpose() * dNdx *d_density_w_d_h);
 
             if (_process_data.has_gravity)
-                Bp += w * density_w * dNdx.transpose() * K_over_mu * b;
+                Bp += w * density_w * dNdx.transpose() * K_over_mu * density_w * b;
             /* with Oberbeck-Boussing assumption density difference only exists
              * in buoyancy effects */
         }
@@ -342,7 +342,8 @@ public:
         pos.setElementID(_element.getID());
 
         MaterialLib::Fluid::FluidProperty::ArrayType vars;
-
+        GlobalDimMatrixType const& I(
+            GlobalDimMatrixType::Identity(GlobalDim, GlobalDim));
         auto const p_nodal_values = Eigen::Map<const NodalVectorType>(
             &local_x[ShapeFunction::NPOINTS], ShapeFunction::NPOINTS);
 
@@ -366,9 +367,9 @@ public:
                 _process_data.porous_media_properties.getIntrinsicPermeability(
                     t, pos);
 
-            auto const mu = _process_data.fluid_properties->getValue(
+            auto const viscosity = _process_data.fluid_properties->getValue(
                 MaterialLib::Fluid::FluidPropertyType::Viscosity, vars);
-            auto const viscosity= 1e-3*1e-4*(241.4*std::pow(10, 247.8 / ((T_int_pt - 273.15) + 133.15)));
+            auto const mu= 1e-3*1e-4*(241.4*std::pow(10, 247.8 / ((T_int_pt - 273.15) + 133.15)));
             GlobalDimMatrixType const K_over_mu = K / mu;
 
             cache_mat.col(ip).noalias() = -K_over_mu * dNdx * p_nodal_values;
