@@ -357,15 +357,12 @@ void TwoPhaseComponentialFlowLocalAssembler<
         double const rel_humidity = std::exp(-PC_int_pt*0.018 / rho_mass_wet / 8.314 / temperature);
         _rel_humidity[ip] = rel_humidity;
         //double bazant_power= std::pow(1 + pow(7.5 - 7.5*rel_humidity, 4), -1);
-        double bazant_power = 5 * rel_humidity - 4;
-        if (bazant_power > 1)
-            bazant_power = 1;
-        else if (bazant_power <= 0)
-            bazant_power = 1e-6;
-        _reactivity_bazant_power[ip] = bazant_power;
+        double bazant_power = 0.0;
+
         if (_process_data._material->getMaterialID(pos.getElementID().get()) ==
             0)//backfill
         {
+            bazant_power = pow((1 + pow((7.5 - 7.5*rel_humidity), 4)) , -1);
             // should be only valid for material 0
             porosity = porosity2;  // use look-up table value
             // calculate the current ammount of co2
@@ -407,6 +404,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
             // calculate the current ammount of co2
             // calculate the total amount of co2 in this element(gp), which should
             // be consumed at this time step
+            bazant_power = 5 * rel_humidity - 4;//for the inner part 
             rho_mol_total_co2_waste = _ip_data[ip].porosity_prev_waste *
                 (rho_mol_nonwet * X3_int_pt * (1 - Sw) +
                     rho_mol_wet * X_L_co2_gp * Sw);
@@ -417,6 +415,11 @@ void TwoPhaseComponentialFlowLocalAssembler<
                 accelerate_flag = true;
             _pH_value[ip] = pH;
         }
+        if (bazant_power > 1)
+            bazant_power = 1;
+        else if (bazant_power <= 0)
+            bazant_power = 1e-6;
+        _reactivity_bazant_power[ip] = bazant_power;
         //consumed CO2 for current step
         _co2_consumed_current_step[ip] = rho_mol_co2_kinetic_rate_backfill*dt;
         //calculate the co2 concentration
@@ -735,7 +738,8 @@ void TwoPhaseComponentialFlowLocalAssembler<
         // load the source term
         if (Sw > 0.20 && dt > 0)
         {
-            F_vec_coeff.setZero(NUM_NODAL_DOF);
+            // specify the steel corrosion rate for the waste matrix
+            Q_steel_waste_matrix = 5.903876 * 4 / 3;
             // instead of reading curve, now use analytical formular
             double Q_organic_fast_co2_ini =
                 m0_cellulose*(std::exp(-k_d_cellulose*t));
@@ -761,7 +765,8 @@ void TwoPhaseComponentialFlowLocalAssembler<
                 // steel corrosion rate multiply reactivity
                 Q_steel_waste_matrix *= bazant_power;
                 F_vec_coeff(0) += Q_steel_waste_matrix;
-
+                //store the gas h2 generation rate
+                _gas_h2_generation_rate[ip] = Q_steel_waste_matrix;
                 const double Q_organic_slow_co2 =
                     Q_organic_slow_co2_ini * para_slow*bazant_power;
 
@@ -856,11 +861,13 @@ void TwoPhaseComponentialFlowLocalAssembler<
                 _porosity_value[ip] = porosity2;
                 _rho_mol_co2_cumulated_prev[ip] = rho_mol_co2_cumul_total_backfill;
                 _rho_mol_sio2_cumulated_prev[ip] = rho_mol_sio2_wet_backfill;
+
+                //store the gas h2 generation rate
+                _gas_h2_generation_rate[ip] = F_vec_coeff(0);
             }
             //store the source term for each component 
             // thanks to the facts that the source terms are all for gas phase
-            gas_h2_generation_rate = F_vec_coeff(0);
-            //_gas_h2_generation_rate[ip] = F_vec_coeff(0);
+            //gas_h2_generation_rate = F_vec_coeff(0);
             _gas_ch4_generation_rate[ip] = F_vec_coeff(1);
             _gas_co2_generation_rate[ip]= F_vec_coeff(2);
             _gas_co2_degradation_rate[ip] = co2_degradation_rate;
@@ -876,7 +883,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
                     localSource_tmp;
             }
         } // end of loading the source and sink term
-        _gas_h2_generation_rate[ip] = gas_h2_generation_rate;
+        //_gas_h2_generation_rate[ip] = gas_h2_generation_rate;
     }  // end of GP asm
        //for the outer drum
        //apply the neumann boundary condition on the line element

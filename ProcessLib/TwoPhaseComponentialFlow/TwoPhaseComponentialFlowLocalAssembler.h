@@ -226,6 +226,12 @@ public:
         NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
         std::vector<double>& /*cache*/) const = 0;
 
+    virtual std::vector<double> const& getIntPtGasHydrogenGenerateSourceRate(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const = 0;
+
     virtual std::vector<double> const& getIntPtGasMethaneGenerateRate(
         const double /*t*/,
         GlobalVector const& /*current_solution*/,
@@ -704,6 +710,16 @@ public:
     {
         assert(_gas_h2_overall_generation_rate.size() > 0);
         return _gas_h2_overall_generation_rate;
+    }
+
+    std::vector<double> const& getIntPtGasHydrogenGenerateSourceRate(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(_gas_h2_generation_rate.size() > 0);
+        return _gas_h2_generation_rate;
     }
 
     std::vector<double> const& getIntPtGasMethaneGenerateRate(

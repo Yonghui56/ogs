@@ -182,6 +182,11 @@ void TwoPhaseComponentialFlowProcess::initializeConcreteProcess(
         "gas_hydrogen_generation_rate",
         makeExtrapolator(1, getExtrapolator(), _local_assemblers,
             &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtGasHydrogenGenerateRate));
+    
+    _secondary_variables.addSecondaryVariable(
+        "gas_hydrogen_generation_source_rate",
+        makeExtrapolator(1, getExtrapolator(), _local_assemblers,
+            &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtGasHydrogenGenerateSourceRate));
 
     _secondary_variables.addSecondaryVariable(
         "gas_methane_generation_rate",
