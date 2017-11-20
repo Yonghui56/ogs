@@ -187,8 +187,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
 
         NumLib::shapeFunctionInterpolate(local_x, sm.N, pg_int_pt, X1_int_pt,
                                          X2_int_pt, X3_int_pt, PC_int_pt);
-        if (atm_flag)
-            PC_int_pt = 0;
+
         const auto _interpolateGaussNode_coord = interpolateNodeCoordinates(
             _element, sm.N);
 
@@ -197,9 +196,10 @@ void TwoPhaseComponentialFlowLocalAssembler<
         if (atm_flag&&t > 40)
             X3_int_pt = 1e-7;
         auto const& wp = _integration_method.getWeightedPoint(ip);
-        const double integration_factor =
+        double integration_factor =
             sm.integralMeasure * sm.detJ * wp.getWeight();
-
+        if (atm_flag)
+            integration_factor = 1e+60;
         const double temperature = _process_data._temperature(t, pos)[0];
 
         //store the integration value for pressure and molar fraction
@@ -540,8 +540,8 @@ void TwoPhaseComponentialFlowLocalAssembler<
             {
                 localMass_tmp.setZero();
                 localMass_tmp.noalias() =
-                    mass_mat_coeff(ii, jj) *_ip_data[ip].massOperator; 
-                    //sm.N.transpose() * sm.N * integration_factor;
+                    mass_mat_coeff(ii, jj) *sm.N.transpose() * sm.N * integration_factor;
+                    //_ip_data[ip].massOperator;
                 local_M.block(n_nodes * ii, n_nodes * jj, n_nodes, n_nodes)
                     .noalias() += localMass_tmp;
             }
@@ -655,8 +655,8 @@ void TwoPhaseComponentialFlowLocalAssembler<
             {
                 localDispersion_tmp.setZero();
                 localDispersion_tmp.noalias() =
-                    K_mat_coeff(ii, jj) *_ip_data[ip].diffusionOperator; 
-                    //sm.dNdx.transpose() * sm.dNdx * integration_factor;
+                    K_mat_coeff(ii, jj) * sm.dNdx.transpose() * sm.dNdx * integration_factor;
+                    //_ip_data[ip].diffusionOperator;
                 local_K.block(n_nodes * ii, n_nodes * jj, n_nodes, n_nodes)
                     .noalias() += localDispersion_tmp;
             }
