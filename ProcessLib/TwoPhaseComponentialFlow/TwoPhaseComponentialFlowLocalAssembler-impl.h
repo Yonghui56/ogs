@@ -163,7 +163,14 @@ void TwoPhaseComponentialFlowLocalAssembler<
 
     accelerate_flag = false;
     int gp_carb_neutral_count = 0;
-    
+    bool atm_flag = false;
+    int deriv_flag = 1;
+    if (_process_data._material->getMaterialID(pos.getElementID().get()) ==
+        2)//backfill
+    {
+        atm_flag = true;
+        deriv_flag = 0;
+    }
     for (unsigned ip = 0; ip < n_integration_points; ip++)
     {
         F_vec_coeff.setZero(NUM_NODAL_DOF);
@@ -180,12 +187,15 @@ void TwoPhaseComponentialFlowLocalAssembler<
 
         NumLib::shapeFunctionInterpolate(local_x, sm.N, pg_int_pt, X1_int_pt,
                                          X2_int_pt, X3_int_pt, PC_int_pt);
-
+        if (atm_flag)
+            PC_int_pt = 0;
         const auto _interpolateGaussNode_coord = interpolateNodeCoordinates(
             _element, sm.N);
 
         _pressure_wetting[ip] = pg_int_pt - PC_int_pt;
         const double dt = _process_data._dt;
+        if (atm_flag&&t > 40)
+            X3_int_pt = 1e-7;
         auto const& wp = _integration_method.getWeightedPoint(ip);
         const double integration_factor =
             sm.integralMeasure * sm.detJ * wp.getWeight();
@@ -218,16 +228,18 @@ void TwoPhaseComponentialFlowLocalAssembler<
         const double d_kelvin_term_d_pc =
             kelvin_term / rho_mol_water / R / temperature;
 
-        double const x_nonwet_h2o = get_x_nonwet_h2o(
+        double x_nonwet_h2o = get_x_nonwet_h2o(
             pg_int_pt, X1_int_pt, X2_int_pt, X3_int_pt, P_sat_gp, kelvin_term);
+        if (atm_flag)
+            x_nonwet_h2o = P_sat_gp*0.8 / 101325;
         //store the secondary variable of nonwet vapor molar fraction
         _mol_fraction_nonwet_vapor[ip] = x_nonwet_h2o;
         double const x_nonwet_air = (G - x_nonwet_h2o);
         //store the secondary variable of nonwet air molar fraction
         _mol_fraction_nonwet_air[ip]= x_nonwet_air;
-        double const x_wet_h2o =
-            pg_int_pt * x_nonwet_h2o * kelvin_term / P_sat_gp;
         double const x_wet_air = pg_int_pt * x_nonwet_air / Hen_L_air;
+        double const x_wet_h2o = 1 - X_L_co2_gp - X_L_c_gp - X_L_h_gp - x_wet_air;
+            //pg_int_pt * x_nonwet_h2o * kelvin_term / P_sat_gp;
         /*double const rho_gas =
             _process_data._material->getGasDensity(pg_int_pt, temperature);*/
         double const rho_w = _process_data._material->getLiquidDensity(
@@ -235,12 +247,15 @@ void TwoPhaseComponentialFlowLocalAssembler<
 
         double Sw = _process_data._material->getSaturation(
             material_id, t, pos, pg_int_pt, temperature, PC_int_pt);
+        if (atm_flag)
+            Sw = 0.01;
         _saturation[ip] = Sw;//store the secondary variable
         double const S_G_gp = 1 - Sw;
 
         double dSwdPc = _process_data._material->getDerivSaturation(
             material_id, t, pos, pg_int_pt, temperature, Sw);
-
+        if (atm_flag)
+            dSwdPc = 0;
         const double dSgdPC = -dSwdPc;
 
         const double rho_mol_nonwet = pg_int_pt / R / temperature;
@@ -253,7 +268,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
         double dLdPG =
             -X1_int_pt / Hen_L_h - X2_int_pt / Hen_L_c - X3_int_pt / Hen_L_co2;
 
-        double d_x_nonwet_h2o_d_pg = get_derivative_x_nonwet_h2o_d_pg(
+        double d_x_nonwet_h2o_d_pg = deriv_flag*get_derivative_x_nonwet_h2o_d_pg(
             pg_int_pt, X1_int_pt, X2_int_pt, X3_int_pt, P_sat_gp, kelvin_term);
         /*double d_x_nonwet_h2o_d_pg_test = (get_x_nonwet_h2o(
             pg_int_pt + 1e-6, X1_int_pt, X2_int_pt, X3_int_pt, P_sat_gp,
@@ -261,7 +276,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
                 pg_int_pt - 1e-6, X1_int_pt, X2_int_pt, X3_int_pt, P_sat_gp,
            kelvin_term)) / 2 / 1e-6;*/
 
-        double const d_x_nonwet_h2o_d_x1 = get_derivative_x_nonwet_h2o_d_x1(
+        double const d_x_nonwet_h2o_d_x1 = deriv_flag* get_derivative_x_nonwet_h2o_d_x1(
             pg_int_pt, X1_int_pt, X2_int_pt, X3_int_pt, P_sat_gp, kelvin_term);
         /*double d_x_nonwet_h2o_d_x1_test = (get_x_nonwet_h2o(
             pg_int_pt, X1_int_pt + 1e-6, X2_int_pt, X3_int_pt, P_sat_gp,
@@ -269,7 +284,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
                 pg_int_pt, X1_int_pt - 1e-6, X2_int_pt, X3_int_pt, P_sat_gp,
            kelvin_term)) / 2 / 1e-6;*/
 
-        double d_x_nonwet_h2o_d_x2 = get_derivative_x_nonwet_h2o_d_x2(
+        double d_x_nonwet_h2o_d_x2 = deriv_flag * get_derivative_x_nonwet_h2o_d_x2(
             pg_int_pt, X1_int_pt, X2_int_pt, X3_int_pt, P_sat_gp, kelvin_term);
         /*double d_x_nonwet_h2o_d_x2_test = (get_x_nonwet_h2o(
             pg_int_pt, X1_int_pt, X2_int_pt + 1e-6, X3_int_pt, P_sat_gp,
@@ -277,14 +292,14 @@ void TwoPhaseComponentialFlowLocalAssembler<
                 pg_int_pt, X1_int_pt, X2_int_pt - 1e-6, X3_int_pt, P_sat_gp,
            kelvin_term)) / 2 / 1e-6;*/
 
-        double d_x_nonwet_h2o_d_x3 = get_derivative_x_nonwet_h2o_d_x3(
+        double d_x_nonwet_h2o_d_x3 = deriv_flag*get_derivative_x_nonwet_h2o_d_x3(
             pg_int_pt, X1_int_pt, X2_int_pt, X3_int_pt, P_sat_gp, kelvin_term);
         /*double d_x_nonwet_h2o_d_x3_test = (get_x_nonwet_h2o(
             pg_int_pt, X1_int_pt, X2_int_pt, X3_int_pt + 1e-6, P_sat_gp,
            kelvin_term) - get_x_nonwet_h2o(
                 pg_int_pt, X1_int_pt, X2_int_pt, X3_int_pt - 1e-6, P_sat_gp,
            kelvin_term)) / 2 / 1e-6;*/
-        double const d_x_nonwet_h2o_d_kelvin =
+        double const d_x_nonwet_h2o_d_kelvin = 
             get_derivative_x_nonwet_h2o_d_kelvin(pg_int_pt, X1_int_pt,
                                                  X2_int_pt, X3_int_pt, P_sat_gp,
                                                  kelvin_term);
@@ -293,7 +308,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
            1e-6) - get_x_nonwet_h2o(
                 pg_int_pt, X1_int_pt, X2_int_pt, X3_int_pt, P_sat_gp,
            kelvin_term - 1e-6)) / 2 / 1e-6;*/
-        double const d_x_nonwet_h2o_d_pc =
+        double const d_x_nonwet_h2o_d_pc = deriv_flag*
             d_x_nonwet_h2o_d_kelvin * d_kelvin_term_d_pc;
 
         double const d_x_nonwet_air_d_pg = -d_x_nonwet_h2o_d_pg;
@@ -307,6 +322,8 @@ void TwoPhaseComponentialFlowLocalAssembler<
         /// X3_int_pt, P_sat_gp);
         double porosity = _process_data._material->getPorosity(
             material_id, t, pos, pg_int_pt, temperature, 0);
+        if (atm_flag)
+            porosity = 0.5;
 
         // Assemble M matrix
         // nonwetting
@@ -354,9 +371,12 @@ void TwoPhaseComponentialFlowLocalAssembler<
         double rho_mol_total_co2_waste = 0.;
 
         //saturation dependent chemical reactivity
-        double const rel_humidity = std::exp(-PC_int_pt*0.018 / rho_mass_wet / 8.314 / temperature);
+        //double const rel_humidity = std::exp(-PC_int_pt*0.018 / rho_mass_wet / 8.314 / temperature);
+        double rel_humidity = std::exp(-PC_int_pt*0.018 / rho_mass_wet / 8.314 / temperature);
+        rel_humidity = pg_int_pt*x_nonwet_h2o / P_sat_gp;
+        if (atm_flag)
+            rel_humidity = 0.8;
         _rel_humidity[ip] = rel_humidity;
-        //double bazant_power= std::pow(1 + pow(7.5 - 7.5*rel_humidity, 4), -1);
         double bazant_power = 0.0;
 
         if (_process_data._material->getMaterialID(pos.getElementID().get()) ==
@@ -399,7 +419,8 @@ void TwoPhaseComponentialFlowLocalAssembler<
                 accelerate_flag = true;
             _pH_value[ip] = pH;//update the secondary variable
         }
-        else//waste matrix
+        else if (_process_data._material->getMaterialID(pos.getElementID().get()) ==
+            1)//waste matrix
         {
             // calculate the current ammount of co2
             // calculate the total amount of co2 in this element(gp), which should
@@ -519,7 +540,8 @@ void TwoPhaseComponentialFlowLocalAssembler<
             {
                 localMass_tmp.setZero();
                 localMass_tmp.noalias() =
-                    mass_mat_coeff(ii, jj) * _ip_data[ip].massOperator;
+                    mass_mat_coeff(ii, jj) *_ip_data[ip].massOperator; 
+                    //sm.N.transpose() * sm.N * integration_factor;
                 local_M.block(n_nodes * ii, n_nodes * jj, n_nodes, n_nodes)
                     .noalias() += localMass_tmp;
             }
@@ -536,9 +558,11 @@ void TwoPhaseComponentialFlowLocalAssembler<
             _process_data._diffusion_coeff_component_b(t, pos)[0];
 
         // wet
-        double const k_rel_L =
+        double k_rel_L =
             _process_data._material->getWetRelativePermeability(
                 t, pos, _pressure_wetting[ip], temperature, Sw);
+        if (atm_flag)
+            k_rel_L = 0.0;
         double const mu_liquid = _process_data._material->getLiquidViscosity(
             _pressure_wetting[ip], temperature);
         double const lambda_L = k_rel_L / mu_liquid;
@@ -631,7 +655,8 @@ void TwoPhaseComponentialFlowLocalAssembler<
             {
                 localDispersion_tmp.setZero();
                 localDispersion_tmp.noalias() =
-                    K_mat_coeff(ii, jj) * _ip_data[ip].diffusionOperator;
+                    K_mat_coeff(ii, jj) *_ip_data[ip].diffusionOperator; 
+                    //sm.dNdx.transpose() * sm.dNdx * integration_factor;
                 local_K.block(n_nodes * ii, n_nodes * jj, n_nodes, n_nodes)
                     .noalias() += localDispersion_tmp;
             }
