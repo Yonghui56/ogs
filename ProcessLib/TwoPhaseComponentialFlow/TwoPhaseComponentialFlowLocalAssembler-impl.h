@@ -187,7 +187,8 @@ void TwoPhaseComponentialFlowLocalAssembler<
 
         NumLib::shapeFunctionInterpolate(local_x, sm.N, pg_int_pt, X1_int_pt,
                                          X2_int_pt, X3_int_pt, PC_int_pt);
-
+        if (atm_flag)
+            PC_int_pt = 0.0;
         const auto _interpolateGaussNode_coord = interpolateNodeCoordinates(
             _element, sm.N);
 
@@ -254,8 +255,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
 
         double dSwdPc = _process_data._material->getDerivSaturation(
             material_id, t, pos, pg_int_pt, temperature, Sw);
-        if (atm_flag)
-            dSwdPc = 0;
+
         const double dSgdPC = -dSwdPc;
 
         const double rho_mol_nonwet = pg_int_pt / R / temperature;
@@ -373,7 +373,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
         //saturation dependent chemical reactivity
         //double const rel_humidity = std::exp(-PC_int_pt*0.018 / rho_mass_wet / 8.314 / temperature);
         double rel_humidity = std::exp(-PC_int_pt*0.018 / rho_mass_wet / 8.314 / temperature);
-        rel_humidity = pg_int_pt*x_nonwet_h2o / P_sat_gp;
+        //rel_humidity = pg_int_pt*x_nonwet_h2o / P_sat_gp;
         if (atm_flag)
             rel_humidity = 0.8;
         _rel_humidity[ip] = rel_humidity;
@@ -675,7 +675,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
         GlobalDimVectorType darcy_velocity_gas_phase =
             -K_mat_coeff_gas * sm.dNdx * p_nodal_values;
         GlobalDimVectorType darcy_velocity_liquid_phase =
-            -K_mat_coeff_liquid * sm.dNdx * (p_nodal_values- pc_nodal_values);
+            -K_mat_coeff_liquid * sm.dNdx * (- pc_nodal_values);
         // for simplify only consider the gaseous specices diffusion velocity
         GlobalDimVectorType diffuse_velocity_h2_gas = -porosity * D_G * (1 - Sw)*sm.dNdx*x1_nodal_values;
         GlobalDimVectorType diffuse_velocity_ch4_gas = -porosity * D_G * (1 - Sw)*sm.dNdx*x2_nodal_values;
@@ -701,8 +701,8 @@ void TwoPhaseComponentialFlowLocalAssembler<
             auto const& b = _process_data._specific_body_force;
             NodalVectorType gravity_operator =
                 sm.dNdx.transpose() * permeability * b * integration_factor;
-            darcy_velocity_gas_phase += K_mat_coeff_gas * rho_mass_G_gp * b;
-            darcy_velocity_liquid_phase += K_mat_coeff_liquid*rho_mass_wet*b;
+            darcy_velocity_gas_phase -= K_mat_coeff_gas * rho_mass_G_gp * b;
+            darcy_velocity_liquid_phase -= K_mat_coeff_liquid*rho_mass_wet*b;
             H_vec_coeff(0) =
                 (-lambda_G * rho_mol_nonwet * X1_int_pt * rho_mass_G_gp -
                  lambda_L * rho_mol_wet * X1_int_pt * pg_int_pt * rho_mass_wet /
