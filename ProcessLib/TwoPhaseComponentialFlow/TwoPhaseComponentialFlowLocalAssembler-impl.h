@@ -164,12 +164,11 @@ void TwoPhaseComponentialFlowLocalAssembler<
     accelerate_flag = false;
     int gp_carb_neutral_count = 0;
     bool atm_flag = false;
-    int deriv_flag = 1;
+    double deriv_flag = 1;
     if (_process_data._material->getMaterialID(pos.getElementID().get()) ==
         2)//backfill
     {
         atm_flag = true;
-        deriv_flag = 0;
     }
     for (unsigned ip = 0; ip < n_integration_points; ip++)
     {
@@ -187,8 +186,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
 
         NumLib::shapeFunctionInterpolate(local_x, sm.N, pg_int_pt, X1_int_pt,
                                          X2_int_pt, X3_int_pt, PC_int_pt);
-        if (atm_flag)
-            PC_int_pt = 0.0;
+
         const auto _interpolateGaussNode_coord = interpolateNodeCoordinates(
             _element, sm.N);
 
@@ -248,8 +246,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
 
         double Sw = _process_data._material->getSaturation(
             material_id, t, pos, pg_int_pt, temperature, PC_int_pt);
-        if (atm_flag)
-            Sw = 0.01;
+
         _saturation[ip] = Sw;//store the secondary variable
         double const S_G_gp = 1 - Sw;
 
@@ -561,8 +558,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
         double k_rel_L =
             _process_data._material->getWetRelativePermeability(
                 t, pos, _pressure_wetting[ip], temperature, Sw);
-        if (atm_flag)
-            k_rel_L = 0.0;
+
         double const mu_liquid = _process_data._material->getLiquidViscosity(
             _pressure_wetting[ip], temperature);
         double const lambda_L = k_rel_L / mu_liquid;
@@ -675,7 +671,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
         GlobalDimVectorType darcy_velocity_gas_phase =
             -K_mat_coeff_gas * sm.dNdx * p_nodal_values;
         GlobalDimVectorType darcy_velocity_liquid_phase =
-            -K_mat_coeff_liquid * sm.dNdx * (- pc_nodal_values);
+            -K_mat_coeff_liquid * sm.dNdx * (p_nodal_values - pc_nodal_values);
         // for simplify only consider the gaseous specices diffusion velocity
         GlobalDimVectorType diffuse_velocity_h2_gas = -porosity * D_G * (1 - Sw)*sm.dNdx*x1_nodal_values;
         GlobalDimVectorType diffuse_velocity_ch4_gas = -porosity * D_G * (1 - Sw)*sm.dNdx*x2_nodal_values;
