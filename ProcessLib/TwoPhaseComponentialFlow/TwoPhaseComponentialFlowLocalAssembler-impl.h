@@ -558,7 +558,8 @@ void TwoPhaseComponentialFlowLocalAssembler<
         double k_rel_L =
             _process_data._material->getWetRelativePermeability(
                 t, pos, _pressure_wetting[ip], temperature, Sw);
-
+        if (atm_flag)
+            k_rel_L = 0;
         double const mu_liquid = _process_data._material->getLiquidViscosity(
             _pressure_wetting[ip], temperature);
         double const lambda_L = k_rel_L / mu_liquid;
