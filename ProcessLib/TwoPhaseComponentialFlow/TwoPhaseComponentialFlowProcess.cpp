@@ -242,6 +242,11 @@ void TwoPhaseComponentialFlowProcess::initializeConcreteProcess(
         "bazant_power",
         makeExtrapolator(1, getExtrapolator(), _local_assemblers,
             &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtReactivity));
+    
+    _secondary_variables.addSecondaryVariable(
+        "water_consumption_rate",
+        makeExtrapolator(1, getExtrapolator(), _local_assemblers,
+            &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtWaterConsumpRate));
 
 }
 

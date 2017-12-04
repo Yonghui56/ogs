@@ -297,6 +297,12 @@ public:
         GlobalVector const& /*current_solution*/,
         NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
         std::vector<double>& /*cache*/) const = 0;
+
+    virtual std::vector<double> const& getIntPtWaterConsumpRate(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const = 0;
 };
 
 template <typename ShapeFunction, typename IntegrationMethod,
@@ -383,6 +389,8 @@ public:
           _gas_co2_degradation_rate(
             std::vector<double>(_integration_method.getNumberOfPoints())),
           _co2_consumed_current_step(
+            std::vector<double>(_integration_method.getNumberOfPoints())),
+          _h2o_consumed_rate(
             std::vector<double>(_integration_method.getNumberOfPoints())),
           _gas_vapor_velocity(
             std::vector<double>(GlobalDim*_integration_method.getNumberOfPoints())),
@@ -800,6 +808,15 @@ public:
         assert(_reactivity_bazant_power.size() > 0);
         return _reactivity_bazant_power;
     }
+    std::vector<double> const& getIntPtWaterConsumpRate(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const override
+    {
+        assert(_h2o_consumed_rate.size() > 0);
+        return _h2o_consumed_rate;
+    }
 
 
     template <typename Shp>
@@ -853,6 +870,7 @@ private:
     std::vector<double> _gas_co2_generation_rate;
     std::vector<double> _gas_co2_degradation_rate;
     std::vector<double> _co2_consumed_current_step;
+    std::vector<double> _h2o_consumed_rate;
 
     std::vector<double> _rel_humidity;
 

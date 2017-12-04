@@ -672,7 +672,7 @@ void TwoPhaseComponentialFlowLocalAssembler<
         GlobalDimVectorType darcy_velocity_gas_phase =
             -K_mat_coeff_gas * sm.dNdx * p_nodal_values;
         GlobalDimVectorType darcy_velocity_liquid_phase =
-            -K_mat_coeff_liquid * sm.dNdx * (p_nodal_values - pc_nodal_values);
+            -K_mat_coeff_liquid * sm.dNdx * ( - pc_nodal_values);
         // for simplify only consider the gaseous specices diffusion velocity
         GlobalDimVectorType diffuse_velocity_h2_gas = -porosity * D_G * (1 - Sw)*sm.dNdx*x1_nodal_values;
         GlobalDimVectorType diffuse_velocity_ch4_gas = -porosity * D_G * (1 - Sw)*sm.dNdx*x2_nodal_values;
@@ -828,6 +828,9 @@ void TwoPhaseComponentialFlowLocalAssembler<
                     _porosity_change_at_supp_pnt_waste);
                 _porosity_value[ip] = porosity3;
                 _rho_mol_co2_cumulated_prev[ip] = rho_mol_co2_cumul_total_waste;
+                //store 
+                _h2o_consumed_rate[ip] 
+                    = -Q_steel_waste_matrix - Q_organic_slow_co2 - Q_organic_fast_co2 * 2 / 3;
             }
             else if (_process_data._material->getMaterialID(
                          pos.getElementID().get()) == 0)//backfill, cement and concrete
@@ -886,6 +889,8 @@ void TwoPhaseComponentialFlowLocalAssembler<
 
                 //store the gas h2 generation rate
                 _gas_h2_generation_rate[ip] = F_vec_coeff(0);
+                //store the h2o consumption/release rate due to asr&carbonation
+                _h2o_consumed_rate[ip] = fluid_volume_rate;
             }
             //store the source term for each component 
             // thanks to the facts that the source terms are all for gas phase
