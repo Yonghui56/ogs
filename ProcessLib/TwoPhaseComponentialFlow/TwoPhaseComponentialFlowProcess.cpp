@@ -304,7 +304,7 @@ namespace ProcessLib
                 const_cast<MeshLib::Mesh&>(mesh), "liquid_velocity_cell",
                 MeshLib::MeshItemType::Cell, 3);
             mesh_prop_total_liquid_vel
-                ->resize(mesh.getNumberOfElements() * mesh.getDimension());
+                ->resize(mesh.getNumberOfElements() * 3);
             _process_data.mesh_prop_overall_liquid_vel = mesh_prop_total_liquid_vel;
 
             auto mesh_prop_total_gas_vel
@@ -312,7 +312,7 @@ namespace ProcessLib
                     const_cast<MeshLib::Mesh&>(mesh), "overall_gas_velocity_cell",
                     MeshLib::MeshItemType::Cell, 3);
             mesh_prop_total_gas_vel
-                ->resize(mesh.getNumberOfElements() * mesh.getDimension());
+                ->resize(mesh.getNumberOfElements() * 3);
             _process_data.mesh_prop_overall_gas_vel = mesh_prop_total_gas_vel;
 
             auto mesh_prop_gas_co2_vel
@@ -320,7 +320,7 @@ namespace ProcessLib
                     const_cast<MeshLib::Mesh&>(mesh), "co2_gas_velocity_cell",
                     MeshLib::MeshItemType::Cell, 3);
             mesh_prop_gas_co2_vel
-                ->resize(mesh.getNumberOfElements() * mesh.getDimension());
+                ->resize(mesh.getNumberOfElements() * 3);
             _process_data.mesh_prop_gas_co2_vel = mesh_prop_gas_co2_vel;
 
             auto mesh_prop_gas_h2_vel
@@ -328,7 +328,7 @@ namespace ProcessLib
                     const_cast<MeshLib::Mesh&>(mesh), "hydrogen_gas_velocity_cell",
                     MeshLib::MeshItemType::Cell, 3);
             mesh_prop_gas_h2_vel
-                ->resize(mesh.getNumberOfElements() * mesh.getDimension());
+                ->resize(mesh.getNumberOfElements() * 3);
             _process_data.mesh_prop_gas_hydrogen_vel = mesh_prop_gas_h2_vel;
 
             auto mesh_prop_gas_ch4_vel
@@ -336,7 +336,7 @@ namespace ProcessLib
                     const_cast<MeshLib::Mesh&>(mesh), "methane_gas_velocity_cell",
                     MeshLib::MeshItemType::Cell, 3);
             mesh_prop_gas_ch4_vel
-                ->resize(mesh.getNumberOfElements() * mesh.getDimension());
+                ->resize(mesh.getNumberOfElements() *3);
             _process_data.mesh_prop_gas_methane_vel = mesh_prop_gas_ch4_vel;
 
             auto mesh_prop_gas_h2o_vapor_vel
@@ -344,7 +344,7 @@ namespace ProcessLib
                     const_cast<MeshLib::Mesh&>(mesh), "water_vapor_gas_velocity_cell",
                     MeshLib::MeshItemType::Cell, 3);
             mesh_prop_gas_h2o_vapor_vel
-                ->resize(mesh.getNumberOfElements() * mesh.getDimension());
+                ->resize(mesh.getNumberOfElements() * 3);
             _process_data.mesh_prop_gas_water_vapor_vel = mesh_prop_gas_h2o_vapor_vel;
         }
 
