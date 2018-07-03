@@ -849,7 +849,7 @@ void flash_calculation_calculate_compressibility_factor(PHASE *phase)
             Z_h = Z3;
         }
 
-        sigma_1 = eos->para_sigma1;
+        sigma_1 = sqrt(2)-1;//need conform
         sigma_2 = eos->para_sigma2;
 
         dG = (Z_h - Z_l) + log((Z_l - B) / (Z_h - B))

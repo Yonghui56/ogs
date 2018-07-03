@@ -17,12 +17,12 @@ namespace TwoPhaseFlowWithPP
     double * flash_calculation_estimate_K(double *K, double P, double T);
     double * flash_calculation_stability_analysis_initial_estimate(double P, double T);
     void flash_calculation_calculate_trial_phase_composition(double *X_t, double *x);
-    void flash_calculation_SS_method_update_X(double *X_t);
+    void flash_calculation_SS_method_update_X(PHASE *phase, PHASE *phase_t, double *X_t);
     void flash_calculation_calculate_trial_phase_composition_derivative(double *X_t, double *dx_t);
-    void flash_calculation_calculate_stability_equilibrium_equation(double *X_t, double *D);
-    void flash_calculation_calculate_stability_equilibrium_equation_derivative(double *dx_t,
+    void flash_calculation_calculate_stability_equilibrium_equation(PHASE *phase, PHASE *phase_t, double *X_t, double *D);
+    void flash_calculation_calculate_stability_equilibrium_equation_derivative(PHASE *phase_t, double *dx_t,
         double *X_t, double *dD);
-    int flash_calculation_stability_analysis_QNSS(double *K, double tol);
+    int flash_calculation_stability_analysis_QNSS(PHASE *phase, double *K, double tol);
     void flash_calculation_compute_phase_parameter(PHASE *phase);
     double const M_PI = 3.1415926;
     typedef struct PHASE_ {
