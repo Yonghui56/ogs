@@ -22,7 +22,6 @@ namespace TwoPhaseFlowWithPP
     double * flash_calculation_estimate_K(double *K, double P, double T)
     {
         int i, ncomp = 4;
-        double P, T;
         
         if (K == NULL) {
             K = (double *)malloc(ncomp * sizeof(*K));
@@ -291,7 +290,7 @@ namespace TwoPhaseFlowWithPP
             D[i] = -D[i];
         }
 
-        flash_calculation_solve_dense_linear_system(dD, D, x, ncomp);
+       flash_calculation_solve_dense_linear_system(dD, D, x, ncomp);
 
         for (i = 0; i < ncomp; i++) {
             X_t[i] += x[i];
@@ -849,8 +848,8 @@ void flash_calculation_calculate_compressibility_factor(PHASE *phase)
             Z_h = Z3;
         }
 
-        sigma_1 = sqrt(2)-1;//need conform
-        sigma_2 = eos->para_sigma2;
+        sigma_1 = 1-sqrt(2);//need conform
+        sigma_2 = 1+sqrt(2);
 
         dG = (Z_h - Z_l) + log((Z_l - B) / (Z_h - B))
             - A / (B * (sigma_2 - sigma_1))
@@ -872,8 +871,8 @@ void flash_calculation_calculate_compressibility_factor(PHASE *phase)
         Tc = 0;
         Dc = 0;
         for (i = 0; i < ncomp; i++) {
-            Tc += z_molarfraction[i] * comp_TC[i] * comp[i].VC;
-            Dc += z_molarfraction[i] * comp[i].VC;
+            Tc += z_molarfraction[i] * comp_TC[i];// comp[i].VC
+            Dc += z_molarfraction[i] ;//* comp[i].VC
         }
         Tc = Tc / Dc;
         if (eos_temp < Tc) {
@@ -1187,23 +1186,6 @@ PHASE * flash_calculation_phase_new(double *mf)
     return phase;
 }
 
-
-
-
-
-    double const comp_PC[4] = { 46,73.8,89.4,220.5 };
-    double const comp_TC[4] = { 190.6,204.2,373.2,647.3 };
-    double const comp_AC[4] = { 0.008,0.225,0.1,0.344 };
-    double const comp_binary[4][4] = {
-        {0, 0, 0, 0},
-    {0.1005,0,0,0},
-    {0.0755,0.0999,0,0},
-    {0.4928,0,0.04,0}
-    };
-    double const eos_temp = 310.95;
-    double const eos_pressure = 76;
-    double const z_molarfraction[4] = { 0.1488,0.2991,0.0494,0.5027 };
-    //define a struct "phase"
     
 
 }  // namespace TwoPhaseFlowWithPP
