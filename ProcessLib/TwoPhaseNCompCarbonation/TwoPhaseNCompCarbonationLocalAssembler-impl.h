@@ -371,7 +371,7 @@ void TwoPhaseNCompCarbonationLocalAssembler<
         fluid_volume = bi_interpolation(
             _ip_data[ip].rho_mol_sio2_prev,
             _ip_data[ip].rho_mol_co2_cumul_total_prev, _fluid_volume_suppt_pnt);
-        double quartz_dissolute_rate = bi_interpolation(
+        double quartz_dissolute_rate = 31557600*bi_interpolation(
             _ip_data[ip].rho_mol_sio2_prev,
             _ip_data[ip].rho_mol_co2_cumul_total_prev, _quartz_rate_suppt_pnt);
         // quartz_dissolute_rate is always nonpositive.
