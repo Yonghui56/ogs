@@ -85,6 +85,7 @@ namespace TwoPhaseFlowWithPP
     int flash_calculation_solve_dense_linear_system(double *M, double *b,
         double *x, int n);
     PHASE * flash_calculation_phase_new(double *mf);
+    void flash_calculation_calculate_phase_density(PHASE *phase);
     double const M_PI = 3.1415926;
     double const comp_PC[4] = { 46,73.8,89.4,220.5 };
     double const comp_TC[4] = { 190.6,204.2,373.2,647.3 };
@@ -95,6 +96,7 @@ namespace TwoPhaseFlowWithPP
     { 0.0755,0.0999,0,0 },
     { 0.4928,0,0.04,0 }
     };
+    double const comp_molarweight[4] = {0.016,0.044,0.034,0.018};
     double const eos_temp = 310.95;
     double const eos_pressure = 76;
     double const z_molarfraction[4] = { 0.1488,0.2991,0.0494,0.5027 };

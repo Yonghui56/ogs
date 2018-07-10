@@ -1186,6 +1186,23 @@ PHASE * flash_calculation_phase_new(double *mf)
     return phase;
 }
 
+void flash_calculation_calculate_phase_density(PHASE *phase)
+{
+    int i, ncomp;
+    double mole_den, mole_weight;
+
+    mole_den = eos_pressure
+        / (phase->Z * phase->R * eos_temp);
+
+    ncomp = phase->ncomp;
+    mole_weight = 0.0;
+    for (i = 0; i < ncomp; i++) {
+        mole_weight += phase->mf[i] * comp_molarweight[i];
+    }
+
+    phase->density = mole_den * mole_weight;
+}
+
     
 
 }  // namespace TwoPhaseFlowWithPP

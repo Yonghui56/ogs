@@ -30,6 +30,7 @@
 */
 #pragma once
 
+#include "ProcessLib\TwoPhaseFlowWithPP\FlashStab.h"
 #include "TwoPhaseFlowWithPPLocalAssembler.h"
 
 #include "MathLib/InterpolationAlgorithms/PiecewiseLinearInterpolation.h"
@@ -91,6 +92,8 @@ void TwoPhaseFlowWithPPLocalAssembler<
     unsigned const n_integration_points =
         _integration_method.getNumberOfPoints();
 
+    PHASE *phase;
+
     SpatialPosition pos;
     pos.setElementID(_element.getID());
     const int material_id =
@@ -116,6 +119,12 @@ void TwoPhaseFlowWithPPLocalAssembler<
         _pressure_wet[ip] = pn_int_pt - pc_int_pt;
 
         const double temperature = _process_data.temperature(t, pos)[0];
+        /*
+        *Flash calculation
+        */
+        int status;
+        phase = flash_calculation_phase_new(eos, x);
+        status= flash_calculation_stability_analysis_QNSS(phase, NULL, 1e-10);
         double const rho_nonwet =
             _process_data.material->getGasDensity(pn_int_pt, temperature);
         double const rho_wet = _process_data.material->getLiquidDensity(
