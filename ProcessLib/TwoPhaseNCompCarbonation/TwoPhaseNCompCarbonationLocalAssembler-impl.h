@@ -364,9 +364,6 @@ void TwoPhaseNCompCarbonationLocalAssembler<
                             _ip_data[ip].integration_weight;
         }  // end of has gravity
 
-        double const flag_carbon = bi_interpolation(
-            _ip_data[ip].rho_mol_sio2_prev,
-            _ip_data[ip].rho_mol_co2_cumul_total_prev, _flag_carbon_suppt_pnt);
         double& fluid_volume = _ip_data[ip].fluid_volume;
         fluid_volume = bi_interpolation(
             _ip_data[ip].rho_mol_sio2_prev,
@@ -383,7 +380,7 @@ void TwoPhaseNCompCarbonationLocalAssembler<
             double const fluid_volume_rate =
                 (fluid_volume - _ip_data[ip].fluid_volume_prev) / dt;
             if (_ip_data[ip].rho_mol_co2_cumul_total_prev >=
-                3800)  // means carbonation stops
+                3700)  // means carbonation stops
                 rho_mol_total_co2 = 0.0;
             // update the current cumulated co2 consumption
             rho_mol_co2_cumul_total =
