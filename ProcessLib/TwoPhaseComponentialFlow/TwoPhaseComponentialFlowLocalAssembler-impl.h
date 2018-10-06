@@ -180,7 +180,7 @@ namespace ProcessLib
                 pos.getElementID().get() == 190 || pos.getElementID().get() == 191 ||
                 pos.getElementID().get() == 246 || pos.getElementID().get() == 236)
             {
-                accelerate_factor = 1;
+                accelerate_factor = 2;
             }
             if (t > 65)
             {
@@ -549,14 +549,21 @@ namespace ProcessLib
                         Sw * K_G_air * d_x_nonwet_air_d_pc);
 
                 // h2o
-                mass_mat_coeff(4, 0) = porosity * ((1 - Sw) * d_rho_mol_nonwet_d_pg +
+                mass_mat_coeff(4, 0) =  porosity * ((1 - Sw) * d_rho_mol_nonwet_d_pg*x_nonwet_h2o +
+                    (1 - Sw) * rho_mol_nonwet*d_x_nonwet_h2o_d_pg +
                     Sw * d_rho_mol_wet_d_pg);
-                mass_mat_coeff(4, 1) = porosity * Sw * d_rho_mol_wet_d_x1;
-                mass_mat_coeff(4, 2) = porosity * Sw * d_rho_mol_wet_d_x2;
-                mass_mat_coeff(4, 3) = porosity * Sw * d_rho_mol_wet_d_x3;
+                mass_mat_coeff(4, 1) = porosity * ((1 - Sw) * 0*x_nonwet_h2o +
+                    (1 - Sw) * rho_mol_nonwet * d_x_nonwet_h2o_d_x1 +
+                    Sw * d_rho_mol_wet_d_x1);
+                mass_mat_coeff(4, 2) = porosity * ((1 - Sw) * 0*x_nonwet_h2o +
+                    (1 - Sw) * rho_mol_nonwet * d_x_nonwet_h2o_d_x2 +
+                    Sw * d_rho_mol_wet_d_x2);
+                mass_mat_coeff(4, 3) = porosity * ((1 - Sw) * 0*x_nonwet_h2o +
+                    (1 - Sw) * rho_mol_nonwet * d_x_nonwet_h2o_d_x3 +
+                    Sw * d_rho_mol_wet_d_x3);
                 mass_mat_coeff(4, 4) =
-                    porosity * (rho_mol_nonwet * dSgdPC - rho_mol_wet * dSgdPC +
-                        Sw * d_rho_mol_wet_d_pc);
+                    porosity * (rho_mol_nonwet * x_nonwet_h2o*dSgdPC - rho_mol_wet * dSgdPC * x_wet_h2o +
+                        Sw * d_rho_mol_wet_d_pc*x_wet_h2o);
                 //-------------debugging------------------------
                 // std::cout << "mass_mat_coeff=" << std::endl;
                 // std::cout << mass_mat_coeff << std::endl;
@@ -662,13 +669,35 @@ namespace ProcessLib
                     d_x_nonwet_air_d_pc;
                 // h2o
                 K_mat_coeff(4, 0) =
-                    (lambda_G * rho_mol_nonwet + lambda_L * rho_mol_wet) *
-                    permeability(0, 0);
+                    (lambda_G * rho_mol_nonwet*x_nonwet_h2o + lambda_L * rho_mol_wet*x_wet_h2o) *
+                    permeability(0, 0)
+                    - (porosity * D_L * Sw * rho_mol_wet * X1_int_pt / Hen_L_h)
+                    - (porosity * D_L * Sw * rho_mol_wet * X2_int_pt / Hen_L_h)
+                    - (porosity * D_L * Sw * rho_mol_wet * X3_int_pt / Hen_L_co2)
+                    - (porosity * D_G * (1 - Sw) * rho_mol_nonwet * d_x_nonwet_air_d_pg +
+                        porosity * D_L * Sw * rho_mol_wet * d_x_nonwet_air_d_pg * K_G_air +
+                        porosity * D_L * Sw * rho_mol_wet * x_nonwet_air / Hen_L_air);
 
-                K_mat_coeff(4, 1) = 0.0;
-                K_mat_coeff(4, 2) = 0.0;
-                K_mat_coeff(4, 3) = 0.0;
-                K_mat_coeff(4, 4) = (-lambda_L * rho_mol_wet) * permeability(0, 0);
+                K_mat_coeff(4, 1) =
+                    -(porosity * D_G * (1 - Sw) * rho_mol_nonwet +
+                        porosity * D_L * Sw * rho_mol_wet * pg_int_pt / Hen_L_h)
+                    - (porosity * D_G * (1 - Sw) * rho_mol_nonwet * d_x_nonwet_air_d_x1 +
+                        porosity * D_L * Sw * rho_mol_wet * d_x_nonwet_air_d_x1 * K_G_air);
+                K_mat_coeff(4, 2) =
+                    -(porosity * D_G * (1 - Sw) * rho_mol_nonwet +
+                        porosity * D_L * Sw * rho_mol_wet * pg_int_pt / Hen_L_c)
+                    - (porosity * D_G * (1 - Sw) * rho_mol_nonwet * d_x_nonwet_air_d_x2 +
+                        porosity * D_L * Sw * rho_mol_wet * d_x_nonwet_air_d_x2 * K_G_air);
+                K_mat_coeff(4, 3) =
+                    -(porosity * D_G_co2 * (1 - Sw) * rho_mol_nonwet +
+                        porosity * D_L * Sw * rho_mol_wet * pg_int_pt / Hen_L_co2)
+                    - (porosity * D_G * S_G_gp * rho_mol_nonwet * d_x_nonwet_air_d_x3 +
+                        porosity * D_L * (1 - S_G_gp) * rho_mol_wet * d_x_nonwet_air_d_x3 *
+                        K_G_air);
+                K_mat_coeff(4, 4) = (-lambda_L * rho_mol_wet*x_wet_h2o) * permeability(0, 0)
+                    - (porosity * D_G * S_G_gp * rho_mol_nonwet * d_x_nonwet_air_d_pc +
+                    porosity * D_L * (1 - S_G_gp) * rho_mol_wet * K_G_air *
+                    d_x_nonwet_air_d_pc);
 
                 //-------------debugging------------------------
                 // std::cout << "K_mat_coeff=" << std::endl;
@@ -745,8 +774,8 @@ namespace ProcessLib
                         (-lambda_G * rho_mol_nonwet * x_nonwet_air * rho_mass_G_gp -
                             lambda_L * rho_mol_wet * x_nonwet_air * pg_int_pt *
                             rho_mass_wet / Hen_L_air);
-                    H_vec_coeff(4) = (-lambda_G * rho_mol_nonwet * rho_mass_G_gp -
-                        lambda_L * rho_mol_wet * rho_mass_wet);
+                    H_vec_coeff(4) = (-lambda_G * rho_mol_nonwet *x_nonwet_h2o* rho_mass_G_gp -
+                        lambda_L * rho_mol_wet *x_wet_h2o* rho_mass_wet);
 
                     cache_mat_gas_vel.col(ip).noalias() = darcy_velocity_gas_phase;
 
@@ -787,11 +816,7 @@ namespace ProcessLib
                     }
                 }  // end of hasGravityEffect
                    // load the source term
-                double porosity_test = bi_interpolation(
-                    94.8,
-                    1459,
-                    _porosity_at_supp_pnts_backfill);  // porosity update
-                                                       //store the secondary variable
+
                 if (Sw > -1e-6 && dt > 0)
                 {
                     Q_steel_waste_matrix = 5.903876 * 4 / 3;
@@ -850,8 +875,10 @@ namespace ProcessLib
                         //F_vec_coeff(4) += Q_steel_waste_matrix;// switch off the water consumption
                         /*F_vec_coeff(4) += (Q_organic_slow_co2 * 8 / 3) +
                             (Q_organic_fast_co2 * 6 / 3);*/
-                        F_vec_coeff(4) += (Q_organic_slow_co2 * 2 / 3) +
-                            (Q_organic_fast_co2 * 5 / 3);
+                        F_vec_coeff(4) -= Q_steel_waste_matrix;
+                        F_vec_coeff(4) -= Q_organic_slow_co2 * 2;
+                        F_vec_coeff(4) -= Q_organic_slow_co2 * 1/3;
+
                         //F_vec_coeff(4) +=
                         //(fluid_volume_rate_waste) -(rho_mol_total_co2_waste / dt);
                         //update the porosity
@@ -905,8 +932,8 @@ namespace ProcessLib
                         F_vec_coeff(2) -= rho_mol_co2_kinetic_rate_backfill;
                         //(rho_mol_total_co2_backfill / dt);
                         // water source/sink term
-                        F_vec_coeff(4) += 
-                            (fluid_volume_rate)-rho_mol_co2_kinetic_rate_backfill;
+                        F_vec_coeff(4) +=
+                            (fluid_volume_rate);
                          //-rho_mol_co2_kinetic_rate_backfill;//switch off the water consumption
                         // update the amount of dissolved sio2
                         rho_mol_sio2_wet_backfill =
@@ -1351,7 +1378,7 @@ namespace ProcessLib
                 localNeumann_tmp = neumann_vec * length / 2;
                 _neumann_vec_output = neumann_vec / radial_sym_fac;
             }
-
+            bool waste_matrix_sign = false;
             // for the third boundary condition
             if (std::abs(rx0 - 0.24)<0.0025 + eps && std::abs(rx1 - 0.24)<0.0025 + eps &&
                 ry1<0.795 + eps && ry1>0.088 - eps && ry0<0.795 + eps && ry0>0.088 - eps)
@@ -1366,6 +1393,7 @@ namespace ProcessLib
                 neumann_vec[1] = neumn_h2;
                 localNeumann_tmp = neumann_vec * length / 2;
                 _neumann_vec_output = neumann_vec / radial_sym_fac;
+                waste_matrix_sign = true;
             }
             else if (std::abs(rx1 - 0.24)<0.0025 + eps && std::abs(rx2 - 0.24)<0.0025 + eps &&
                 ry1<0.795 + eps && ry1>0.088 - eps && ry2<0.795 + eps && ry2>0.088 - eps)
@@ -1379,6 +1407,7 @@ namespace ProcessLib
                 neumann_vec[2] = neumn_h2;
                 localNeumann_tmp = neumann_vec * length / 2;
                 _neumann_vec_output = neumann_vec / radial_sym_fac;
+                waste_matrix_sign = true;
             }
             else if (std::abs(rx2 - 0.24)<0.0025 + eps && std::abs(rx0 - 0.24)<0.0025 + eps &&
                 ry2<0.795 + eps && ry2>0.088 - eps && ry0<0.795 + eps && ry0>0.088 - eps)
@@ -1392,6 +1421,7 @@ namespace ProcessLib
                 neumann_vec[2] = neumn_h2;
                 localNeumann_tmp = neumann_vec * length / 2;
                 _neumann_vec_output = neumann_vec / radial_sym_fac;
+                waste_matrix_sign = true;
             }
             else if (std::abs(rx0 - 0.24)<0.0025 + eps && std::abs(rx3 - 0.24)<0.0025 + eps &&
                 ry0<0.795 + eps && ry3>0.088 - eps && ry0<0.795 + eps && ry3>0.088 - eps)
@@ -1405,6 +1435,7 @@ namespace ProcessLib
                 neumann_vec[3] = neumn_h2;
                 localNeumann_tmp = neumann_vec * length / 2;
                 _neumann_vec_output = neumann_vec / radial_sym_fac;
+                waste_matrix_sign = true;
             }
             else if (std::abs(rx2 - 0.24)<0.0025 + eps && std::abs(rx3 - 0.24)<0.0025 + eps &&
                 ry2<0.795 + eps && ry3>0.088 - eps && ry2<0.795 + eps && ry3>0.088 - eps)
@@ -1418,6 +1449,7 @@ namespace ProcessLib
                 neumann_vec[3] = neumn_h2;
                 localNeumann_tmp = neumann_vec * length / 2;
                 _neumann_vec_output = neumann_vec / radial_sym_fac;
+                waste_matrix_sign = true;
             }
             else if (std::abs(rx1 - 0.24)<0.0025 + eps && std::abs(rx3 - 0.24)<0.0025 + eps &&
                 ry1<0.795 + eps && ry3>0.088 - eps && ry1<0.795 + eps && ry3>0.088 - eps)
@@ -1433,8 +1465,11 @@ namespace ProcessLib
 
                 localNeumann_tmp = neumann_vec * length / 2;
                 _neumann_vec_output = neumann_vec / radial_sym_fac;
+                waste_matrix_sign = true;
             }
+            //INTEGRATE INTO THE B MATRIX
             local_b.block(n_nodes * 0, 0, n_nodes, 1).noalias() += localNeumann_tmp;
+            local_b.block(n_nodes * 4, 0, n_nodes, 1).noalias() -= localNeumann_tmp;
             //output secondary variable
             for (unsigned ip = 0; ip < n_integration_points; ip++)
             {
@@ -1449,7 +1484,11 @@ namespace ProcessLib
 
                 NumLib::shapeFunctionInterpolate(_neumann_vector_output, sm.N, h2_flux, h2_flux2,
                     h2_flux3, h2_flux4, h2_flux5);
-                _gas_h2_boundary_generation_rate[ip] = h2_flux;
+                if (waste_matrix_sign){
+                _gas_h2_boundary_generation_rate[ip] = 100*h2_flux;
+                }
+                else
+                    _gas_h2_boundary_generation_rate[ip] = h2_flux;
                 _gas_h2_overall_generation_rate[ip] =
                     _gas_h2_boundary_generation_rate[ip] + _gas_h2_generation_rate[ip];
                 _h2o_consumed_rate[ip] -= _gas_h2_boundary_generation_rate[ip];
