@@ -814,15 +814,21 @@ namespace ProcessLib
 
                        // instead of reading curve, now use analytical formula
                         // quick hack to set start_conditions
-                       double& M_organic_fast_co2_ini = _ip_data[ip].amount_organic_waste_prev_cellulose; // amount from which gas is produced
+                       double& M_organic_fast_co2 = _ip_data[ip].amount_organic_waste_cellulose; // amount from which gas is produced
                        // if ((t < 0.001) &&  (M_organic_fast_co2_ini < m0_cellulose)) M_organic_fast_co2_ini = m0_cellulose;
-                       double dummy = (M_organic_fast_co2_ini*k_d_cellulose*bazant_power);  //updated amount for next time step assuming fixed degradation
-                       _amount_organic_waste_cellulose[ip] = M_organic_fast_co2_ini - (dummy * dt);
+                      //updated amount for next time step assuming fixed degradation
+                       double dummy =
+                           (_ip_data[ip].amount_organic_waste_prev_cellulose*k_d_cellulose*bazant_power);
+                       
+                       M_organic_fast_co2=_ip_data[ip].amount_organic_waste_prev_cellulose - (dummy * dt);
+                       //store the secondary variable
+                       _amount_organic_waste_cellulose[ip] = M_organic_fast_co2;
                        // read from curvesinterpolated_Q_fast.getValue(0)
-                       double& M_organic_slow_co2_ini = _ip_data[ip].amount_organic_waste_prev_polystyrene; // amount from which gas is produced
+                       double& M_organic_slow_co2 = _ip_data[ip].amount_organic_waste_polystyrene; // amount from which gas is produced
                        // if ((t < 0.001) &&  (M_organic_slow_co2_ini < m0_polystyrene)) M_organic_slow_co2_ini = m0_polystyrene;
-                       dummy = M_organic_slow_co2_ini*k_d_polystyrene*bazant_power;  //updated amount for next time step assuming fixed degradation
-                       _amount_organic_waste_polystyrene[ip] = M_organic_slow_co2_ini - (dummy * dt);
+                       dummy = _ip_data[ip].amount_organic_waste_prev_polystyrene *k_d_polystyrene*bazant_power;  //updated amount for next time step assuming fixed degradation
+                       M_organic_slow_co2= _ip_data[ip].amount_organic_waste_prev_polystyrene - (dummy * dt);
+                       _amount_organic_waste_polystyrene[ip] = M_organic_slow_co2;
 
                         //calculate the fluid volume change
                         //double& fluid_volume_waste = _ip_data[ip].fluid_volume_waste;
@@ -836,10 +842,10 @@ namespace ProcessLib
                         //store the gas h2 generation rate
                         _gas_h2_generation_rate[ip] = Q_steel_waste_matrix;
                         const double Q_organic_slow_co2 =
-                            M_organic_slow_co2_ini * para_slow*bazant_power; // gas generation rate for CO2 (only) after accounting
+                            M_organic_slow_co2 * para_slow*bazant_power; // gas generation rate for CO2 (only) after accounting
                                                                              //for reduction in chemical reactivity due to saturation (bazant_power)
                         const double Q_organic_fast_co2 =
-                            M_organic_fast_co2_ini * para_fast*bazant_power;
+                            M_organic_fast_co2 * para_fast*bazant_power;
 
                         if (_ip_data[ip].rho_mol_co2_cumul_total_prev_waste >=
                             400)  // means carbonation stops, no more co2 will be consumed
