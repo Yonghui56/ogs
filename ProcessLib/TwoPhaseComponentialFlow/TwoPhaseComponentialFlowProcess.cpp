@@ -272,6 +272,13 @@ namespace ProcessLib
                     &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtGasNitrogenDiffusiveVolumetricFlux));
 
             _secondary_variables.addSecondaryVariable(
+                "gas_nitrogen_diffusive_volumetric_flux_chainrule",
+                makeExtrapolator(
+                    mesh.getDimension(), getExtrapolator(), _local_assemblers,
+                    &TwoPhaseComponentialFlowLocalAssemblerInterface::
+                        getIntPtGasNitrogenDiffusiveVolumetricFluxChainRule));
+
+            _secondary_variables.addSecondaryVariable(
                 "relative_humidity",
                 makeExtrapolator(1, getExtrapolator(), _local_assemblers,
                     &TwoPhaseComponentialFlowLocalAssemblerInterface::getIntPtRelHumidity));

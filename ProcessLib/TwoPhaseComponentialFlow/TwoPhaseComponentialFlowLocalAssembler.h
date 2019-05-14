@@ -564,6 +564,13 @@ namespace ProcessLib
                 NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
                 std::vector<double>& /*cache*/) const = 0;
 
+            virtual std::vector<double> const&
+            getIntPtGasNitrogenDiffusiveVolumetricFluxChainRule(
+                const double /*t*/,
+                GlobalVector const& /*current_solution*/,
+                NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+                std::vector<double>& /*cache*/) const = 0;
+
             virtual std::vector<double> const& getIntPtRelHumidity(
                 const double /*t*/,
                 GlobalVector const& /*current_solution*/,
@@ -703,6 +710,8 @@ namespace ProcessLib
                     std::vector<double>(GlobalDim* _integration_method.getNumberOfPoints())),
                 _diffusive_volumetric_flux_gas_nitrogen(
                     std::vector<double>(GlobalDim* _integration_method.getNumberOfPoints())),
+                _diffusive_volumetric_flux_gas_nitrogen_chainrule(std::vector<double>(
+                      GlobalDim * _integration_method.getNumberOfPoints())),
                 _rel_humidity(
                     std::vector<double>(_integration_method.getNumberOfPoints())),
                 _reactivity_bazant_power(
@@ -1173,6 +1182,17 @@ namespace ProcessLib
                 return _diffusive_volumetric_flux_gas_nitrogen;
             }
 
+            std::vector<double> const&
+            getIntPtGasNitrogenDiffusiveVolumetricFluxChainRule(
+                const double /*t*/,
+                GlobalVector const& /*current_solution*/,
+                NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+                std::vector<double>& /*cache*/) const override
+            {
+                assert(_diffusive_volumetric_flux_gas_nitrogen_chainrule.size() > 0);
+                return _diffusive_volumetric_flux_gas_nitrogen_chainrule;
+            }
+
             std::vector<double> const& getIntPtRelHumidity(
                 const double /*t*/,
                 GlobalVector const& /*current_solution*/,
@@ -1313,6 +1333,7 @@ namespace ProcessLib
 
             std::vector<double> _darcy_volumetric_flux_gas_nitrogen;
             std::vector<double> _diffusive_volumetric_flux_gas_nitrogen;
+            std::vector<double> _diffusive_volumetric_flux_gas_nitrogen_chainrule;
 
             std::vector<double> _reactivity_bazant_power;
 
