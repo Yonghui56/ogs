@@ -20,7 +20,7 @@
 #include "ProcessLib/LocalAssemblerTraits.h"
 #include "ProcessLib/Parameter/Parameter.h"
 #include "ProcessLib/Utils/InitShapeMatrices.h"
-
+#include "NumLib/Function/Interpolation.h"
 #include "TwoPhaseComponentialFlowProcessData.h"
 
 namespace ProcessLib

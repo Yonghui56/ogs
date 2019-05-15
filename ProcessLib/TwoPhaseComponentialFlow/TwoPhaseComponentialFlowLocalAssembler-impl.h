@@ -164,7 +164,7 @@ namespace ProcessLib
             auto area = _element.getContent(); // returns length, area or volume..depending on element dimension...for the drum we have a 2D mesh -> area
              // radial symmetry 2 * 3.1415926*rx ...calculate volume of element according to Guidinsche Regel V = 2 * pi * R * area R: distance of center of gravity of area to rotation axis
             double Rdummy = _element.getCenterOfGravity()[0]; // for us the x coordinate is the one we need
-            double node_volume_radial = 2.0 * 3.141592654 * Rdummy * area / _element.getNumberOfEdges(); // aprox the node volume covered by a node..this is not exact due to radial symmetry (I guess)
+            double node_volume_radial = area / _element.getNumberOfEdges(); // aprox the node volume covered by a node..this is not exact due to radial symmetry (I guess)
 
             const int material_id =
                 _process_data._material->getMaterialID(pos.getElementID().get());
@@ -471,40 +471,20 @@ namespace ProcessLib
                 const double rho_mass_wet =
                     rho_mol_wet * (X_L_h_gp * H2 + X_L_c_gp * CH4 + X_L_co2_gp * CO2 +
                         x_wet_air * Air + x_wet_h2o * Water);
-                double const d_rho_mol_wet_d_pg = 
-                    -rho_mol_water * kelvin_term *
-                    (x_nonwet_h2o / P_sat_gp +
-                        pg_int_pt * d_x_nonwet_h2o_d_pg / P_sat_gp) /
-                    x_wet_h2o / x_wet_h2o;
-                /*-rho_mol_water * (dx_wet_h2o_dpg) /
-                    x_wet_h2o / x_wet_h2o;*/
+                double const d_rho_mol_wet_d_pg =
+                    0.0;
 
                 double const d_rho_mol_wet_d_x1 =
-                    -rho_mol_water * kelvin_term *
-                    (pg_int_pt * d_x_nonwet_h2o_d_x1 / P_sat_gp) / x_wet_h2o /
-                    x_wet_h2o;
-                    /*-rho_mol_water * (dx_wet_h2o_dx1) /
-                    x_wet_h2o / x_wet_h2o;*/
+                    0.0;
 
                 double const d_rho_mol_wet_d_x2 =
-                    -rho_mol_water * kelvin_term *
-                    (pg_int_pt * d_x_nonwet_h2o_d_x2 / P_sat_gp) / x_wet_h2o /
-                    x_wet_h2o;
-                    /*-rho_mol_water * (dx_wet_h2o_dx2) /
-                    x_wet_h2o / x_wet_h2o;*/
+                    0.0;
 
                 double const d_rho_mol_wet_d_x3 =
-                    -rho_mol_water * kelvin_term *
-                    (pg_int_pt * d_x_nonwet_h2o_d_x3 / P_sat_gp) / x_wet_h2o /
-                    x_wet_h2o;
-                    /*-rho_mol_water * (dx_wet_h2o_dx3) /
-                    x_wet_h2o / x_wet_h2o;*/
+                    0.0;
 
-                double const d_rho_mol_wet_d_pc = 
-                    -rho_mol_water *
-                    (pg_int_pt * d_x_nonwet_h2o_d_pc * kelvin_term / P_sat_gp +
-                        pg_int_pt * x_nonwet_h2o * d_kelvin_term_d_pc / P_sat_gp) /
-                    x_wet_h2o / x_wet_h2o;
+                double const d_rho_mol_wet_d_pc =
+                    0.0;
 
                 // calculate the carbonation and ASR source/sink term
                 // For the backfill part
@@ -530,8 +510,7 @@ namespace ProcessLib
                 double pc_origion = _process_data._material->getCapillaryPressure(material_id, t, pos, pg_int_pt, temperature, Sw);
                 double rel_humidity = std::exp(-pc_origion*0.018 / rho_mass_wet / 8.314 / temperature);
                 //rel_humidity = pg_int_pt*x_nonwet_h2o / P_sat_gp;
-                if (atm_flag)
-                    rel_humidity = 0.8;
+
                 _rel_humidity[ip] = rel_humidity;
                 double bazant_power = 0.0;
 
@@ -871,6 +850,7 @@ namespace ProcessLib
                 GlobalDimVectorType diffuse_volumetric_flux_vapor_gas =
                     -porosity * D_G * (1 - Sw)*sm.dNdx*(water_nodal_value);
                 double co2_degradation_rate = 0;
+                double co2_consumption_rate(0.0);
                 if (_process_data._has_gravity)
                 {
                     auto const& b = _process_data._specific_body_force;
@@ -1168,6 +1148,7 @@ namespace ProcessLib
                             (fluid_volume_backfill - _ip_data[ip].fluid_volume_prev_backfill) / dt;
                         // co2 consumption
                         F_vec_coeff(2) -= rho_mol_co2_kinetic_rate_backfill;
+                        co2_consumption_rate -= rho_mol_co2_kinetic_rate_backfill;
                         // water source/sink term
                         double const fluid_change_volume
                             = (fluid_volume_rate*rho_mol_water);
@@ -1208,6 +1189,7 @@ namespace ProcessLib
                             *(_saturation[ip] * rho_mol_wet*X_L_co2_gp
                                 + (1 - _saturation[ip])*rho_mol_nonwet*X3_int_pt)/ dt;
                         F_vec_coeff(2) += gas_co2_variation_rate_porosity;
+                        co2_consumption_rate+= gas_co2_variation_rate_porosity;
                         double const gas_nitrogen_variation_rate_porosity =
                             +(_ip_data[ip].porosity_prev_backfill - porosity2)
                             * (_saturation[ip] *rho_mol_wet*x_wet_air
@@ -1244,7 +1226,7 @@ namespace ProcessLib
                     //store the source term for each component
                     // thanks to the facts that the source terms are all for gas phase
                     _gas_ch4_generation_rate[ip] = F_vec_coeff(1);
-                    _gas_co2_generation_rate[ip] = F_vec_coeff(2);
+                    _gas_co2_generation_rate[ip] = co2_consumption_rate;// F_vec_coeff(2);
                     _gas_co2_degradation_rate[ip] = co2_degradation_rate;
                     //_gas_air_variation_rate_porosity[ip] = F_vec_coeff(3);
                     //-------------debugging------------------------
@@ -1289,7 +1271,7 @@ namespace ProcessLib
                 length = std::sqrt(std::pow(rx0 - rx1, 2) + std::pow(ry0 - ry1, 2));
                 neumann_vec[2] = 0.0;
                 neumann_vec[3] = 0.0;
-                radial_sym_fac = 2 * 3.1415926*rx0;
+                radial_sym_fac = 2 * 3.1415926*Rdummy;
                 neumn_h2 = 0.003733333*ele_bazant_power;
                 if (accelerate_flag) {
                     if (gp_carb_neutral_count <= 2) {
@@ -1321,7 +1303,7 @@ namespace ProcessLib
                 length = std::sqrt(std::pow(rx1 - rx2, 2) + std::pow(ry1 - ry2, 2));
                 neumann_vec[0] = 0.0;
                 neumann_vec[3] = 0.0;
-                radial_sym_fac = 2 * 3.1415926*rx1;
+                radial_sym_fac = 2 * 3.1415926*Rdummy;
                 neumn_h2 = 0.003733333*ele_bazant_power;
                 if (accelerate_flag) {
                     if (gp_carb_neutral_count <= 2) {
@@ -1353,7 +1335,7 @@ namespace ProcessLib
                 length = std::sqrt(std::pow(rx0 - rx2, 2) + std::pow(ry0 - ry2, 2));
                 neumann_vec[1] = 0.0;
                 neumann_vec[3] = 0.0;
-                radial_sym_fac = 2 * 3.1415926*rx2;
+                radial_sym_fac = 2 * 3.1415926*Rdummy;
                 neumn_h2 = 0.003733333*ele_bazant_power;
                 if (accelerate_flag) {
                     if (gp_carb_neutral_count <= 2) {
@@ -1385,7 +1367,7 @@ namespace ProcessLib
                 length = std::sqrt(std::pow(rx0 - rx3, 2) + std::pow(ry0 - ry3, 2));
                 neumann_vec[1] = 0.0;
                 neumann_vec[2] = 0.0;
-                radial_sym_fac = 2 * 3.1415926*rx2;
+                radial_sym_fac = 2 * 3.1415926*Rdummy;
                 neumn_h2 = 0.003733333*ele_bazant_power;
                 if (accelerate_flag) {
                     if (gp_carb_neutral_count <= 2) {
@@ -1417,7 +1399,7 @@ namespace ProcessLib
                 length = std::sqrt(std::pow(rx1 - rx3, 2) + std::pow(ry1 - ry3, 2));
                 neumann_vec[0] = 0.0;
                 neumann_vec[2] = 0.0;
-                radial_sym_fac = 2 * 3.1415926*rx1;
+                radial_sym_fac = 2 * 3.1415926*Rdummy;
                 neumn_h2 = 0.003733333*ele_bazant_power;
                 if (accelerate_flag) {
                     if (gp_carb_neutral_count <= 2) {
@@ -1449,7 +1431,7 @@ namespace ProcessLib
                 length = std::sqrt(std::pow(rx2 - rx3, 2) + std::pow(ry2 - ry3, 2));
                 neumann_vec[0] = 0.0;
                 neumann_vec[1] = 0.0;
-                radial_sym_fac = 2 * 3.1415926*rx2;
+                radial_sym_fac = 2 * 3.1415926*Rdummy;
                 neumn_h2 = 0.003733333*ele_bazant_power;
                 if (accelerate_flag) {
                     if (gp_carb_neutral_count <= 2) {
@@ -1483,7 +1465,7 @@ namespace ProcessLib
                 //indicates edge 0-1 located on the boundary
                 length = std::sqrt(std::pow(rx0 - rx1, 2) + std::pow(ry0 - ry1, 2));
                 neumann_vec[2] = 0;
-                radial_sym_fac = 2 * 3.1415926*rx0;
+                radial_sym_fac = 2 * 3.1415926*Rdummy;
                 neumn_h2 = 0.003733333*ele_bazant_power;
                 if (accelerate_flag) {
                     if (gp_carb_neutral_count <= 2) {
@@ -1515,7 +1497,7 @@ namespace ProcessLib
             {
                 length = std::sqrt(std::pow(rx1 - rx2, 2) + std::pow(ry1 - ry2, 2));
                 neumann_vec[0] = 0.0;
-                radial_sym_fac = 2 * 3.14159*rx1;
+                radial_sym_fac = 2 * 3.14159*Rdummy;
                 neumn_h2 = 0.003733333*ele_bazant_power;
                 if (accelerate_flag) {
                     if (gp_carb_neutral_count <= 2) {
@@ -1547,7 +1529,7 @@ namespace ProcessLib
             {
                 length = std::sqrt(std::pow(rx0 - rx2, 2) + std::pow(ry0 - ry2, 2));
                 neumann_vec[1] = 0.0;
-                radial_sym_fac = 2 * 3.1415926*rx2;
+                radial_sym_fac = 2 * 3.1415926*Rdummy;
                 neumn_h2 = 0.003733333*ele_bazant_power;
                 if (accelerate_flag) {
                     if (gp_carb_neutral_count <= 2) {
@@ -1580,7 +1562,7 @@ namespace ProcessLib
                 length = std::sqrt(std::pow(rx0 - rx3, 2) + std::pow(ry0 - ry3, 2));
                 neumann_vec[1] = 0.0;
                 neumann_vec[2] = 0.0;
-                radial_sym_fac = 2 * 3.1415926*rx3;
+                radial_sym_fac = 2 * 3.1415926*Rdummy;
                 neumn_h2 = 0.003733333*ele_bazant_power;
                 if (accelerate_flag) {
                     if (gp_carb_neutral_count <= 2) {
@@ -1613,7 +1595,7 @@ namespace ProcessLib
                 length = std::sqrt(std::pow(rx2 - rx3, 2) + std::pow(ry2 - ry3, 2));
                 neumann_vec[0] = 0.0;
                 neumann_vec[1] = 0.0;
-                radial_sym_fac = 2 * 3.1415926*rx2;
+                radial_sym_fac = 2 * 3.1415926*Rdummy;
                 neumn_h2 = 0.003733333*ele_bazant_power;
                 if (accelerate_flag) {
                     if (gp_carb_neutral_count <= 2) {
@@ -1646,7 +1628,7 @@ namespace ProcessLib
                 length = std::sqrt(std::pow(rx1 - rx3, 2) + std::pow(ry1 - ry3, 2));
                 neumann_vec[0] = 0.0;
                 neumann_vec[2] = 0.0;
-                radial_sym_fac = 2 * 3.1415926*rx1;
+                radial_sym_fac = 2 * 3.1415926*Rdummy;
                 neumn_h2 = 0.003733333*ele_bazant_power;
                 if (accelerate_flag) {
                     if (gp_carb_neutral_count <= 2) {
@@ -1682,7 +1664,7 @@ namespace ProcessLib
                 length = std::sqrt(std::pow(rx0 - rx1, 2) + std::pow(ry0 - ry1, 2));
                 neumann_vec[2] = 0;
                 neumann_vec[3] = 0;
-                radial_sym_fac = 2 * 3.1415926*rx0;
+                radial_sym_fac = 2 * 3.1415926*Rdummy;
                 neumn_h2 = 0.3733333*ele_bazant_power;
                 neumann_vec[0] = neumn_h2;
                 neumann_vec[1] = neumn_h2;
@@ -1696,7 +1678,7 @@ namespace ProcessLib
                 length = std::sqrt(std::pow(rx1 - rx2, 2) + std::pow(ry1 - ry2, 2));
                 neumann_vec[0] = 0.0;
                 neumann_vec[3] = 0;
-                radial_sym_fac = 2 * 3.14159*rx1;
+                radial_sym_fac = 2 * 3.14159*Rdummy;
                 neumn_h2 = 0.3733333* ele_bazant_power;
                 neumann_vec[1] = neumn_h2;
                 neumann_vec[2] = neumn_h2;
@@ -1710,7 +1692,7 @@ namespace ProcessLib
                 length = std::sqrt(std::pow(rx0 - rx2, 2) + std::pow(ry0 - ry2, 2));
                 neumann_vec[1] = 0.0;
                 neumann_vec[3] = 0;
-                radial_sym_fac = 2 * 3.1415926*rx2;
+                radial_sym_fac = 2 * 3.1415926*Rdummy;
                 neumn_h2 = 0.3733333* ele_bazant_power;
                 neumann_vec[0] = neumn_h2;
                 neumann_vec[2] = neumn_h2;
@@ -1724,7 +1706,7 @@ namespace ProcessLib
                 length = std::sqrt(std::pow(rx0 - rx3, 2) + std::pow(ry0 - ry3, 2));
                 neumann_vec[1] = 0.0;
                 neumann_vec[2] = 0.0;
-                radial_sym_fac = 2 * 3.1415926*rx0;
+                radial_sym_fac = 2 * 3.1415926*Rdummy;
                 neumn_h2 = 0.3733333* ele_bazant_power;
                 neumann_vec[0] = neumn_h2;
                 neumann_vec[3] = neumn_h2;
@@ -1738,7 +1720,7 @@ namespace ProcessLib
                 length = std::sqrt(std::pow(rx2 - rx3, 2) + std::pow(ry2 - ry3, 2));
                 neumann_vec[0] = 0.0;
                 neumann_vec[1] = 0.0;
-                radial_sym_fac = 2 * 3.1415926*rx2;
+                radial_sym_fac = 2 * 3.1415926*Rdummy;
                 neumn_h2 = 0.3733333* ele_bazant_power;
                 neumann_vec[2] = neumn_h2;
                 neumann_vec[3] = neumn_h2;
@@ -1752,7 +1734,7 @@ namespace ProcessLib
                 length = std::sqrt(std::pow(rx1 - rx3, 2) + std::pow(ry1 - ry3, 2));
                 neumann_vec[0] = 0.0;
                 neumann_vec[2] = 0.0;
-                radial_sym_fac = 2 * 3.1415926*rx1;
+                radial_sym_fac = 2 * 3.1415926*Rdummy;
                 neumn_h2 = 0.3733333* ele_bazant_power;
 
                 neumann_vec[1] = neumn_h2;
@@ -1770,7 +1752,7 @@ namespace ProcessLib
                 length = std::sqrt(std::pow(rx0 - rx1, 2) + std::pow(ry0 - ry1, 2));
                 neumann_vec[2] = 0;
                 neumann_vec[3] = 0;
-                radial_sym_fac = 2 * 3.1415926*rx0;
+                radial_sym_fac = 2 * 3.1415926*Rdummy;
                 neumn_h2 = 0.003733333*ele_bazant_power;
                 neumann_vec[0] = neumn_h2;
                 neumann_vec[1] = neumn_h2;
@@ -1783,7 +1765,7 @@ namespace ProcessLib
                 length = std::sqrt(std::pow(rx1 - rx2, 2) + std::pow(ry1 - ry2, 2));
                 neumann_vec[0] = 0.0;
                 neumann_vec[3] = 0;
-                radial_sym_fac = 2 * 3.14159*rx1;
+                radial_sym_fac = 2 * 3.14159*Rdummy;
                 neumn_h2 = 0.003733333* ele_bazant_power;
                 neumann_vec[1] = neumn_h2;
                 neumann_vec[2] = neumn_h2;
@@ -1796,7 +1778,7 @@ namespace ProcessLib
                 length = std::sqrt(std::pow(rx0 - rx2, 2) + std::pow(ry0 - ry2, 2));
                 neumann_vec[1] = 0.0;
                 neumann_vec[3] = 0;
-                radial_sym_fac = 2 * 3.1415926*rx2;
+                radial_sym_fac = 2 * 3.1415926*Rdummy;
                 neumn_h2 = 0.003733333* ele_bazant_power;
                 neumann_vec[0] = neumn_h2;
                 neumann_vec[2] = neumn_h2;
@@ -1809,7 +1791,7 @@ namespace ProcessLib
                 length = std::sqrt(std::pow(rx0 - rx3, 2) + std::pow(ry0 - ry3, 2));
                 neumann_vec[1] = 0.0;
                 neumann_vec[2] = 0.0;
-                radial_sym_fac = 2 * 3.1415926*rx0;
+                radial_sym_fac = 2 * 3.1415926*Rdummy;
                 neumn_h2 = 0.003733333* ele_bazant_power;
                 neumann_vec[0] = neumn_h2;
                 neumann_vec[3] = neumn_h2;
@@ -1822,12 +1804,12 @@ namespace ProcessLib
                 length = std::sqrt(std::pow(rx2 - rx3, 2) + std::pow(ry2 - ry3, 2));
                 neumann_vec[0] = 0.0;
                 neumann_vec[1] = 0.0;
-                radial_sym_fac = 2 * 3.1415926*rx2;
+                radial_sym_fac = 2 * 3.1415926*Rdummy;
                 neumn_h2 = 0.003733333* ele_bazant_power;
                 neumann_vec[2] = neumn_h2;
                 neumann_vec[3] = neumn_h2;
                 localNeumann_tmp = neumann_vec * radial_sym_fac * length / 2;
-                _neumann_vec_output = neumann_vec * length / 2/ node_volume_radial;//* radial_sym_fac
+                _neumann_vec_output = neumann_vec * length / 2 / node_volume_radial;//*radial_sym_fac
             }
             else if (std::abs(ry1)<0.00 + eps && std::abs(ry3)<0.00 + eps)
             {
@@ -1835,7 +1817,7 @@ namespace ProcessLib
                 length = std::sqrt(std::pow(rx1 - rx3, 2) + std::pow(ry1 - ry3, 2));
                 neumann_vec[0] = 0.0;
                 neumann_vec[2] = 0.0;
-                radial_sym_fac = 2 * 3.1415926*rx1;
+                radial_sym_fac = 2 * 3.1415926*Rdummy;
                 neumn_h2 = 0.003733333* ele_bazant_power;
 
                 neumann_vec[1] = neumn_h2;
@@ -1844,8 +1826,8 @@ namespace ProcessLib
                 localNeumann_tmp = neumann_vec * radial_sym_fac * length / 2;
                 _neumann_vec_output = neumann_vec  * length / 2/ node_volume_radial;//* radial_sym_fac
             }
-            local_b.block(n_nodes * 0, 0, n_nodes, 1).noalias() += localNeumann_tmp; // This is for hydrogen-> which is created
-            local_b.block(n_nodes * 4, 0, n_nodes, 1).noalias() -= localNeumann_tmp; // This is for water-> which is consumed
+            //local_b.block(n_nodes * 0, 0, n_nodes, 1).noalias() += localNeumann_tmp; // This is for hydrogen-> which is created
+            //local_b.block(n_nodes * 4, 0, n_nodes, 1).noalias() -= localNeumann_tmp; // This is for water-> which is consumed
 
             //output secondary variable of h2
             for (unsigned ip = 0; ip < n_integration_points; ip++)
