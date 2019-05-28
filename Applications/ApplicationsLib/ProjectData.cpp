@@ -110,6 +110,9 @@
 #ifdef OGS_BUILD_PROCESS_TWOPHASEFLOWWITHPRHO
 #include "ProcessLib/TwoPhaseFlowWithPrho/CreateTwoPhaseFlowWithPrhoProcess.h"
 #endif
+#ifdef OGS_BUILD_PROCESS_FINESTRANSPORT
+#include "ProcessLib/FinesTransport/CreateFinesTransportProcess.h"
+#endif
 
 namespace
 {
@@ -532,6 +535,17 @@ void ProjectData::parseProcesses(BaseLib::ConfigTree const& processes_config,
                 process_config);
         }
         else
+#endif
+#ifdef OGS_BUILD_PROCESS_FINESTRANSPORT
+            if (type == "FINESTRANSPORT")
+            {
+                process = ProcessLib::FinesTransport::createFinesTransportProcess
+                (
+                    *_mesh_vec[0], std::move(jacobian_assembler),
+                    _process_variables, _parameters, integration_order,
+                    process_config, _mesh_vec, output_directory, _media);;
+            }
+            else
 #endif
 #ifdef OGS_BUILD_PROCESS_HEATTRANSPORTBHE
             if (type == "HEAT_TRANSPORT_BHE")

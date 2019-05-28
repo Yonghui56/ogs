@@ -108,6 +108,7 @@ endif()
 # processes to be build.
 set(ProcessesList
     ComponentTransport
+    FinesTransport
     GroundwaterFlow
     HT
     HeatConduction

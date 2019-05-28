@@ -1,0 +1,286 @@
+/**
+ * \copyright
+ * Copyright (c) 2012-2019, OpenGeoSys Community (http://www.opengeosys.org)
+ *            Distributed under a Modified BSD License.
+ *              See accompanying file LICENSE.txt or
+ *              http://www.opengeosys.org/project/license
+ *
+ */
+
+#include "FinesTransportProcess.h"
+
+#include <cassert>
+
+#include "NumLib/DOF/DOFTableUtil.h"
+#include "NumLib/DOF/LocalToGlobalIndexMap.h"
+#include "ProcessLib/SurfaceFlux/SurfaceFluxData.h"
+#include "ProcessLib/Utils/CreateLocalAssemblers.h"
+
+#include "FinesTransportMaterialProperties.h"
+#include "MonolithicFinesTransportFEM.h"
+//#include "StaggeredFinesTransportFEM.h"
+
+namespace ProcessLib
+{
+namespace FinesTransport
+{
+    FinesTransportProcess::FinesTransportProcess(
+    MeshLib::Mesh& mesh,
+    std::unique_ptr<ProcessLib::AbstractJacobianAssembler>&& jacobian_assembler,
+    std::vector<std::unique_ptr<ParameterLib::ParameterBase>> const& parameters,
+    unsigned const integration_order,
+    std::vector<std::vector<std::reference_wrapper<ProcessVariable>>>&&
+        process_variables,
+    std::unique_ptr<FinesTransportMaterialProperties>&& material_properties,
+    SecondaryVariableCollection&& secondary_variables,
+    NumLib::NamedFunctionCaller&& named_function_caller,
+    bool const use_monolithic_scheme,
+    const int heat_transport_process_id,
+    const int hydraulic_process_id)
+    : Process(mesh, std::move(jacobian_assembler), parameters,
+              integration_order, std::move(process_variables),
+              std::move(secondary_variables), std::move(named_function_caller),
+              use_monolithic_scheme),
+      _material_properties(std::move(material_properties)),
+      _heat_transport_process_id(heat_transport_process_id),
+      _hydraulic_process_id(hydraulic_process_id)
+{
+}
+
+void FinesTransportProcess::initializeConcreteProcess(
+    NumLib::LocalToGlobalIndexMap const& dof_table,
+    MeshLib::Mesh const& mesh,
+    unsigned const integration_order)
+{
+    // For the staggered scheme, both processes are assumed to use the same
+    // element order. Therefore the order of shape function can be fetched from
+    // any set of the sets of process variables of the coupled processes. Here,
+    // we take the one from the first process by setting process_id = 0.
+    const int process_id = 0;
+    ProcessLib::ProcessVariable const& pv = getProcessVariables(process_id)[0];
+
+    if (_use_monolithic_scheme)
+    {
+        ProcessLib::createLocalAssemblers<MonolithicFinesTransportFEM>(
+            mesh.getDimension(), mesh.getElements(), dof_table,
+            pv.getShapeFunctionOrder(), _local_assemblers,
+            mesh.isAxiallySymmetric(), integration_order,
+            *_material_properties);
+    }
+    else
+    {
+        OGS_FATAL(
+            "NOT IMPLEMENTED YET");
+    }
+
+    _secondary_variables.addSecondaryVariable(
+        "darcy_velocity",
+        makeExtrapolator(mesh.getDimension(), getExtrapolator(),
+                         _local_assemblers,
+                         &FinesTransportLocalAssemblerInterface::getIntPtDarcyVelocity));
+}
+
+void FinesTransportProcess::assembleConcreteProcess(const double t,
+                                        GlobalVector const& x,
+                                        GlobalMatrix& M,
+                                        GlobalMatrix& K,
+                                        GlobalVector& b)
+{
+    std::vector<std::reference_wrapper<NumLib::LocalToGlobalIndexMap>>
+        dof_tables;
+    if (_use_monolithic_scheme)
+    {
+        DBUG("Assemble FinesTransportProcess.");
+        dof_tables.emplace_back(*_local_to_global_index_map);
+    }
+    else
+    {
+        if (_coupled_solutions->process_id == _heat_transport_process_id)
+        {
+            DBUG(
+                "Assemble the equations of heat transport process within "
+                "FinesTransportProcess.");
+        }
+        else
+        {
+            DBUG(
+                "Assemble the equations of single phase fully saturated "
+                "fluid flow process within FinesTransportProcess.");
+        }
+        setCoupledSolutionsOfPreviousTimeStep();
+        dof_tables.emplace_back(*_local_to_global_index_map);
+        dof_tables.emplace_back(*_local_to_global_index_map);
+    }
+
+    const int process_id =
+        _use_monolithic_scheme ? 0 : _coupled_solutions->process_id;
+    ProcessLib::ProcessVariable const& pv = getProcessVariables(process_id)[0];
+    // Call global assembler for each local assembly item.
+    GlobalExecutor::executeSelectedMemberDereferenced(
+        _global_assembler, &VectorMatrixAssembler::assemble, _local_assemblers,
+        pv.getActiveElementIDs(), dof_tables, t, x, M, K, b,
+        _coupled_solutions);
+}
+
+void FinesTransportProcess::assembleWithJacobianConcreteProcess(
+    const double t, GlobalVector const& x, GlobalVector const& xdot,
+    const double dxdot_dx, const double dx_dx, GlobalMatrix& M, GlobalMatrix& K,
+    GlobalVector& b, GlobalMatrix& Jac)
+{
+    DBUG("AssembleWithJacobian FinesTransportProcess.");
+
+    std::vector<std::reference_wrapper<NumLib::LocalToGlobalIndexMap>>
+        dof_tables;
+    if (!_use_monolithic_scheme)
+    {
+        setCoupledSolutionsOfPreviousTimeStep();
+        dof_tables.emplace_back(std::ref(*_local_to_global_index_map));
+    }
+    else
+    {
+        dof_tables.emplace_back(std::ref(*_local_to_global_index_map));
+        dof_tables.emplace_back(std::ref(*_local_to_global_index_map));
+    }
+
+    // Call global assembler for each local assembly item.
+    const int process_id =
+        _use_monolithic_scheme ? 0 : _coupled_solutions->process_id;
+    ProcessLib::ProcessVariable const& pv = getProcessVariables(process_id)[0];
+    GlobalExecutor::executeSelectedMemberDereferenced(
+        _global_assembler, &VectorMatrixAssembler::assembleWithJacobian,
+        _local_assemblers, pv.getActiveElementIDs(), dof_tables, t, x, xdot,
+        dxdot_dx, dx_dx, M, K, b, Jac, _coupled_solutions);
+}
+
+void FinesTransportProcess::preTimestepConcreteProcess(GlobalVector const& x,
+                                           const double /*t*/,
+                                           const double /*delta_t*/,
+                                           const int process_id)
+{
+    assert(process_id < 2);
+
+    if (_use_monolithic_scheme)
+    {
+        return;
+    }
+
+    if (!_xs_previous_timestep[process_id])
+    {
+        _xs_previous_timestep[process_id] =
+            MathLib::MatrixVectorTraits<GlobalVector>::newInstance(x);
+    }
+    else
+    {
+        auto& x0 = *_xs_previous_timestep[process_id];
+        MathLib::LinAlg::copy(x, x0);
+    }
+
+    auto& x0 = *_xs_previous_timestep[process_id];
+    MathLib::LinAlg::setLocalAccessibleVector(x0);
+}
+
+void FinesTransportProcess::setCoupledTermForTheStaggeredSchemeToLocalAssemblers()
+{
+    DBUG("Set the coupled term for the staggered scheme to local assembers.");
+
+    const int process_id =
+        _use_monolithic_scheme ? 0 : _coupled_solutions->process_id;
+    ProcessLib::ProcessVariable const& pv = getProcessVariables(process_id)[0];
+    GlobalExecutor::executeSelectedMemberOnDereferenced(
+        &FinesTransportLocalAssemblerInterface::setStaggeredCoupledSolutions,
+        _local_assemblers, pv.getActiveElementIDs(), _coupled_solutions);
+}
+
+std::tuple<NumLib::LocalToGlobalIndexMap*, bool>
+FinesTransportProcess::getDOFTableForExtrapolatorData() const
+{
+    if (!_use_monolithic_scheme)
+    {
+        // For single-variable-single-component processes reuse the existing DOF
+        // table.
+        const bool manage_storage = false;
+        return std::make_tuple(_local_to_global_index_map.get(),
+                               manage_storage);
+    }
+
+    // Otherwise construct a new DOF table.
+    std::vector<MeshLib::MeshSubset> all_mesh_subsets_single_component{
+        *_mesh_subset_all_nodes};
+
+    const bool manage_storage = true;
+    return std::make_tuple(new NumLib::LocalToGlobalIndexMap(
+                               std::move(all_mesh_subsets_single_component),
+                               // by location order is needed for output
+                               NumLib::ComponentOrder::BY_LOCATION),
+                           manage_storage);
+}
+
+void FinesTransportProcess::setCoupledSolutionsOfPreviousTimeStepPerProcess(
+    const int process_id)
+{
+    const auto& x_t0 = _xs_previous_timestep[process_id];
+    if (x_t0 == nullptr)
+    {
+        OGS_FATAL(
+            "Memory is not allocated for the global vector of the solution of "
+            "the previous time step for the staggered scheme.\n It can be done "
+            "by overriding Process::preTimestepConcreteProcess (ref. "
+            "FinesTransportProcess::preTimestepConcreteProcess) ");
+    }
+
+    _coupled_solutions->coupled_xs_t0[process_id] = x_t0.get();
+}
+
+void FinesTransportProcess::setCoupledSolutionsOfPreviousTimeStep()
+{
+    _coupled_solutions->coupled_xs_t0.resize(2);
+    setCoupledSolutionsOfPreviousTimeStepPerProcess(_heat_transport_process_id);
+    setCoupledSolutionsOfPreviousTimeStepPerProcess(_hydraulic_process_id);
+}
+
+Eigen::Vector3d FinesTransportProcess::getFlux(std::size_t element_id,
+                                   MathLib::Point3d const& p,
+                                   double const t,
+                                   GlobalVector const& x) const
+{
+    // fetch local_x from primary variable
+    std::vector<GlobalIndexType> indices_cache;
+    auto const r_c_indices = NumLib::getRowColumnIndices(
+        element_id, *_local_to_global_index_map, indices_cache);
+    std::vector<double> local_x(x.get(r_c_indices.rows));
+
+    return _local_assemblers[element_id]->getFlux(p, t, local_x);
+}
+
+// this is almost a copy of the implementation in the GroundwaterFlow
+void FinesTransportProcess::postTimestepConcreteProcess(GlobalVector const& x,
+                                            const double t,
+                                            const double /*delta_t*/,
+                                            int const process_id)
+{
+    // For the monolithic scheme, process_id is always zero.
+    if (_use_monolithic_scheme && process_id != 0)
+    {
+        OGS_FATAL(
+            "The condition of process_id = 0 must be satisfied for "
+            "monolithic FinesTransportProcess, which is a single process.");
+    }
+    if (!_use_monolithic_scheme && process_id != _hydraulic_process_id)
+    {
+        DBUG("This is the thermal part of the staggered FinesTransportProcess.");
+        return;
+    }
+    if (!_surfaceflux)  // computing the surfaceflux is optional
+    {
+        return;
+    }
+
+    ProcessLib::ProcessVariable const& pv = getProcessVariables(process_id)[0];
+
+    _surfaceflux->integrate(x, t, *this, process_id, _integration_order, _mesh,
+                            pv.getActiveElementIDs());
+    _surfaceflux->save(t);
+}
+
+}  // namespace FinesTransport
+}  // namespace ProcessLib
