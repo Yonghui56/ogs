@@ -1792,8 +1792,8 @@ namespace ProcessLib
                 _neumann_vec_output = neumann_vec  * length / 2/ node_volume_radial;//* radial_sym_fac
             }
             //
-            //local_b.block(n_nodes * 0, 0, n_nodes, 1).noalias() += localNeumann_tmp; // This is for hydrogen-> which is created
-            //local_b.block(n_nodes * 4, 0, n_nodes, 1).noalias() -= localNeumann_tmp; // This is for water-> which is consumed
+            local_b.block(n_nodes * 0, 0, n_nodes, 1).noalias() += localNeumann_tmp; // This is for hydrogen-> which is created
+            local_b.block(n_nodes * 4, 0, n_nodes, 1).noalias() -= localNeumann_tmp; // This is for water-> which is consumed
 
             //output secondary variable
             for (unsigned ip = 0; ip < n_integration_points; ip++)
