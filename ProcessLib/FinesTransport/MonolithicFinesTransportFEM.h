@@ -13,6 +13,7 @@
 
 #include <Eigen/Dense>
 #include <vector>
+#include <iostream>
 
 #include "FinesTransportMaterialProperties.h"
 #include "MaterialLib/MPL/Medium.h"
@@ -111,7 +112,12 @@ public:
         pos.setElementID(this->_element.getID());
 
         auto p_nodal_values =
+            Eigen::Map<const NodalVectorType>(&local_x[0], num_nodes);
+        auto s_nodal_values =
             Eigen::Map<const NodalVectorType>(&local_x[num_nodes], num_nodes);
+        auto c_nodal_values =
+            Eigen::Map<const NodalVectorType>(&local_x[2*num_nodes], num_nodes);
+
 
         auto const& process_data = this->_material_properties;
         auto const& medium =
@@ -159,6 +165,8 @@ public:
             auto const& intrinsic_permeability =
                 process_data.porous_media_properties.getIntrinsicPermeability(
                     t, pos).getValue(t, pos, 0.0, 0.0);
+            //std::cout << intrinsic_permeability << std::endl;
+            const double K = std::pow(10, intrinsic_permeability(0, 0));
             /*auto const intrinsic_permeability =
                 intrinsicPermeability<GlobalDim>
                 (process_data.solid_intrinsic_permeability(t, pos));
@@ -202,19 +210,19 @@ public:
             double const K_rel_G = std::pow((1 - swe), 2);
             double const K_rel_L = std::pow((swe), 2);
 
-            GlobalDimMatrixType K_over_mu_wet = intrinsic_permeability / liquid_viscosity;
+            const double K_over_mu_wet = K / liquid_viscosity;
 
-            GlobalDimMatrixType K_over_mu_nonwet = intrinsic_permeability / nonwet_viscosity;
+            const double K_over_mu_nonwet = K / nonwet_viscosity;
 
             /*GlobalDimVectorType const velocity =
                 process_data.has_gravity
                     ? GlobalDimVectorType(-K_over_mu * (dNdx * p_nodal_values -
                                                         fluid_density * b))
                     : GlobalDimVectorType(-K_over_mu * dNdx * p_nodal_values);*/
-            double const diffusion_coeff_component_salt = 1e-5;
+            double const diffusion_coeff_component_salt = 1e-9;
             const double R = 8.314;
             const double temperature = 393.15;
-            const double drho_gas_d_pg = 0;// M_G_comp / R / temperature;
+            const double drho_gas_d_pg = 1e-8;// M_G_comp / R / temperature;
             // matrix assembly
             Mpp.noalias() += w * (porosity * (1 - sw_int_pt)*drho_gas_d_pg)*N.transpose() * N;
             Mps.noalias() -= w*(porosity * nonwet_density)*
@@ -222,7 +230,7 @@ public:
 
             Mss.noalias() += w * (porosity * fluid_density)*N.transpose() * N;
             Mcs.noalias() += w * (porosity*c_int_pt)*N.transpose() * N;
-                Mcc.noalias() += w * (porosity*sw_int_pt)*N.transpose() * N;
+            Mcc.noalias() += w * (porosity*sw_int_pt)*N.transpose() * N;
 
 
             Kpp.noalias() +=
@@ -233,9 +241,9 @@ public:
             Ksp.noalias()+= (dNdx.transpose() * K_over_mu_wet*K_rel_L* fluid_density* dNdx
                 ) *
                 w;
-            Kss.noalias()+= (dNdx.transpose() * K_over_mu_wet*K_rel_L * 1000 * dNdx
+            /*Kss.noalias()+= (dNdx.transpose() * K_over_mu_wet*K_rel_L * fluid_density * dNdx
                 ) *
-                w;
+                w;*/
 
             Kcp.noalias()+= (dNdx.transpose() * K_over_mu_wet*K_rel_L * c_int_pt * dNdx
                 ) *
@@ -257,6 +265,28 @@ public:
             /* with Oberbeck-Boussing assumption density difference only exists
              * in buoyancy effects */
         }
+        if (true)
+        {
+            for (unsigned row = 0; row < Mpp.cols(); row++)
+            {
+                for (unsigned column = 0; column < Mpp.cols(); column++)
+                {
+                    if (row != column)
+                    {
+                        Mpp(row, row) += Mpp(row, column);
+                        Mpp(row, column) = 0.0;
+                        Mps(row, row) += Mps(row, column);
+                        Mps(row, column) = 0.0;
+                        Mss(row, row) += Mss(row, column);
+                        Mss(row, column) = 0.0;
+                        Mcs(row, row) += Mcs(row, column);
+                        Mcs(row, column) = 0.0;
+                        Mcc(row, row) += Mcc(row, column);
+                        Mcc(row, column) = 0.0;
+                    }
+                }
+            }
+        }  // end of mass-lumping
     }
 
     std::vector<double> const& getIntPtDarcyVelocity(
