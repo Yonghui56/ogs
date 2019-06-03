@@ -25,7 +25,18 @@
 #include "ProcessLib/Utils/InitShapeMatrices.h"
 
 #include "FinesTransportFEM.h"
+#include <boost/array.hpp>
 
+#include <boost/phoenix/core.hpp>
+#include <boost/phoenix/operator.hpp>
+#include <boost/numeric/odeint.hpp>
+
+
+using namespace std;
+using namespace boost::numeric::odeint;
+namespace phoenix=boost::phoenix;
+typedef boost::numeric::ublas::vector<double> vector_type;
+typedef runge_kutta_dopri5<double> stepper_type;
 namespace ProcessLib
 {
 namespace FinesTransport
@@ -135,6 +146,39 @@ public:
 
         unsigned const n_integration_points =
             this->_integration_method.getNumberOfPoints();
+        const double& dt = process_data.dt;
+        /*vector_type x(2, 1.0);
+
+        size_t num_of_steps = integrate_const(
+            make_dense_output<rosenbrock4<double>>(1.0e-6, 1.0e-6),
+            make_pair(stiff_system(), stiff_system_jacobi()), x, 0.0, 50.0,
+            0.01,
+            std::cout << phoenix::arg_names::arg2 << " "
+                 << phoenix::arg_names::arg1[0] << "\n" 
+            );*/
+        double x_pt(0.0);
+        double x_d(0.0);
+        //this->u_norm = 0.0037;
+        //this->concentration = 1.4488e-10;
+        size_t num_of_steps_pt =
+            integrate_adaptive(make_controlled(1E-12, 1E-12, stepper_type()),
+            Rate_pt(6.2e-6,0.0037, 1.4488e-10), x_pt, 0.0, 86400.0, 0.1,
+                               std::cout << phoenix::arg_names::arg2 << " "
+                                         << phoenix::arg_names::arg1 << "\n");
+        double const sigma_pt = x_pt;
+        double ah = 3.8e-4;
+        double acl = 0.0;
+        double ad = 1.2e-4;
+        double u_norm = 0.0037, net_u_norm = 0.0037, net_conc = 0.1,
+               concentration = 1.4488e-10
+            ;
+        size_t num_of_steps_d = integrate_adaptive(
+            make_controlled(1E-12, 1E-12, stepper_type()),
+            Rate_d(ah, acl, ad, net_u_norm, net_conc, u_norm, concentration), x_d,
+            0.0, 86400.0, 0.1,
+            std::cout << phoenix::arg_names::arg2 << " "
+                      << phoenix::arg_names::arg1 << "\n");
+        double const sigma_d = x_d;
 
         for (unsigned ip(0); ip < n_integration_points; ip++)
         {
@@ -156,7 +200,6 @@ public:
             double c_int_pt = 0.0;//salt concentration
             // Order matters: First p, then s,last c
             NumLib::shapeFunctionInterpolate(local_x, N, p_int_pt, sw_int_pt,c_int_pt);
-
 
             auto const porosity =
                 process_data.porous_media_properties.getPorosity(t, pos)
@@ -207,9 +250,12 @@ public:
             //nonwet phase
             double const swe= (sw_int_pt- liquid_residual_saturation)
                 / (1 - nonwet_residual_saturation - liquid_residual_saturation);
-            double const K_rel_G = std::pow((1 - swe), 2);
-            double const K_rel_L = std::pow((swe), 2);
-
+            double K_rel_G = std::pow((1 - swe), 2);
+            if (K_rel_G > 1)
+                K_rel_G = 1;
+            double K_rel_L = std::pow((swe), 2);
+            if (K_rel_L > 1)
+                K_rel_L = 1;
             const double K_over_mu_wet = K / liquid_viscosity;
 
             const double K_over_mu_nonwet = K / nonwet_viscosity;
@@ -239,7 +285,7 @@ public:
                 w;
 
             Ksp.noalias()+= (dNdx.transpose() * K_over_mu_wet*K_rel_L* fluid_density* dNdx
-                ) *
+                ) * 
                 w;
             /*Kss.noalias()+= (dNdx.transpose() * K_over_mu_wet*K_rel_L * fluid_density * dNdx
                 ) *
@@ -251,6 +297,16 @@ public:
             Kcc.noalias()+= (dNdx.transpose() * diffusion_coeff_component_salt*porosity * sw_int_pt * dNdx
                 ) *
                 w;
+            GlobalDimVectorType const velocity =
+                process_data.has_gravity
+                    ? GlobalDimVectorType(
+                          -K_over_mu_wet *
+                          K_rel_L*
+                          (dNdx * p_nodal_values - fluid_density * b))
+                    : GlobalDimVectorType(-K_over_mu_wet * K_rel_L * dNdx *
+                                          p_nodal_values);
+            Kcc.noalias() +=
+                N.transpose() * velocity.transpose() * dNdx * w;
 
             if (process_data.has_gravity)
             {

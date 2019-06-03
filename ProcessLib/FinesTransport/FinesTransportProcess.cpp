@@ -154,11 +154,12 @@ void FinesTransportProcess::assembleWithJacobianConcreteProcess(
 
 void FinesTransportProcess::preTimestepConcreteProcess(GlobalVector const& x,
                                            const double /*t*/,
-                                           const double /*delta_t*/,
+                                           const double delta_t,
                                            const int process_id)
 {
     assert(process_id < 2);
-
+    auto const& process_data = this->_material_properties;
+    process_data->dt = delta_t;
     if (_use_monolithic_scheme)
     {
         return;

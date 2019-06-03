@@ -24,6 +24,12 @@
 #include "ProcessLib/Utils/InitShapeMatrices.h"
 
 #include "FinesTransportLocalAssemblerInterface.h"
+#include <boost/array.hpp>
+
+#include <boost/numeric/odeint.hpp>
+
+using namespace std;
+using namespace boost::numeric::odeint;
 
 namespace ProcessLib
 {
@@ -115,6 +121,71 @@ public:
                     shape_matrices[ip].detJ);
         }
     }
+
+    typedef boost::numeric::ublas::vector<double> vector_type;
+    typedef boost::numeric::ublas::matrix<double> matrix_type;
+
+    struct stiff_system
+    {
+        void operator()(const vector_type& x, vector_type& dxdt, double /* t */)
+        {
+            dxdt[0] = -101.0 * x[0] - 100.0 * x[1];
+            dxdt[1] = x[0];
+        }
+    };
+
+    struct stiff_system_jacobi
+    {
+        void operator()(const vector_type& /* x */, matrix_type& J,
+                        const double& /* t */, vector_type& dfdt)
+        {
+            J(0, 0) = -101.0;
+            J(0, 1) = -100.0;
+            J(1, 0) = 1.0;
+            J(1, 1) = 0.0;
+            dfdt[0] = 0.0;
+            dfdt[1] = 0.0;
+        }
+    };
+
+    struct Rate_pt//pore throat
+    {
+        Rate_pt(double apt_ = 0.0,double u_norm_=0.0,double concentration_=0.0)
+            : apt(apt_),
+              u_norm(u_norm_), concentration(concentration_)
+        {
+        }
+        void operator()(const double /*x*/, double & dxdt,
+            double /* t */)
+        {
+            dxdt = apt * u_norm * concentration;
+        }
+        double apt, u_norm, concentration;
+        
+    };
+
+    struct Rate_d//pore body
+    {
+        Rate_d(double ah_ = 0.0, double acl_ = 0.0, double ad_ = 0.0,
+                double net_u_norm_ = 0.0, double net_conc_ = 0.0,
+                double u_norm_ = 0.0,double concentration_ = 0.0)
+            : ah(ah_),
+              acl(acl_),
+              ad(ad_),
+              net_u_norm(net_u_norm_),
+              net_conc(net_conc_),
+              u_norm(u_norm_),
+              concentration(concentration_)
+        {
+        }
+        void operator()(const double x, double& dxdt, double /* t */)
+        {
+            dxdt = -ah * x*net_u_norm // Hydrodynamic rel.rate 
+                          -acl * x*net_conc //Colloidal rel.rate 
+                          + ad * u_norm * concentration;  // Surface dep. rate
+        }
+        double ah, acl, ad, net_u_norm, u_norm, net_conc, concentration;
+    };
 
     Eigen::Map<const Eigen::RowVectorXd> getShapeMatrix(
         const unsigned integration_point) const override
@@ -222,6 +293,10 @@ protected:
     MeshLib::Element const& _element;
     FinesTransportMaterialProperties const& _material_properties;
 
+    double apt;
+    double u_norm;
+    double concentration;
+
     IntegrationMethod const _integration_method;
     std::vector<
         IntegrationPointData<NodalRowVectorType, GlobalDimNodalMatrixType>,
@@ -243,7 +318,7 @@ protected:
             Eigen::Matrix<double, GlobalDim, Eigen::Dynamic, Eigen::RowMajor>>(
             cache, GlobalDim, n_integration_points);
 
-        ParameterLib::SpatialPosition pos;
+        /*ParameterLib::SpatialPosition pos;
         pos.setElementID(_element.getID());
 
         MaterialPropertyLib::VariableArray vars;
@@ -313,7 +388,7 @@ protected:
                 // here it is assumed that the vector b is directed 'downwards'
                 cache_mat.col(ip).noalias() += K_over_mu_wet * K_rel_L * nonwet_density * b;
             }
-        }
+        }*/
 
         return cache;
     }
