@@ -23,8 +23,8 @@
 #include "ParameterLib/Parameter.h"
 #include "ProcessLib/Utils/InitShapeMatrices.h"
 
-#include "FinesTransportLocalAssemblerInterface.h"
 #include <boost/array.hpp>
+#include "FinesTransportLocalAssemblerInterface.h"
 
 #include <boost/numeric/odeint.hpp>
 
@@ -35,7 +35,6 @@ namespace ProcessLib
 {
 namespace FinesTransport
 {
-
 template <int GlobalDim>
 Eigen::Matrix<double, GlobalDim, GlobalDim> intrinsicPermeability(
     std::vector<double> const& values)
@@ -86,12 +85,13 @@ class FinesTransportFEM : public FinesTransportLocalAssemblerInterface
     using GlobalDimMatrixType = typename ShapeMatricesType::GlobalDimMatrixType;
 
 public:
-    FinesTransportFEM(MeshLib::Element const& element,
-          std::size_t const local_matrix_size,
-          bool is_axially_symmetric,
-          unsigned const integration_order,
+    FinesTransportFEM(
+        MeshLib::Element const& element,
+        std::size_t const local_matrix_size,
+        bool is_axially_symmetric,
+        unsigned const integration_order,
         FinesTransportMaterialProperties const& material_properties,
-          const unsigned dof_per_node)
+        const unsigned dof_per_node)
         : FinesTransportLocalAssemblerInterface(),
           _element(element),
           _material_properties(material_properties),
@@ -148,27 +148,25 @@ public:
         }
     };
 
-    struct Rate_pt//pore throat
+    struct Rate_pt  // pore throat
     {
-        Rate_pt(double apt_ = 0.0,double u_norm_=0.0,double concentration_=0.0)
-            : apt(apt_),
-              u_norm(u_norm_), concentration(concentration_)
+        Rate_pt(double apt_ = 0.0, double u_norm_ = 0.0,
+                double concentration_ = 0.0)
+            : apt(apt_), u_norm(u_norm_), concentration(concentration_)
         {
         }
-        void operator()(const double /*x*/, double & dxdt,
-            double /* t */)
+        void operator()(const double /*x*/, double& dxdt, double /* t */)
         {
             dxdt = apt * u_norm * concentration;
         }
         double apt, u_norm, concentration;
-        
     };
 
-    struct Rate_d//pore body
+    struct Rate_d  // pore body
     {
         Rate_d(double ah_ = 0.0, double acl_ = 0.0, double ad_ = 0.0,
-                double net_u_norm_ = 0.0, double net_conc_ = 0.0,
-                double u_norm_ = 0.0,double concentration_ = 0.0)
+               double net_u_norm_ = 0.0, double net_conc_ = 0.0,
+               double u_norm_ = 0.0, double concentration_ = 0.0)
             : ah(ah_),
               acl(acl_),
               ad(ad_),
@@ -180,9 +178,9 @@ public:
         }
         void operator()(const double x, double& dxdt, double /* t */)
         {
-            dxdt = -ah * x*net_u_norm // Hydrodynamic rel.rate 
-                          -acl * x*net_conc //Colloidal rel.rate 
-                          + ad * u_norm * concentration;  // Surface dep. rate
+            dxdt = -ah * x * net_u_norm            // Hydrodynamic rel.rate
+                   - acl * x * net_conc            // Colloidal rel.rate
+                   + ad * u_norm * concentration;  // Surface dep. rate
         }
         double ah, acl, ad, net_u_norm, u_norm, net_conc, concentration;
     };
@@ -237,40 +235,49 @@ public:
         auto const& solid_phase = medium.phase("Solid");
         auto const& nonwetting_phase = medium.phase("NonAqueousLiquid");
         auto const porosity =
-            process_data.porous_media_properties.getPorosity(t, pos)
-            .getValue(t, pos, 0.0, p_int_pt);
+            process_data.porous_media_properties.getPorosity(t, pos).getValue(
+                t, pos, 0.0, p_int_pt);
         auto const& intrinsic_permeability =
-            process_data.porous_media_properties.getIntrinsicPermeability(
-                t, pos).getValue(t, pos, 0.0, 0.0);
+            process_data.porous_media_properties
+                .getIntrinsicPermeability(t, pos)
+                .getValue(t, pos, 0.0, 0.0);
         // Use the fluid density model to compute the density
         auto const fluid_density =
-            liquid_phase
-            .property(MaterialPropertyLib::PropertyType::density)
-            .template value<double>(vars);
+            liquid_phase.property(MaterialPropertyLib::PropertyType::density)
+                .template value<double>(vars);
         auto const nonwet_density =
-            nonwetting_phase.property(MaterialPropertyLib::PropertyType::density)
-            .template value<double>(vars);
+            nonwetting_phase
+                .property(MaterialPropertyLib::PropertyType::density)
+                .template value<double>(vars);
 
-        auto const liquid_viscosity = liquid_phase
-            .property(MaterialPropertyLib::PropertyType::viscosity)
-            .template value<double>(vars);
-        auto const nonwet_viscosity = nonwetting_phase
-            .property(MaterialPropertyLib::PropertyType::viscosity)
-            .template value<double>(vars);
-        GlobalDimMatrixType K_over_mu_wet = intrinsic_permeability / liquid_viscosity;
-        GlobalDimMatrixType K_over_mu_nonwet = intrinsic_permeability / nonwet_viscosity;
-        auto const p_nodal_values = Eigen::Map<const NodalVectorType>(
-            &local_x[local_x.size() / 3], 0);
-        //relative permeability
-        //nonwet phase
-        auto const liquid_residual_saturation = liquid_phase
-            .property(MaterialPropertyLib::PropertyType::residual_liquid_saturation)
-            .template value<double>(vars);
-        auto const nonwet_residual_saturation = nonwetting_phase
-            .property(MaterialPropertyLib::PropertyType::residual_gas_saturation)
-            .template value<double>(vars);
-        double const swe = (s_int_pt - liquid_residual_saturation)
-            / (1 - nonwet_residual_saturation - liquid_residual_saturation);
+        auto const liquid_viscosity =
+            liquid_phase.property(MaterialPropertyLib::PropertyType::viscosity)
+                .template value<double>(vars);
+        auto const nonwet_viscosity =
+            nonwetting_phase
+                .property(MaterialPropertyLib::PropertyType::viscosity)
+                .template value<double>(vars);
+        GlobalDimMatrixType K_over_mu_wet =
+            intrinsic_permeability / liquid_viscosity;
+        GlobalDimMatrixType K_over_mu_nonwet =
+            intrinsic_permeability / nonwet_viscosity;
+        auto const p_nodal_values =
+            Eigen::Map<const NodalVectorType>(&local_x[local_x.size() / 3], 0);
+        // relative permeability
+        // nonwet phase
+        auto const liquid_residual_saturation =
+            liquid_phase
+                .property(MaterialPropertyLib::PropertyType::
+                              residual_liquid_saturation)
+                .template value<double>(vars);
+        auto const nonwet_residual_saturation =
+            nonwetting_phase
+                .property(
+                    MaterialPropertyLib::PropertyType::residual_gas_saturation)
+                .template value<double>(vars);
+        double const swe =
+            (s_int_pt - liquid_residual_saturation) /
+            (1 - nonwet_residual_saturation - liquid_residual_saturation);
         double const K_rel_G = std::pow((1 - swe), 2);
         double const K_rel_L = std::pow((swe), 2);
         GlobalDimVectorType q_wet =
@@ -280,14 +287,45 @@ public:
         if (this->_material_properties.has_gravity)
         {
             auto const b = this->_material_properties.specific_body_force;
-            q_wet += K_over_mu_wet * K_rel_L* fluid_density * b;
-            q_nonwet += K_over_mu_nonwet * K_rel_G* nonwet_density * b;
+            q_wet += K_over_mu_wet * K_rel_L * fluid_density * b;
+            q_nonwet += K_over_mu_nonwet * K_rel_G * nonwet_density * b;
         }
 
         Eigen::Vector3d flux;
         flux.head<GlobalDim>() = q_wet;
         return flux;
     }
+    // fe: flow efficiency factor
+    // expressing the fraction of unplugged pores available  for flows
+    // sigma_fe: coefficient of flow efficiency
+                            //concentration_pt: concentration of particle deposit on the pore throat
+    double const calculate_fe(double const sigma_fe,
+                              double const concentration_pt)
+    {
+        return 1 - (sigma_fe * concentration_pt);
+    }
+    double const update_porosity(double const phi0,
+                              double const concentration_porebody,
+        double const concentration_porethroat,
+        double const density_particle_suspension)
+    {
+        return phi0 - ((concentration_porebody + concentration_porethroat) /
+                       density_particle_suspension);
+    }
+    double const update_permeability_ratio(double porosity0,
+                                           double const porosity_new,
+                                           double const kappa, double const fe,
+                                           double const exponential_n)
+    {
+        return std::pow((1 - fe) * kappa + fe * (porosity_new / porosity0),
+                        exponential_n);
+    }
+    /*double const diffusion_coef(, double const temperature, double const viscosity)
+    {
+        double const k = 1.3806504e-23;
+        double const 
+        return (k * temperature) / (3 * pi * viscosity * this.diameter);
+    }*/
 
 protected:
     MeshLib::Element const& _element;
@@ -306,8 +344,7 @@ protected:
 
     std::vector<double> const& getIntPtDarcyVelocityLocal(
         const double t, std::vector<double> const& local_p,
-        std::vector<double> const& local_s,
-        std::vector<double> const& local_c,
+        std::vector<double> const& local_s, std::vector<double> const& local_c,
         std::vector<double>& cache) const
     {
         auto const n_integration_points =
@@ -368,9 +405,10 @@ protected:
             auto const nonwet_viscosity = nonwetting_phase
                 .property(MaterialPropertyLib::PropertyType::viscosity)
                 .template value<double>(vars);
-            GlobalDimMatrixType K_over_mu_wet = intrinsic_permeability / liquid_viscosity;
-            GlobalDimMatrixType K_over_mu_nonwet = intrinsic_permeability / nonwet_viscosity;
-            auto const liquid_residual_saturation = liquid_phase
+            GlobalDimMatrixType K_over_mu_wet = intrinsic_permeability /
+        liquid_viscosity; GlobalDimMatrixType K_over_mu_nonwet =
+        intrinsic_permeability / nonwet_viscosity; auto const
+        liquid_residual_saturation = liquid_phase
                 .property(MaterialPropertyLib::PropertyType::residual_liquid_saturation)
                 .template value<double>(vars);
             auto const nonwet_residual_saturation = nonwetting_phase
@@ -380,13 +418,15 @@ protected:
                 / (1 - nonwet_residual_saturation - liquid_residual_saturation);
             double const K_rel_G = std::pow((1 - swe), 2);
             double const K_rel_L = std::pow((swe), 2);
-            cache_mat.col(ip).noalias() = -K_over_mu_wet * K_rel_L* dNdx * p_nodal_values;
+            cache_mat.col(ip).noalias() = -K_over_mu_wet * K_rel_L* dNdx *
+        p_nodal_values;
 
             if (_material_properties.has_gravity)
             {
                 auto const b = _material_properties.specific_body_force;
                 // here it is assumed that the vector b is directed 'downwards'
-                cache_mat.col(ip).noalias() += K_over_mu_wet * K_rel_L * nonwet_density * b;
+                cache_mat.col(ip).noalias() += K_over_mu_wet * K_rel_L *
+        nonwet_density * b;
             }
         }*/
 

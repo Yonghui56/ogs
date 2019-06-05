@@ -147,6 +147,7 @@ public:
         unsigned const n_integration_points =
             this->_integration_method.getNumberOfPoints();
         const double& dt = process_data.dt;
+
         /*vector_type x(2, 1.0);
 
         size_t num_of_steps = integrate_const(
@@ -159,7 +160,7 @@ public:
         double x_pt(0.0);
         double x_d(0.0);
         //this->u_norm = 0.0037;
-        //this->concentration = 1.4488e-10;
+        //this->concentration = 1.4488e-10;0
         size_t num_of_steps_pt =
             integrate_adaptive(make_controlled(1E-12, 1E-12, stepper_type()),
             Rate_pt(6.2e-6,0.0037, 1.4488e-10), x_pt, 0.0, 86400.0, 0.1,
@@ -190,7 +191,7 @@ public:
                 solid_phase.property(MaterialPropertyLib::PropertyType::storage)
                     .template value<double>(vars);
 
-            auto const& ip_data = this->_ip_data[ip];
+            auto & ip_data = this->_ip_data[ip];
             auto const& N = ip_data.N;
             auto const& dNdx = ip_data.dNdx;
             auto const& w = ip_data.integration_weight;
@@ -198,6 +199,9 @@ public:
             double p_int_pt = 0.0;//co2 pressure oil pressure
             double sw_int_pt = 0.0;//water/brine saturation
             double c_int_pt = 0.0;//salt concentration
+            double c_porethoat_int_pt = 0.0;
+            double c_porebody_int_pt = 0.0;
+            double const particle_density = 2500.0;
             // Order matters: First p, then s,last c
             NumLib::shapeFunctionInterpolate(local_x, N, p_int_pt, sw_int_pt,c_int_pt);
 
@@ -209,6 +213,10 @@ public:
                 process_data.porous_media_properties.getIntrinsicPermeability(
                     t, pos).getValue(t, pos, 0.0, 0.0);
             //std::cout << intrinsic_permeability << std::endl;
+
+            double& porosity0 = ip_data.porosity_curr;
+            double const porosity_old = porosity0;
+            double& permeability0 = ip_data.permeability_curr;
             const double K = std::pow(10, intrinsic_permeability(0, 0));
             /*auto const intrinsic_permeability =
                 intrinsicPermeability<GlobalDim>
@@ -260,11 +268,6 @@ public:
 
             const double K_over_mu_nonwet = K / nonwet_viscosity;
 
-            /*GlobalDimVectorType const velocity =
-                process_data.has_gravity
-                    ? GlobalDimVectorType(-K_over_mu * (dNdx * p_nodal_values -
-                                                        fluid_density * b))
-                    : GlobalDimVectorType(-K_over_mu * dNdx * p_nodal_values);*/
             double const diffusion_coeff_component_salt = 1e-9;
             const double R = 8.314;
             const double temperature = 393.15;
@@ -297,7 +300,8 @@ public:
             Kcc.noalias()+= (dNdx.transpose() * diffusion_coeff_component_salt*porosity * sw_int_pt * dNdx
                 ) *
                 w;
-            GlobalDimVectorType const velocity =
+            //phase velocity
+            GlobalDimVectorType const velocity_wet =
                 process_data.has_gravity
                     ? GlobalDimVectorType(
                           -K_over_mu_wet *
@@ -305,8 +309,20 @@ public:
                           (dNdx * p_nodal_values - fluid_density * b))
                     : GlobalDimVectorType(-K_over_mu_wet * K_rel_L * dNdx *
                                           p_nodal_values);
+            GlobalDimVectorType const velocity_nonwetting =
+                process_data.has_gravity
+                    ? GlobalDimVectorType(
+                          -K_over_mu_nonwet * K_rel_G *
+                          (dNdx * p_nodal_values - nonwet_density * b))
+                    : GlobalDimVectorType(-K_over_mu_nonwet * K_rel_G * dNdx *
+                                          p_nodal_values);
+            double u_norm = GlobalDim>2 ? (std::pow(velocity_nonwetting(0), 2) +
+                            std::pow(velocity_nonwetting(1), 2) + 
+                                std::pow(velocity_nonwetting(2), 2))
+                :(std::pow(velocity_nonwetting(0), 2) +
+                            std::pow(velocity_nonwetting(1), 2));
             Kcc.noalias() +=
-                N.transpose() * velocity.transpose() * dNdx * w;
+                N.transpose() * velocity_wet.transpose() * dNdx * w;
 
             if (process_data.has_gravity)
             {
@@ -318,8 +334,21 @@ public:
                     w * c_int_pt * dNdx.transpose() * K_over_mu_wet* K_rel_L* fluid_density*b;
 
             }
+            double rate_h = -ah * y.*net_u_norm;
+            double rate_cl = -acl * y.*net_conc;
+                            //Colloidal rel.rate 
+            double rate_d = ad * u_norm.*c_int_pt;
+            double rate_p =
+                apt * u_norm * c_int_pt;
             /* with Oberbeck-Boussing assumption density difference only exists
              * in buoyancy effects */
+            //update the porosity
+            porosity0 = update_porosity(porosity0, c_porethoat_int_pt,
+                                        c_porebody_int_pt, particle_density);
+            //calculate the flow efficiency
+            double const fe = calculate_fe(0.6, c_porethoat_int_pt);
+            //update the permeability
+            permeability0 = permeability0 * update_permeability_ratio(porosity0,porosity_old,0,fe,3);
         }
         if (true)
         {
