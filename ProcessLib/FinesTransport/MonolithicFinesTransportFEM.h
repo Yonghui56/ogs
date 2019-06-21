@@ -207,8 +207,12 @@ public:
             //nonwet phase
             double const swe= (sw_int_pt- liquid_residual_saturation)
                 / (1 - nonwet_residual_saturation - liquid_residual_saturation);
-            double const K_rel_G = std::pow((1 - swe), 2);
-            double const K_rel_L = std::pow((swe), 2);
+            double K_rel_G = std::pow((1 - swe), 2);
+            if (K_rel_G > 1)
+                K_rel_G = 1;
+            double K_rel_L = std::pow((swe), 2);
+            if (K_rel_L > 1)
+                K_rel_L = 1;
 
             const double K_over_mu_wet = K / liquid_viscosity;
 
@@ -251,7 +255,14 @@ public:
             Kcc.noalias()+= (dNdx.transpose() * diffusion_coeff_component_salt*porosity * sw_int_pt * dNdx
                 ) *
                 w;
-
+            GlobalDimVectorType const velocity =
+                process_data.has_gravity
+                    ? GlobalDimVectorType(
+                          -K_over_mu_wet * K_rel_L *
+                          (dNdx * p_nodal_values - fluid_density * b))
+                    : GlobalDimVectorType(-K_over_mu_wet * K_rel_L * dNdx *
+                                          p_nodal_values);
+            Kcc.noalias() += N.transpose() * velocity.transpose() * dNdx * w;
             if (process_data.has_gravity)
             {
                 Bp.noalias() +=
