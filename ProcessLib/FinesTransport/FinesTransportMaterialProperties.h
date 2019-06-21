@@ -32,16 +32,10 @@ struct FinesTransportMaterialProperties final
             media_map_,
         MaterialLib::PorousMedium::PorousMediaProperties&&
         porous_media_properties_,
-        bool const has_fluid_thermal_expansion_,
-        ParameterLib::Parameter<double> const& solid_intrinsic_permeability_,
-        ParameterLib::Parameter<double> const& porosity_constant_,
         Eigen::VectorXd specific_body_force_,
         bool const has_gravity_)
         : media_map(std::move(media_map_)),
           porous_media_properties(std::move(porous_media_properties_)),
-          has_fluid_thermal_expansion(has_fluid_thermal_expansion_),
-          solid_intrinsic_permeability(solid_intrinsic_permeability_),
-          porosity_constant(porosity_constant_),
           specific_body_force(std::move(specific_body_force_)),
           has_gravity(has_gravity_)
     {
@@ -55,9 +49,6 @@ struct FinesTransportMaterialProperties final
     std::unique_ptr<MaterialPropertyLib::MaterialSpatialDistributionMap>
         media_map;
     MaterialLib::PorousMedium::PorousMediaProperties porous_media_properties;
-    bool const has_fluid_thermal_expansion;
-    ParameterLib::Parameter<double> const& solid_intrinsic_permeability;//intrinsic_permeability
-    ParameterLib::Parameter<double> const& porosity_constant;//porosity
 
     Eigen::VectorXd const specific_body_force;
     bool const has_gravity;

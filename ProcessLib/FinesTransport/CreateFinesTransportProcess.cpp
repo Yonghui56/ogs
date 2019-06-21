@@ -100,31 +100,6 @@ std::unique_ptr<Process> createFinesTransportProcess(
         std::copy_n(b.data(), b.size(), specific_body_force.data());
     }
 
-    ParameterLib::ConstantParameter<double> default_solid_permeability(
-        "default solid permeability", 0.);
-    ParameterLib::ConstantParameter<double> default_porosity_constant(
-        "default porosity constant", 0.);
-    ParameterLib::Parameter<double>* solid_intrinsic_permeability =
-        &default_solid_permeability;
-    ParameterLib::Parameter<double>* porosity_constant = &default_porosity_constant;
-
-    auto const solid_config =
-        //! \ogs_file_param{prj__processes__process__FinesTransport__solid_thermal_expansion}
-        config.getConfigSubtreeOptional("solid_permeability_porosity");
-    const bool has_fluid_thermal_expansion = static_cast<bool>(solid_config);
-    if (solid_config)
-    {
-        solid_intrinsic_permeability = &ParameterLib::findParameter<double>(
-            //! \ogs_file_param_special{prj__processes__process__FinesTransport__solid_permeability_porosity__intrinsic_permeability}
-            *solid_config, "intrinsic_permeability", parameters, 1);
-        DBUG("Use '%s' as solid intrinsic permeability.",
-            solid_intrinsic_permeability->name.c_str());
-        porosity_constant = &ParameterLib::findParameter<double>(
-            //! \ogs_file_param_special{prj__processes__process__FinesTransport__solid_permeability_porosity__porosity_constant}
-            *solid_config, "porosity_constant", parameters, 1);
-        DBUG("Use '%s' as porosity constant.", porosity_constant->name.c_str());
-    }
-
     auto media_map =
         MaterialPropertyLib::createMaterialSpatialDistributionMap(media, mesh);
 
@@ -132,9 +107,6 @@ std::unique_ptr<Process> createFinesTransportProcess(
         std::make_unique<FinesTransportMaterialProperties>(
             std::move(media_map),
             std::move(porous_media_properties),
-            has_fluid_thermal_expansion,
-            *solid_intrinsic_permeability,
-            *porosity_constant,
             specific_body_force,
             has_gravity);
 

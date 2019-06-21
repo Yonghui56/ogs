@@ -111,8 +111,8 @@ private:
     /**
      * @copydoc ProcessLib::Process::getDOFTableForExtrapolatorData()
      */
-    std::tuple<NumLib::LocalToGlobalIndexMap*, bool>
-        getDOFTableForExtrapolatorData() const override;
+    /*std::tuple<NumLib::LocalToGlobalIndexMap*, bool>
+        getDOFTableForExtrapolatorData() const override;*/
 
     const std::unique_ptr<FinesTransportMaterialProperties> _material_properties;
 

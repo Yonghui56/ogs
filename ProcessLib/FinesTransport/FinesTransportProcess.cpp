@@ -78,6 +78,24 @@ void FinesTransportProcess::initializeConcreteProcess(
         makeExtrapolator(mesh.getDimension(), getExtrapolator(),
                          _local_assemblers,
                          &FinesTransportLocalAssemblerInterface::getIntPtDarcyVelocity));
+    _secondary_variables.addSecondaryVariable(
+        "pore_throat_deposited_concentration",
+        makeExtrapolator(
+            1, getExtrapolator(), _local_assemblers,
+            &FinesTransportLocalAssemblerInterface::getIntPtPoreThroatConcentration));
+
+     _secondary_variables.addSecondaryVariable(
+        "pore_body_deposited_concentration",
+        makeExtrapolator(1, getExtrapolator(),
+                         _local_assemblers,
+                         &FinesTransportLocalAssemblerInterface::
+                             getIntPtPoreBodyConcentration));
+
+      _secondary_variables.addSecondaryVariable(
+         "permeability_ratio",
+         makeExtrapolator(1, getExtrapolator(), _local_assemblers,
+                          &FinesTransportLocalAssemblerInterface::
+                              getIntPtPermeabilityRatio));
 }
 
 void FinesTransportProcess::assembleConcreteProcess(const double t,
@@ -192,7 +210,7 @@ void FinesTransportProcess::setCoupledTermForTheStaggeredSchemeToLocalAssemblers
         _local_assemblers, pv.getActiveElementIDs(), _coupled_solutions);
 }
 
-std::tuple<NumLib::LocalToGlobalIndexMap*, bool>
+/*std::tuple<NumLib::LocalToGlobalIndexMap*, bool>
 FinesTransportProcess::getDOFTableForExtrapolatorData() const
 {
     if (!_use_monolithic_scheme)
@@ -214,7 +232,7 @@ FinesTransportProcess::getDOFTableForExtrapolatorData() const
                                // by location order is needed for output
                                NumLib::ComponentOrder::BY_LOCATION),
                            manage_storage);
-}
+}*/
 
 void FinesTransportProcess::setCoupledSolutionsOfPreviousTimeStepPerProcess(
     const int process_id)

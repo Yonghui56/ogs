@@ -11,6 +11,8 @@
 
 #pragma once
 
+#include <Eigen/Dense>
+
 #include "MathLib/LinAlg/Eigen/EigenMapTools.h"
 #include "NumLib/Extrapolation/ExtrapolatableElement.h"
 #include "NumLib/Function/Interpolation.h"
@@ -22,12 +24,14 @@ struct CoupledSolutionsForStaggeredScheme;
 
 namespace FinesTransport
 {
-template <typename NodalRowVectorType, typename GlobalDimNodalMatrixType>
+template <typename NodalRowVectorType,
+          typename GlobalDimNodalMatrixType>
 struct IntegrationPointData final
 {
     IntegrationPointData(NodalRowVectorType N_,
                          GlobalDimNodalMatrixType dNdx_,
-                         double const& integration_weight_)
+                         double const& integration_weight_
+                        )
         : N(std::move(N_)),
           dNdx(std::move(dNdx_)),
           integration_weight(integration_weight_),
@@ -41,7 +45,11 @@ struct IntegrationPointData final
     NodalRowVectorType const N;
     GlobalDimNodalMatrixType const dNdx;
     double const integration_weight;
-    double porosity_curr, porosity_prev, permeability_curr, permeability_prev;
+    double porosity_curr, porosity_prev;
+    double permeability_curr, permeability_prev;
+    double pore_throat_concentration;
+    double pore_body_concentration;
+    double permeability_ratio;
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
     void push_back()
@@ -65,6 +73,24 @@ public:
     }
 
     virtual std::vector<double> const& getIntPtDarcyVelocity(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const = 0;
+
+    virtual std::vector<double> const& getIntPtPoreThroatConcentration(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const = 0;
+
+    virtual std::vector<double> const& getIntPtPoreBodyConcentration(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const = 0;
+
+    virtual std::vector<double> const& getIntPtPermeabilityRatio(
         const double /*t*/,
         GlobalVector const& /*current_solution*/,
         NumLib::LocalToGlobalIndexMap const& /*dof_table*/,

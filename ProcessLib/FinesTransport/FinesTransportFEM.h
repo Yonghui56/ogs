@@ -111,6 +111,8 @@ public:
             initShapeMatrices<ShapeFunction, ShapeMatricesType,
                               IntegrationMethod, GlobalDim>(
                 element, is_axially_symmetric, _integration_method);
+        pos.setElementID(this->_element.getID());
+        auto const& process_data = this->_material_properties;
 
         for (unsigned ip = 0; ip < n_integration_points; ip++)
         {
@@ -119,43 +121,32 @@ public:
                 _integration_method.getWeightedPoint(ip).getWeight() *
                     shape_matrices[ip].integralMeasure *
                     shape_matrices[ip].detJ);
+            //initialize the permeability and porosity in IP data
+            /*_ip_data[ip].porosity_prev =
+                process_data.porous_media_properties.getPorosity(0, pos)
+                    .getValue(0, pos, 0.0, 0.0);
+            _ip_data[ip].porosity_curr =
+                process_data.porous_media_properties.getPorosity(0, pos)
+                    .getValue(0, pos, 0.0, 0.0);
+            _ip_data[ip].permeability_prev =
+                    process_data.porous_media_properties
+                        .getIntrinsicPermeability(0, pos)
+                        .getValue(0, pos, 0.0, 0.0);
+            _ip_data[ip].permeability_curr =
+                process_data.porous_media_properties
+                    .getIntrinsicPermeability(0, pos)
+                    .getValue(0, pos, 0.0, 0.0);*/
         }
     }
-
-    typedef boost::numeric::ublas::vector<double> vector_type;
-    typedef boost::numeric::ublas::matrix<double> matrix_type;
-
-    struct stiff_system
-    {
-        void operator()(const vector_type& x, vector_type& dxdt, double /* t */)
-        {
-            dxdt[0] = -101.0 * x[0] - 100.0 * x[1];
-            dxdt[1] = x[0];
-        }
-    };
-
-    struct stiff_system_jacobi
-    {
-        void operator()(const vector_type& /* x */, matrix_type& J,
-                        const double& /* t */, vector_type& dfdt)
-        {
-            J(0, 0) = -101.0;
-            J(0, 1) = -100.0;
-            J(1, 0) = 1.0;
-            J(1, 1) = 0.0;
-            dfdt[0] = 0.0;
-            dfdt[1] = 0.0;
-        }
-    };
-
+    /*
     struct Rate_pt  // pore throat
     {
-        Rate_pt(double apt_ = 0.0, double u_norm_ = 0.0,
-                double concentration_ = 0.0)
+        Rate_pt(double apt_, double u_norm_,
+                double concentration_)
             : apt(apt_), u_norm(u_norm_), concentration(concentration_)
         {
         }
-        void operator()(const double /*x*/, double& dxdt, double /* t */)
+        void operator()(const double& x, double& dxdt, double&  t)
         {
             dxdt = apt * u_norm * concentration;
         }
@@ -164,19 +155,19 @@ public:
 
     struct Rate_d  // pore body
     {
-        Rate_d(double ah_ = 0.0, double acl_ = 0.0, double ad_ = 0.0,
-               double net_u_norm_ = 0.0, double net_conc_ = 0.0,
-               double u_norm_ = 0.0, double concentration_ = 0.0)
+        Rate_d(double ah_, double acl_, double ad_,
+               double net_u_norm_, double net_conc_,
+               double u_norm_, double concentration_)
             : ah(ah_),
               acl(acl_),
               ad(ad_),
-              net_u_norm(net_u_norm_),
-              net_conc(net_conc_),
-              u_norm(u_norm_),
+              net_u_norm(net_u_norm_),//vary as iteration
+              net_conc(net_conc_),//vary as iteration
+              u_norm(u_norm_),//vary as iteration
               concentration(concentration_)
         {
         }
-        void operator()(const double x, double& dxdt, double /* t */)
+        void operator()(const double& x, double& dxdt, double t)
         {
             dxdt = -ah * x * net_u_norm            // Hydrodynamic rel.rate
                    - acl * x * net_conc            // Colloidal rel.rate
@@ -184,7 +175,71 @@ public:
         }
         double ah, acl, ad, net_u_norm, u_norm, net_conc, concentration;
     };
+    */
+    double MLangevin(double v)
+    {
+        double s = 0.0;
+        if (v < 0.01)
+            s = v * (1.0 / 3.0 + v * v * (-1.0 / 45.0 + 18.0 / 8505.0 * v * v));
+        else if (0.01 <= v && v < 20)
+            s = (exp(v) + exp(-v)) / (exp(v) - exp(-v)) - 1 / v;
+        //    s = coth(v)-1/v;
+        else if (20 <= v)
+            s = 1.0;
 
+        return s;
+    }
+
+    
+    double CalcSUPGCoefficient(double v_mag, int ip, const double ele_length,
+                                                  const double diff_tensor, double const dt)
+    {
+        //--------------------------------------------------------------------
+        // Collect following information to determine SUPG coefficient
+        // + flow velocity
+        // + diffusivity coefficient (scalar)
+        // + characteristic element length
+        // + (Peclet number)
+        // vel is a double array
+
+        // Characteristic element length
+        // Diffusivity = (effective heat conductivity) / (fluid heat capacity)
+        const double dispersion_tensor = diff_tensor;
+
+        double diff = dispersion_tensor;
+
+        //--------------------------------------------------------------------
+        // Here calculates SUPG coefficient (tau)
+        double tau = 0.0;
+        switch (ele_supg_method)
+        {
+            case 1:
+            {
+                // this coefficient matches with the analytical solution in 1D
+                // steady state case
+                double alpha = 0.5 * v_mag * ele_length / diff;  // 0.5*Pe
+                double func = MLangevin(alpha);
+                //tau = 0.5 * ele_length / v_mag * func;
+                tau = func / v_mag;
+            }
+            break;
+            case 2:
+            {
+                // taking into account time step
+                //          tau = 1.0 / sqrt(pow(2.0/dt
+                //          ,2.0)+pow(2.0*v_mag/ele_len,2.0));
+                tau = 1.0 /
+                      std::sqrt((2.0 / dt) * (2.0 / dt) +
+                                      (2.0 * v_mag / ele_length) *
+                                          (2.0 * v_mag / ele_length) +
+                                    (4.0 * diff / (ele_length * ele_length)) *
+                                    (4.0 * diff / (ele_length * ele_length)));
+            }
+            break;
+        }
+
+        return tau;
+    }
     Eigen::Map<const Eigen::RowVectorXd> getShapeMatrix(
         const unsigned integration_point) const override
     {
@@ -327,19 +382,32 @@ public:
         return (k * temperature) / (3 * pi * viscosity * this.diameter);
     }*/
 
+    void preTimestepConcrete(std::vector<double> const& /*local_x*/,
+                             double const /*t*/,
+                             double const /*delta_t*/) override
+    {
+        unsigned const n_integration_points =
+            _integration_method.getNumberOfPoints();
+
+        for (unsigned ip = 0; ip < n_integration_points; ip++)
+        {
+            _ip_data[ip].push_back();
+        }
+    }
+
 protected:
     MeshLib::Element const& _element;
     FinesTransportMaterialProperties const& _material_properties;
-
+    ParameterLib::SpatialPosition pos;
     double apt;
     double u_norm;
     double concentration;
-
+    int ele_supg_method = 2; 
     IntegrationMethod const _integration_method;
     std::vector<
         IntegrationPointData<NodalRowVectorType, GlobalDimNodalMatrixType>,
-        Eigen::aligned_allocator<
-            IntegrationPointData<NodalRowVectorType, GlobalDimNodalMatrixType>>>
+        Eigen::aligned_allocator<IntegrationPointData<
+            NodalRowVectorType, GlobalDimNodalMatrixType>>>
         _ip_data;
 
     std::vector<double> const& getIntPtDarcyVelocityLocal(
