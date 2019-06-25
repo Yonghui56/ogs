@@ -218,6 +218,68 @@ public:
         return flux;
     }
 
+    double MLangevin(double v)
+    {
+        double s = 0.0;
+        if (v < 0.01)
+            s = v * (1.0 / 3.0 + v * v * (-1.0 / 45.0 + 18.0 / 8505.0 * v * v));
+        else if (0.01 <= v && v < 20)
+            s = (exp(v) + exp(-v)) / (exp(v) - exp(-v)) - 1 / v;
+        //    s = coth(v)-1/v;
+        else if (20 <= v)
+            s = 1.0;
+
+        return s;
+    }
+    double CalcSUPGCoefficient(double v_mag, int ip, const double ele_length,
+        const double diff_tensor, double const dt)
+    {
+        //--------------------------------------------------------------------
+        // Collect following information to determine SUPG coefficient
+        // + flow velocity
+        // + diffusivity coefficient (scalar)
+        // + characteristic element length
+        // + (Peclet number)
+        // vel is a double array
+
+        // Characteristic element length
+        // Diffusivity = (effective heat conductivity) / (fluid heat capacity)
+        const double dispersion_tensor = diff_tensor;
+
+        double diff = dispersion_tensor;
+
+        //--------------------------------------------------------------------
+        // Here calculates SUPG coefficient (tau)
+        double tau = 0.0;
+        switch (2)
+        {
+        case 1:
+        {
+            // this coefficient matches with the analytical solution in 1D
+            // steady state case
+            double alpha = 0.5 * v_mag * ele_length / diff;  // 0.5*Pe
+            double func = MLangevin(alpha);
+            //tau = 0.5 * ele_length / v_mag * func;
+            tau = func / v_mag;
+        }
+        break;
+        case 2:
+        {
+            // taking into account time step
+            //          tau = 1.0 / sqrt(pow(2.0/dt
+            //          ,2.0)+pow(2.0*v_mag/ele_len,2.0));
+            tau = 1.0 /
+                std::sqrt((2.0 / dt) * (2.0 / dt) +
+                (2.0 * v_mag / ele_length) *
+                    (2.0 * v_mag / ele_length) +
+                    (4.0 * diff / (ele_length * ele_length)) *
+                    (4.0 * diff / (ele_length * ele_length)));
+        }
+        break;
+        }
+
+        return tau;
+    }
 protected:
     MeshLib::Element const& _element;
     FinesTransportMaterialProperties const& _material_properties;

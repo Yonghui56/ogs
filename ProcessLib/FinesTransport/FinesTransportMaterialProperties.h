@@ -61,6 +61,7 @@ struct FinesTransportMaterialProperties final
 
     Eigen::VectorXd const specific_body_force;
     bool const has_gravity;
+    double dt = 0.0;
 };
 
 }  // namespace FinesTransport
