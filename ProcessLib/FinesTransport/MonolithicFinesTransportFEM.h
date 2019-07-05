@@ -86,6 +86,7 @@ public:
         auto const num_nodes = ShapeFunction::NPOINTS;
 
         auto Kpp = local_K.template block<num_nodes, num_nodes>(0, 0);
+        auto Kps = local_K.template block<num_nodes, num_nodes>(0, num_nodes);
         auto Kss = local_K.template block<num_nodes, num_nodes>(num_nodes, num_nodes);
         auto Ksp = local_K.template block<num_nodes, num_nodes>(num_nodes, 0);
 
@@ -168,8 +169,8 @@ public:
             double c_int_pt = 0.0;//salt concentration
             // Order matters: First p, then s,last c
             NumLib::shapeFunctionInterpolate(local_x, N, p_int_pt, sw_int_pt,c_int_pt);
-            if (sw_int_pt > 1)
-                sw_int_pt = 1;
+            if (sw_int_pt > 0.99)
+                sw_int_pt = 0.99;
 
             auto const porosity =
                 process_data.porous_media_properties.getPorosity(t, pos)
@@ -227,6 +228,9 @@ public:
             if (K_rel_L > 1)
                 K_rel_L = 1;
             double dKrelLdSw = 2 * swe / (1 - nonwet_residual_saturation - liquid_residual_saturation);
+            double dKrelGdSw =
+                -2 * (1-swe) /
+                (1 - nonwet_residual_saturation - liquid_residual_saturation);
             const double K_over_mu_wet = K / liquid_viscosity;
 
             const double K_over_mu_nonwet = K / nonwet_viscosity;
@@ -242,11 +246,11 @@ public:
             const double drho_gas_d_pg = 1e-8;// M_G_comp / R / temperature;
             // matrix assembly
             Mpp.noalias() += w * (porosity * (1 - sw_int_pt)*drho_gas_d_pg)*N.transpose() * N;
-            Mps.noalias() -= w*(porosity * nonwet_density)*
-                N.transpose() * N;
+            Mps.noalias() -=
+                w * (porosity * nonwet_density) * N.transpose() * N;
 
             Mss.noalias() += w * (porosity * fluid_density)*N.transpose() * N;
-            Mcs.noalias() += w * (porosity*c_int_pt)*N.transpose() * N;
+            //Mcs.noalias() += w * (porosity*c_int_pt)*N.transpose() * N;
             Mcc.noalias() += w * (porosity*sw_int_pt)*N.transpose() * N;
 
 
@@ -273,6 +277,13 @@ public:
                     (dNdx * p_nodal_values - fluid_density * b))
                 : GlobalDimVectorType(-K_over_mu_wet * K_rel_L * dNdx *
                     p_nodal_values);
+            GlobalDimVectorType const velocity_wet_pure =
+                process_data.has_gravity
+                    ? GlobalDimVectorType(
+                          -K_over_mu_wet * 
+                          (dNdx * p_nodal_values - fluid_density * b))
+                    : GlobalDimVectorType(-K_over_mu_wet * dNdx *
+                                          p_nodal_values);
             GlobalDimVectorType const velocity_nonwetting =
                 process_data.has_gravity
                 ? GlobalDimVectorType(
@@ -280,6 +291,13 @@ public:
                     (dNdx * p_nodal_values - nonwet_density * b))
                 : GlobalDimVectorType(-K_over_mu_nonwet * K_rel_G * dNdx *
                     p_nodal_values);
+            GlobalDimVectorType const velocity_nonwetting_pure =
+                process_data.has_gravity
+                    ? GlobalDimVectorType(
+                          -K_over_mu_nonwet * 
+                          (dNdx * p_nodal_values - nonwet_density * b))
+                    : GlobalDimVectorType(-K_over_mu_nonwet *  dNdx *
+                                          p_nodal_values);
             // phase nonwetting velocity
             double u_norm = GlobalDim > 2
                 ? (std::pow(velocity_nonwetting(0), 2) +
@@ -289,25 +307,41 @@ public:
                     std::pow(velocity_nonwetting(1), 2));
             u_norm = std::sqrt(u_norm);
             //net_u_norm = std::max(u_norm - uc, 0.0);
-            Kss.noalias() += (N.transpose() * velocity_wet.transpose()*dKrelLdSw / K_rel_L * dNdx
+            /*Kss.noalias() +=
+                (N.transpose() * fluid_density * velocity_wet_pure.transpose() *
+                 dKrelLdSw * dNdx
                 ) *
                 w;
+            Kps.noalias() +=
+                (N.transpose() * nonwet_density *
+                 velocity_nonwetting_pure.transpose() *
+                 dKrelGdSw * dNdx) *
+                w;*/
             Kcc.noalias() += N.transpose() * velocity_wet.transpose() * dNdx * w;
 
             //calculate the weighting function
             for (int i = 0; i < num_nodes; i++)
                 for (int k = 0; k < GlobalDim; k++)
                     v_dN[i] += dNdx(k * num_nodes + i)*velocity_wet(k);
-            auto tau = 
-            CalcSUPGCoefficient(u_norm, ip, min_length,
-                diffusion_coeff_component_salt * porosity * sw_int_pt,
-                dt);
+            auto tau = 0.0;//
+            /*CalcSUPGCoefficient(u_norm, ip, min_length,
+                diffusion_coeff_component_salt,
+                dt);*/
+
             for (int i = 0; i < num_nodes; i++)
                 for (int j = 0; j < num_nodes; j++)
                     Kcc(i, j) += w * tau * v_dN[i] * v_dN[j];
-            /*for (int i = 0; i < num_nodes; i++)
+            for (int i = 0; i < num_nodes; i++)
                 for (int j = 0; j < num_nodes; j++)
-                    Kss(i, j) += w * tau * v_dN[i] * v_dN[j]*(dKrelLdSw / K_rel_L)*(dKrelLdSw / K_rel_L);*/
+                    Mcc(i, j) +=
+                         w * tau * (porosity * sw_int_pt) * v_dN[i]*N(j);
+            for (int i = 0; i < num_nodes; i++)
+                for (int j = 0; j < num_nodes; j++)
+                    Kss(i, j) += w * tau * v_dN[i] * v_dN[j]*(dKrelLdSw / K_rel_L)*(dKrelLdSw / K_rel_L);
+            for (int i = 0; i < num_nodes; i++)
+                for (int j = 0; j < num_nodes; j++)
+                    Mss(i, j) +=
+                        w * tau * (porosity * fluid_density) * v_dN[i] * N(j);
             if (process_data.has_gravity)
             {
                 Bp.noalias() +=
@@ -316,7 +350,6 @@ public:
                     w * fluid_density * dNdx.transpose() * K_over_mu_wet* K_rel_L* fluid_density*b;
                 Bc.noalias()+=
                     w * c_int_pt * dNdx.transpose() * K_over_mu_wet* K_rel_L* fluid_density*b;
-
             }
             /* with Oberbeck-Boussing assumption density difference only exists
              * in buoyancy effects */
@@ -335,8 +368,8 @@ public:
                         Mps(row, column) = 0.0;
                         Mss(row, row) += Mss(row, column);
                         Mss(row, column) = 0.0;
-                        Mcs(row, row) += Mcs(row, column);
-                        Mcs(row, column) = 0.0;
+                        /*Mcs(row, row) += Mcs(row, column);
+                        Mcs(row, column) = 0.0;*/
                         Mcc(row, row) += Mcc(row, column);
                         Mcc(row, column) = 0.0;
                     }
@@ -376,16 +409,16 @@ public:
         if (GlobalDim == 2)
         {
             auto* edge = element.getEdge(0);
-            double min = edge->getContent();
+            double max = edge->getContent();
             delete edge;
             for (int k = 0; k < num_nodes; k++)
             {
                 auto* new_edge = element.getEdge(k);
                 L = new_edge->getContent();
-                if (L < min) min = L;
+                if (L > max) max = L;
                 delete new_edge;
             }
-            L = min;
+            L = max;
             //delete edge;
         } 
         return L;

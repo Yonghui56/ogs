@@ -128,6 +128,7 @@ set(ProcessesList
     ThermoMechanicalPhaseField
     ThermoMechanics
     TwoPhaseFlowWithPP
+	TwoPhaseFlowWithPS
     TwoPhaseFlowWithPrho)
 
 # Add a cmake option for each process.

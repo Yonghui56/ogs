@@ -115,7 +115,24 @@ public:
                     shape_matrices[ip].detJ);
         }
     }
-
+    std::vector<double> transpose_vector(
+        const std::vector<double>& column_vec)
+    {
+        // take a column vector:
+        // |x1|
+        // |x2|
+        // |x3|
+        // and return a row vector |x1, x2, x3|
+        std::vector<double> row_vector;
+        for (auto c : column_vec)
+        {
+            for (auto r : c)
+            {
+                row_vector.push_back(r);
+            }
+        }
+        return row_vector;
+    }
     Eigen::Map<const Eigen::RowVectorXd> getShapeMatrix(
         const unsigned integration_point) const override
     {

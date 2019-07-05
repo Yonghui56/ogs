@@ -107,6 +107,9 @@
 #ifdef OGS_BUILD_PROCESS_TWOPHASEFLOWWITHPP
 #include "ProcessLib/TwoPhaseFlowWithPP/CreateTwoPhaseFlowWithPPProcess.h"
 #endif
+#ifdef OGS_BUILD_PROCESS_TWOPHASEFLOWWITHPP
+#include "ProcessLib/TwoPhaseFlowWithPS/CreateTwoPhaseFlowWithPSProcess.h"
+#endif
 #ifdef OGS_BUILD_PROCESS_TWOPHASEFLOWWITHPRHO
 #include "ProcessLib/TwoPhaseFlowWithPrho/CreateTwoPhaseFlowWithPrhoProcess.h"
 #endif
@@ -892,6 +895,17 @@ void ProjectData::parseProcesses(BaseLib::ConfigTree const& processes_config,
         {
             process =
                 ProcessLib::TwoPhaseFlowWithPP::createTwoPhaseFlowWithPPProcess(
+                    *_mesh_vec[0], std::move(jacobian_assembler),
+                    _process_variables, _parameters, integration_order,
+                    process_config, _curves);
+        }
+        else
+#endif
+#ifdef OGS_BUILD_PROCESS_TWOPHASEFLOWWITHPS
+            if (type == "TWOPHASE_FLOW_PS")
+        {
+            process =
+                ProcessLib::TwoPhaseFlowWithPS::createTwoPhaseFlowWithPSProcess(
                     *_mesh_vec[0], std::move(jacobian_assembler),
                     _process_variables, _parameters, integration_order,
                     process_config, _curves);
