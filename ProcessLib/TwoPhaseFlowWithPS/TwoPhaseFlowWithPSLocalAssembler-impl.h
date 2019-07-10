@@ -8,28 +8,28 @@
  */
 
 /**
-* common nomenclature
-* --------------primary variable----------------------
-* pn_int_pt    pressure for nonwetting phase at each integration point
-* pc_int_pt    capillary pressure at each integration point
-* --------------secondary variable--------------------
-* temperature              capillary pressure
-* Sw wetting               phase saturation
-* dSw_dpc                  derivative of wetting phase saturation with respect
-* to capillary pressure
-* rho_nonwet               density of nonwetting phase
-* drhononwet_dpn           derivative of nonwetting phase density with respect
-*to nonwetting phase pressure
-* rho_wet                  density of wetting phase
-* k_rel_nonwet             relative permeability of nonwetting phase
-* mu_nonwet                viscosity of nonwetting phase
-* lambda_nonwet            mobility of nonwetting phase
-* k_rel_wet                relative permeability of wetting phase
-* mu_wet                   viscosity of wetting phase
-* lambda_wet               mobility of wetting phase
-*/
+ * common nomenclature
+ * --------------primary variable----------------------
+ * pn_int_pt    pressure for nonwetting phase at each integration point
+ * pc_int_pt    capillary pressure at each integration point
+ * --------------secondary variable--------------------
+ * temperature              capillary pressure
+ * Sw wetting               phase saturation
+ * dSw_dpc                  derivative of wetting phase saturation with respect
+ * to capillary pressure
+ * rho_nonwet               density of nonwetting phase
+ * drhononwet_dpn           derivative of nonwetting phase density with respect
+ *to nonwetting phase pressure
+ * rho_wet                  density of wetting phase
+ * k_rel_nonwet             relative permeability of nonwetting phase
+ * mu_nonwet                viscosity of nonwetting phase
+ * lambda_nonwet            mobility of nonwetting phase
+ * k_rel_wet                relative permeability of wetting phase
+ * mu_wet                   viscosity of wetting phase
+ * lambda_wet               mobility of wetting phase
+ */
 #pragma once
-
+#include <iostream>
 #include "TwoPhaseFlowWithPSLocalAssembler.h"
 
 #include "MathLib/InterpolationAlgorithms/PiecewiseLinearInterpolation.h"
@@ -77,7 +77,10 @@ void TwoPhaseFlowWithPSLocalAssembler<
     auto Kpp =
         local_K.template block<nonwet_pressure_size, nonwet_pressure_size>(
             nonwet_pressure_matrix_index, nonwet_pressure_matrix_index);
-     
+    auto Kps =
+        local_K.template block<nonwet_pressure_size, nonwet_pressure_size>(
+            nonwet_pressure_matrix_index, cap_pressure_matrix_index);
+
     auto Ksp = local_K.template block<cap_pressure_size, nonwet_pressure_size>(
         cap_pressure_matrix_index, nonwet_pressure_matrix_index);
 
@@ -95,6 +98,16 @@ void TwoPhaseFlowWithPSLocalAssembler<
 
     auto p_nodal_values =
         Eigen::Map<const NodalVectorType>(&local_x[0], num_nodes);
+    auto max = p_nodal_values[0];
+    int idx_ups = 0;
+    for (int k = 0; k < num_nodes; k++)
+    {
+        if (p_nodal_values[k] > max)
+        {
+            idx_ups = k;
+            max = p_nodal_values[k];
+        }
+    }
     auto s_nodal_values =
         Eigen::Map<const NodalVectorType>(&local_x[num_nodes], num_nodes);
     auto const& b = _process_data.specific_body_force;
@@ -135,14 +148,6 @@ void TwoPhaseFlowWithPSLocalAssembler<
         NumLib::shapeFunctionInterpolate(local_x, _ip_data[ip].N, pn_int_pt,
                                          sn_int_pt);
         bool sign = false;
-        if (sn_int_pt > 1)
-        {
-            sn_int_pt = 0.99999;
-            sign = true;
-        }
-
-
-
 
         const double temperature = _process_data.temperature(t, pos)[0];
         double const rho_nonwet =
@@ -159,7 +164,7 @@ void TwoPhaseFlowWithPSLocalAssembler<
             _process_data.material->getGasDensityDerivative(pn_int_pt,
                                                             temperature);
 
-        double const compressibility = 4.4e-10;// pre-assume
+        double const compressibility = 4.4e-10;  // pre-assume
         double const sn_r = 0.3;
         double const sw_r = 0.01;
         double Sn_eff = (sn_int_pt - sn_r) / (1 - sn_r - sw_r);
@@ -177,34 +182,29 @@ void TwoPhaseFlowWithPSLocalAssembler<
 
         double const lambda_total = lambda_nonwet + lambda_wet;
 
-        //the fractional flow function of phase water/nonwetting
+        // the fractional flow function of phase water/nonwetting
         double f_l = lambda_wet / lambda_total;
         double f_n = 1 - f_l;
 
-        //calculate the derivatives of
+        // calculate the derivatives of
 
-
-        double  dLambda_n_dS = 2 * Sn_eff / mu_nonwet / (1 - sn_r - sw_r);
-        double  dLambda_w_dS =
-            -2 * (1 - Sn_eff) / mu_wet / (1 - sn_r - sw_r);
-        //fractional flow function vesus nonwet phase sn
-        double  df_n_dsn = dLambda_n_dS / (lambda_nonwet + lambda_wet) -
-                       lambda_nonwet/ std::pow((lambda_nonwet + lambda_wet),2) * (dLambda_n_dS + dLambda_w_dS);
-        if (sign)
-        {
-            dLambda_w_dS = 0;
-            dLambda_n_dS = 0;
-            df_n_dsn = 0;
-        }
+        double dLambda_n_dS = 2 * Sn_eff / mu_nonwet / (1 - sn_r - sw_r);
+        double dLambda_w_dS = -2 * (1 - Sn_eff) / mu_wet / (1 - sn_r - sw_r);
+        double dLambda_total_dS = dLambda_n_dS + dLambda_w_dS;
+        // fractional flow function vesus nonwet phase sn
+        double df_n_dsn = dLambda_n_dS / (lambda_nonwet + lambda_wet) -
+                          lambda_nonwet /
+                              std::pow((lambda_nonwet + lambda_wet), 2) *
+                              (dLambda_n_dS + dLambda_w_dS);
         laplace_operator.noalias() = _ip_data[ip].dNdx.transpose() *
                                      permeability * _ip_data[ip].dNdx *
                                      _ip_data[ip].integration_weight;
-        //calculate the phase velocity
+        // calculate the phase velocity
         GlobalDimVectorType const velocity_total =
             _process_data.has_gravity
-                ? GlobalDimVectorType(
-                      -permeability * lambda_total *
-                                      (dNdx * p_nodal_values - (rho_nonwet*f_n+rho_wet*f_l)*b))
+                ? GlobalDimVectorType(-permeability * lambda_total *
+                                      (dNdx * p_nodal_values -
+                                       (rho_nonwet * f_n + rho_wet * f_l) * b))
                 : GlobalDimVectorType(-permeability * lambda_total * dNdx *
                                       p_nodal_values);
         GlobalDimVectorType const velocity_nonwet =
@@ -214,16 +214,24 @@ void TwoPhaseFlowWithPSLocalAssembler<
                                        (rho_nonwet * f_n + rho_wet * f_l) * b))
                 : GlobalDimVectorType(-permeability * lambda_nonwet * dNdx *
                                       p_nodal_values);
-        Mpp.noalias() +=
-            porosity * compressibility * _ip_data[ip].massOperator;
-        Kpp.noalias() += lambda_total * laplace_operator;
 
-        Mss.noalias() +=
-            porosity *_ip_data[ip].massOperator;
-        Kss.noalias() += 
-        _ip_data[ip].N.transpose() * velocity_total.transpose() *
-            df_n_dsn * _ip_data[ip].dNdx *
-                         _ip_data[ip].integration_weight;
+        GlobalDimVectorType const velocity_ =
+            _process_data.has_gravity
+                ? GlobalDimVectorType(-permeability *
+                                      (dNdx * p_nodal_values -
+                                       (rho_nonwet * f_n + rho_wet * f_l) * b))
+                : GlobalDimVectorType(-permeability * dNdx * p_nodal_values);
+
+        Mpp.noalias() += porosity * compressibility * _ip_data[ip].massOperator;
+        Kpp.noalias() += lambda_total * laplace_operator;
+        /*Kps.noalias() += _ip_data[ip].N.transpose() *
+           velocity_.transpose() * dLambda_total_dS * _ip_data[ip].dNdx *
+                         _ip_data[ip].integration_weight;*/
+
+        Mss.noalias() += porosity * _ip_data[ip].massOperator;
+        Kss.noalias() += _ip_data[ip].N.transpose() *
+                         velocity_total.transpose() * df_n_dsn *
+                         _ip_data[ip].dNdx * _ip_data[ip].integration_weight;
         Ksp.noalias() += lambda_nonwet * laplace_operator;
         // calculate the weighting function
         double u_norm = GlobalDim > 2 ? (std::pow(velocity_nonwet(0), 2) +
@@ -234,26 +242,23 @@ void TwoPhaseFlowWithPSLocalAssembler<
         u_norm = std::sqrt(u_norm);
         for (int i = 0; i < num_nodes; i++)
             for (int k = 0; k < GlobalDim; k++)
-                v_dN[i] += dNdx(k * num_nodes + i) * velocity_nonwet(k);
-        auto tau2 = dt == 0
-                       ? 0
-                       : std::pow(1 / (0.5 * dt) + 2.0 * u_norm / min_length +
-                                      4 * 1e-15 / pow(min_length, 2.0),
-                                  -1);
+                v_dN[i] += dNdx(k * num_nodes + i) * velocity_(k);
 
-        auto tau = std::pow(1 / (dt * dt) + std::pow(2.0 * u_norm / min_length,2),
-                                  -1/2);
-        /*CalcSUPGCoefficient(u_norm, ip, min_length,
-            diffusion_coeff_component_salt,
-            dt);*/
+        auto tau2 = dt == 0
+                        ? 0
+                        : std::pow(1 / (0.5 * dt) + 2.0 * u_norm / min_length +
+                                       4 * 1e-15 / pow(min_length, 2.0),
+                                   -1);
+
+        auto tau = 10 * std::pow(1 / (dt * dt) +
+                                     std::pow(2.0 * u_norm / min_length, 2),
+                                 -1 / 2);
         for (int i = 0; i < num_nodes; i++)
             for (int j = 0; j < num_nodes; j++)
-                Kss(i, j) += w * tau * v_dN[i] * v_dN[j] * df_n_dsn
-                             ;
+                Kss(i, j) += w * tau * dLambda_n_dS * v_dN[i] * v_dN[j];
         for (int i = 0; i < num_nodes; i++)
             for (int j = 0; j < num_nodes; j++)
-                Mss(i, j) +=
-                    w * tau * (porosity) * v_dN[i] * N(j);
+                Mss(i, j) += w * tau * (porosity)*v_dN[i] * N(j);
 
         if (_process_data.has_gravity)
         {
