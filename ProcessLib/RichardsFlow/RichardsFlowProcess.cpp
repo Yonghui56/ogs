@@ -103,5 +103,33 @@ void RichardsFlowProcess::assembleWithJacobianConcreteProcess(
         xdot, dxdot_dx, dx_dx, M, K, b, Jac, _coupled_solutions);
 }
 
+void RichardsFlowProcess::preTimestepConcreteProcess(GlobalVector const& x,
+                                                     const double /*t*/,
+                                                     const double delta_t,
+                                                     const int process_id)
+{
+    assert(process_id < 2);
+
+    this->_process_data.dt = delta_t;
+    if (_use_monolithic_scheme)
+    {
+        return;
+    }
+
+    if (!_xs_previous_timestep[process_id])
+    {
+        _xs_previous_timestep[process_id] =
+            MathLib::MatrixVectorTraits<GlobalVector>::newInstance(x);
+    }
+    else
+    {
+        auto& x0 = *_xs_previous_timestep[process_id];
+        MathLib::LinAlg::copy(x, x0);
+    }
+
+    auto& x0 = *_xs_previous_timestep[process_id];
+    MathLib::LinAlg::setLocalAccessibleVector(x0);
+}
+
 }  // namespace RichardsFlow
 }  // namespace ProcessLib

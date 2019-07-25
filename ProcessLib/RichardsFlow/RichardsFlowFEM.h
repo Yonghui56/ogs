@@ -47,7 +47,7 @@ struct IntegrationPointData final
     GlobalDimNodalMatrixType const dNdx;
     double const integration_weight;
     NodalMatrixType const mass_operator;
-
+    double saturation;
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 };
 const unsigned NUM_NODAL_DOF = 1;
@@ -163,7 +163,27 @@ public:
         {
             permeability.diagonal().setConstant(perm(0, 0));
         }
-
+        /*
+         * Test permeability tensor
+         */
+        double trace = 0;
+        for (unsigned int i = 0; i < _element.getDimension(); i++)
+            trace += permeability(i, i);
+        /*
+         * Test pressure nodal value
+         */
+        auto const p_nodal_values = Eigen::Map<const NodalVectorType>(
+            &local_x[0], ShapeFunction::NPOINTS);
+        /*
+         * gravitational vector
+         */
+        auto const& body_force = _process_data.specific_body_force;
+        /*
+         * element length
+         */
+        double min_length = CalcEffectiveElementLength(GlobalDim, _element,
+                                                       ShapeFunction::NPOINTS);
+        // start loop for each ip
         for (unsigned ip = 0; ip < n_integration_points; ip++)
         {
             pos.setIntegrationPoint(ip);
@@ -183,6 +203,9 @@ public:
                 _process_data.material->getSaturationDerivative(
                     material_id, t, pos, p_int_pt, temperature, Sw);
 
+            auto const rho_w =
+                _process_data.material->getFluidDensity(p_int_pt, temperature);
+
             // \TODO Extend to pressure dependent density.
             double const drhow_dp(0.0);
             auto const storage = _process_data.material->getStorage(
@@ -190,22 +213,56 @@ public:
             double const mass_mat_coeff =
                 storage * Sw + porosity * Sw * drhow_dp - porosity * dSw_dpc;
 
-            local_M.noalias() += mass_mat_coeff * _ip_data[ip].mass_operator;
-
             double const k_rel =
                 _process_data.material->getRelativePermeability(
                     t, pos, p_int_pt, temperature, Sw);
+            double const d_k_rel_d_Sw =
+                _process_data.material->getRelativePermeabilityDerivative(
+                    t, pos, p_int_pt, temperature, Sw);
             auto const mu = _process_data.material->getFluidViscosity(
                 p_int_pt, temperature);
+            auto test_function_supg = _ip_data[ip].N;
+
+            // calculate the phase velocity
+            GlobalDimVectorType const velocity =
+                _process_data.has_gravity
+                    ? GlobalDimVectorType(-permeability * (k_rel / mu) *
+                                          (_ip_data[ip].dNdx * p_nodal_values -
+                                           (rho_w)*body_force))
+                    : GlobalDimVectorType(-permeability * (k_rel / mu) *
+                                          _ip_data[ip].dNdx * p_nodal_values);
+            GlobalDimVectorType const velocity_nokrel =
+                _process_data.has_gravity
+                    ? GlobalDimVectorType(-permeability / mu *
+                                          (_ip_data[ip].dNdx * p_nodal_values -
+                                           (rho_w)*body_force))
+                    : GlobalDimVectorType(-permeability / mu *
+                                          _ip_data[ip].dNdx * p_nodal_values);
+            double norm_v =
+                GlobalDim > 2
+                    ? (std::pow(velocity(0), 2) + std::pow(velocity(1), 2) +
+                       std::pow(velocity(2), 2))
+                    : (std::pow(velocity(0), 2) + std::pow(velocity(1), 2));
+            double tau = 1.0 / sqrt(pow(2.0 / 2, 2.0) +
+                                    pow(2.0 * norm_v / min_length, 2.0));
+            test_function_supg = test_function_supg +
+                                 tau * velocity.transpose() * _ip_data[ip].dNdx;
+            // assembly
             local_K.noalias() += _ip_data[ip].dNdx.transpose() * permeability *
                                  _ip_data[ip].dNdx *
                                  _ip_data[ip].integration_weight * (k_rel / mu);
+            /*local_K.noalias() += test_function_supg.transpose() *
+                                 velocity_nokrel.transpose() *
+                                 d_k_rel_d_Sw * (-1) * dSw_dpc *
+                                 _ip_data[ip].dNdx;*/
+            local_M.noalias() +=
+                mass_mat_coeff * test_function_supg.transpose() *
+                _ip_data[ip].N * _ip_data[ip].integration_weight;
+            // double tau = tauSUPG(velocity, traceperm,)
+            // auto _tauvel_SUPG = tau * velocity;
 
             if (_process_data.has_gravity)
             {
-                auto const rho_w = _process_data.material->getFluidDensity(
-                    p_int_pt, temperature);
-                auto const& body_force = _process_data.specific_body_force;
                 assert(body_force.size() == GlobalDim);
                 NodalVectorType gravity_operator =
                     _ip_data[ip].dNdx.transpose() * permeability * body_force *
@@ -224,6 +281,221 @@ public:
         }  // end of mass lumping
     }
 
+    void assembleWithJacobian(double const t,
+                              std::vector<double> const& local_x,
+                              std::vector<double> const& local_xdot,
+                              const double /*dxdot_dx*/, const double /*dx_dx*/,
+                              std::vector<double>& /*local_M_data*/,
+                              std::vector<double>& /*local_K_data*/,
+                              std::vector<double>& local_rhs_data,
+                              std::vector<double>& local_Jac_data)
+    {
+        double const pressure_size = ShapeFunction::NPOINTS;
+        double const pressure_index = 0;
+        assert(local_x.size() == pressure_size);
+        auto p_L =
+            Eigen::Map<const NodalVectorType>(local_x.data(), pressure_size);
+
+        auto p_L_dot =
+            Eigen::Map<const NodalVectorType>(local_xdot.data(), pressure_size);
+
+        auto local_Jac = MathLib::createZeroedMatrix<NodalMatrixType>(
+            local_Jac_data, pressure_size, pressure_size);
+
+        auto local_rhs = MathLib::createZeroedVector<NodalVectorType>(
+            local_rhs_data, pressure_size);
+
+        typename ShapeMatricesType::NodalMatrixType laplace_p =
+            ShapeMatricesType::NodalMatrixType::Zero(pressure_size,
+                                                     pressure_size);
+
+        typename ShapeMatricesType::NodalMatrixType storage_p =
+            ShapeMatricesType::NodalMatrixType::Zero(pressure_size,
+                                                     pressure_size);
+
+        typename ShapeMatricesType::NodalMatrixType J_mass =
+            ShapeMatricesType::NodalMatrixType::Zero(pressure_size,
+                                                     pressure_size);
+
+        double const& dt = _process_data.dt;
+        auto const material_id =
+            _process_data.material->getMaterialID(_element.getID());
+        ;
+
+        ParameterLib::SpatialPosition x_position;
+        x_position.setElementID(_element.getID());
+
+        unsigned const n_integration_points =
+            _integration_method.getNumberOfPoints();
+        const Eigen::MatrixXd& perm = _process_data.material->getPermeability(
+            material_id, t, x_position, _element.getDimension());
+        assert(perm.rows() == _element.getDimension() || perm.rows() == 1);
+        GlobalDimMatrixType permeability = GlobalDimMatrixType::Zero(
+            _element.getDimension(), _element.getDimension());
+        if (perm.rows() == _element.getDimension())
+        {
+            permeability = perm;
+        }
+        else if (perm.rows() == 1)
+        {
+            permeability.diagonal().setConstant(perm(0, 0));
+        }
+
+        // loop for each gauss point
+        for (unsigned ip = 0; ip < n_integration_points; ip++)
+        {
+            x_position.setIntegrationPoint(ip);
+            auto const& w = _ip_data[ip].integration_weight;
+
+            auto const& N = _ip_data[ip].N;
+            auto const& dNdx = _ip_data[ip].dNdx;
+            auto const x_coord =
+                interpolateXCoordinate<ShapeFunction, ShapeMatricesType>(
+                    _element, N);
+            double p_cap_ip;
+            NumLib::shapeFunctionInterpolate(
+                -p_L, N, p_cap_ip);  // PC on each itegrate point
+
+            double p_cap_dot_ip;
+            NumLib::shapeFunctionInterpolate(-p_L_dot, N, p_cap_dot_ip);
+            double temperature = 293.15;
+            auto const porosity = _process_data.material->getPorosity(
+                material_id, t, x_position, -p_cap_ip, temperature, 0);
+
+            auto const rho_LR =
+                _process_data.material->getFluidDensity(-p_cap_ip, temperature);
+
+            double& S_L = _ip_data[ip].saturation;
+            S_L = _process_data.material->getSaturation(
+                material_id, t, x_position, -p_cap_ip, temperature, p_cap_ip);
+
+            double const dS_L_dp_cap =
+                _process_data.material->getSaturationDerivative(
+                    material_id, t, x_position, -p_cap_ip, temperature, S_L);
+
+            double const d2S_L_dp_cap_2 =
+                _process_data.material->getSaturationDerivative2(
+                    material_id, t, x_position, -p_cap_ip, temperature, S_L);
+
+            double const k_rel =
+                _process_data.material->getRelativePermeability(
+                    t, x_position, -p_cap_ip, temperature, S_L);
+            auto const mu = _process_data.material->getFluidViscosity(
+                -p_cap_ip, temperature);
+            auto const& body_force = _process_data.specific_body_force;
+
+            GlobalDimMatrixType const rho_Ki_over_mu =
+                permeability * (rho_LR / mu);
+
+            laplace_p.noalias() +=
+                dNdx.transpose() * k_rel * rho_Ki_over_mu * dNdx * w;
+
+            double const specific_storage = dS_L_dp_cap * (-1) * porosity;
+
+            double const dspecific_storage_dp_cap =
+                d2S_L_dp_cap_2 * (-1) * porosity;
+
+            storage_p.noalias() +=
+                N.transpose() * rho_LR * specific_storage * N * w;
+            // mass change part
+            /*J_mass.noalias() += N.transpose() * rho_LR * p_cap_dot_ip *
+                                   dspecific_storage_dp_cap * N * w;*/
+            // flux change
+            double const dk_rel_dS_l =
+                _process_data.material->getRelativePermeabilityDerivative(
+                    t, x_position, -p_cap_ip, temperature, S_L);
+            typename ShapeMatricesType::GlobalDimVectorType const grad_p_cap =
+                -dNdx * p_L;
+
+            local_Jac.noalias() += dNdx.transpose() * rho_Ki_over_mu *
+                                   grad_p_cap * dk_rel_dS_l * dS_L_dp_cap * N *
+                                   w;
+            // gravitional part
+            local_Jac.noalias() += dNdx.transpose() * rho_LR * rho_Ki_over_mu *
+                                   body_force * dk_rel_dS_l * dS_L_dp_cap * N *
+                                   w;
+            // right hand side for the gravitional part
+            local_rhs.noalias() += dNdx.transpose() * rho_LR * k_rel *
+                                   rho_Ki_over_mu * body_force * w;
+        }
+        // pressure equation, pressure part.
+        local_Jac.noalias() += laplace_p;
+        /// mass lumping
+        for (int idx_ml = 0; idx_ml < storage_p.cols(); idx_ml++)
+        {
+            double const mass_lump_val =
+                storage_p.col(idx_ml).sum();
+            storage_p.col(idx_ml).setZero();
+            storage_p(idx_ml, idx_ml) = mass_lump_val;
+        }
+        J_mass.noalias() += storage_p / dt;
+        local_Jac.noalias() += J_mass;
+        // pressure equation
+        local_rhs.noalias() -= laplace_p * p_L + storage_p * p_L_dot;
+    }
+
+    // to calculate the parameter tau
+    /*double tauSUPG(GlobalDimVectorType vel, double traceperm,
+                   RealVectorValue b) const
+    {
+        // vel = velocity, b = bb
+        double norm_v = std::pow(vel * vel, 0.5);
+        //| bb | ~2 * velocity / element_length
+        double norm_b =
+            std::pow(b * b, 0.5);  // Hughes et al investigate infinity-norm and
+                                   // 2-norm.  i just use 2-norm here.   norm_b
+                                   // ~ 2|a|/ele_length_in_direction_of_a
+
+        if (norm_b == 0)
+            return 0.0;  // Only way for norm_b=0 is for zero ele size, or
+                         // vel=0.  Either way we don't have to upwind.
+
+        double h = 2 * norm_v / norm_b;  // h is a measure of the element length
+                                         // in the "a" direction
+        double _p_SUPG = 0.1;
+        double alpha = 0.5 * norm_v * h / traceperm /
+                       _p_SUPG;  // this is the Peclet number
+
+        double xi_tilde = cosh_relation(alpha);
+
+        return xi_tilde / norm_b;
+    }
+    */
+    double cosh_relation(double alpha) const
+    {
+        if (alpha >= 5.0 || alpha <= -5.0)
+            return ((alpha > 0) ? 1 : -1) - 1.0 / alpha;  // prevents overflows
+        else if (alpha == 0)
+            return 0.0;
+        return std::cosh(alpha) / std::sinh(alpha) - 1.0 / alpha;
+    }
+
+    double CalcEffectiveElementLength(unsigned GlobalDim,
+                                      MeshLib::Element const& element,
+                                      double const num_nodes)
+    {
+        double L = 0;
+        if (GlobalDim <= 1.1)
+            L = element.getContent();
+        if (GlobalDim == 2)
+        {
+            auto* edge = element.getEdge(0);
+            double max = edge->getContent();
+            delete edge;
+            for (int k = 0; k < num_nodes; k++)
+            {
+                auto* new_edge = element.getEdge(k);
+                L = new_edge->getContent();
+                if (L > max)
+                    max = L;
+                delete new_edge;
+            }
+            L = max;
+            // delete edge;
+        }
+        return L;
+    }
+
     Eigen::Map<const Eigen::RowVectorXd> getShapeMatrix(
         const unsigned integration_point) const override
     {
@@ -237,10 +509,21 @@ public:
         const double /*t*/,
         GlobalVector const& /*current_solution*/,
         NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
-        std::vector<double>& /*cache*/) const override
+        std::vector<double>& cache) const
     {
-        assert(!_saturation.empty());
-        return _saturation;
+        auto const num_intpts = _ip_data.size();
+
+        cache.clear();
+        auto cache_mat = MathLib::createZeroedMatrix<
+            Eigen::Matrix<double, 1, Eigen::Dynamic, Eigen::RowMajor>>(
+            cache, 1, num_intpts);
+
+        for (unsigned ip = 0; ip < num_intpts; ++ip)
+        {
+            cache_mat[ip] = _ip_data[ip].saturation;
+        }
+
+        return cache;
     }
 
     std::vector<double> const& getIntPtDarcyVelocity(
@@ -251,8 +534,7 @@ public:
     {
         auto const num_intpts = _shape_matrices.size();
 
-        auto const indices = NumLib::getIndices(
-            _element.getID(), dof_table);
+        auto const indices = NumLib::getIndices(_element.getID(), dof_table);
         assert(!indices.empty());
         auto const local_x = current_solution.get(indices);
 
