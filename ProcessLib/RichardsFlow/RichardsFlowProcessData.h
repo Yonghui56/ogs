@@ -56,6 +56,8 @@ struct RichardsFlowProcessData
     bool const has_gravity;
     bool const has_mass_lumping;
     ParameterLib::Parameter<double> const& temperature;
+    double dt = 0.0;
+    double t = 0.0;
 };
 
 }  // namespace RichardsFlow

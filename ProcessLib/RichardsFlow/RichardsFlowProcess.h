@@ -60,8 +60,12 @@ private:
         const double dxdot_dx, const double dx_dx, GlobalMatrix& M,
         GlobalMatrix& K, GlobalVector& b, GlobalMatrix& Jac) override;
 
-    RichardsFlowProcessData _process_data;
+    void preTimestepConcreteProcess(GlobalVector const& x, double const t,
+        double const dt,
+        const int process_id) override;
 
+    RichardsFlowProcessData _process_data;
+    std::array<std::unique_ptr<GlobalVector>, 2> _xs_previous_timestep;
     std::vector<std::unique_ptr<RichardsFlowLocalAssemblerInterface>>
         _local_assemblers;
 };
