@@ -37,7 +37,7 @@ struct IntegrationPointData final
     NodalRowVectorType const N;
     GlobalDimNodalMatrixType const dNdx;
     double const integration_weight;
-
+    double tauSUPG;
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 };
 
@@ -52,6 +52,11 @@ public:
     {
         _coupled_solutions = coupling_term;
     }
+    virtual std::vector<double> const& getIntPtTauSUPG(
+        const double /*t*/,
+        GlobalVector const& /*current_solution*/,
+        NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+        std::vector<double>& /*cache*/) const = 0;
 
     virtual std::vector<double> const& getIntPtDarcyVelocity(
         const double /*t*/,

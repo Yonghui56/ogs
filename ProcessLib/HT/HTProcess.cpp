@@ -77,6 +77,11 @@ void HTProcess::initializeConcreteProcess(
             mesh.isAxiallySymmetric(), integration_order, *_material_properties,
             _heat_transport_process_id, _hydraulic_process_id);
     }
+    _secondary_variables.addSecondaryVariable(
+        "tauSUPG",
+        makeExtrapolator(
+            1, getExtrapolator(), _local_assemblers,
+            &HTLocalAssemblerInterface::getIntPtTauSUPG));
 
     _secondary_variables.addSecondaryVariable(
         "darcy_velocity",

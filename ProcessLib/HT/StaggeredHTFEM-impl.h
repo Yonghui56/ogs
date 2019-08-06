@@ -306,5 +306,28 @@ StaggeredHTFEM<ShapeFunction, IntegrationMethod, GlobalDim>::
         t, local_xs[_hydraulic_process_id],
         local_xs[_heat_transport_process_id], cache);
 }
+template <typename ShapeFunction, typename IntegrationMethod,
+    unsigned GlobalDim>
+    std::vector<double> const&
+    StaggeredHTFEM<ShapeFunction, IntegrationMethod, GlobalDim>::
+getIntPtTauSUPG(const double /*t*/,
+    GlobalVector const& /*current_solution*/,
+    NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+    std::vector<double>& cache) const
+{
+    auto const num_intpts = _ip_data.size();
+
+    cache.clear();
+    auto cache_mat = MathLib::createZeroedMatrix<
+        Eigen::Matrix<double, 1, Eigen::Dynamic, Eigen::RowMajor>>(cache, 1,
+            num_intpts);
+
+    for (unsigned ip = 0; ip < num_intpts; ++ip)
+    {
+        cache_mat[ip] = _ip_data[ip].tauSUPG;
+    }
+
+    return cache;
+}
 }  // namespace HT
 }  // namespace ProcessLib

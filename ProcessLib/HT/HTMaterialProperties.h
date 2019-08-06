@@ -13,6 +13,9 @@
 #include <utility>
 
 #include "MaterialLib/MPL/MaterialSpatialDistributionMap.h"
+#include "MaterialLib/PorousMedium/Porosity/Porosity.h"
+#include "MaterialLib/PorousMedium/Storage/Storage.h"
+#include "MaterialLib/PorousMedium/PorousMediaProperties.h"
 
 namespace ProcessLib
 {
@@ -26,12 +29,15 @@ struct HTMaterialProperties final
     HTMaterialProperties(
         std::unique_ptr<MaterialPropertyLib::MaterialSpatialDistributionMap>&&
             media_map_,
+        MaterialLib::PorousMedium::PorousMediaProperties&&
+        porous_media_properties_,
         bool const has_fluid_thermal_expansion_,
         ParameterLib::Parameter<double> const& solid_thermal_expansion_,
         ParameterLib::Parameter<double> const& biot_constant_,
         Eigen::VectorXd specific_body_force_,
         bool const has_gravity_)
         : media_map(std::move(media_map_)),
+          porous_media_properties(std::move(porous_media_properties_)),
           has_fluid_thermal_expansion(has_fluid_thermal_expansion_),
           solid_thermal_expansion(solid_thermal_expansion_),
           biot_constant(biot_constant_),
@@ -47,7 +53,7 @@ struct HTMaterialProperties final
 
     std::unique_ptr<MaterialPropertyLib::MaterialSpatialDistributionMap>
         media_map;
-
+    MaterialLib::PorousMedium::PorousMediaProperties porous_media_properties;
     bool const has_fluid_thermal_expansion;
     ParameterLib::Parameter<double> const& solid_thermal_expansion;
     ParameterLib::Parameter<double> const& biot_constant;

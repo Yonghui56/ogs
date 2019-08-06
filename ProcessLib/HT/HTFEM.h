@@ -89,7 +89,9 @@ public:
         : HTLocalAssemblerInterface(),
           _element(element),
           _material_properties(material_properties),
-          _integration_method(integration_order)
+          _integration_method(integration_order),
+          _tauSUPG(
+            std::vector<double>(_integration_method.getNumberOfPoints()))
     {
         // This assertion is valid only if all nodal d.o.f. use the same shape
         // matrices.
@@ -197,7 +199,14 @@ public:
         flux.head<GlobalDim>() = q;
         return flux;
     }
-
+    double cosh_relation(double alpha)
+    {
+        if (alpha >= 5.0 || alpha <= -5.0)
+            return ((alpha > 0.0) ? 1.0 : -1.0) - 1.0 / alpha; // prevents overflows
+        else if (alpha == 0)
+            return 0.0;
+        return 1.0 / std::tanh(alpha) - 1.0 / alpha;
+    }
 protected:
     MeshLib::Element const& _element;
     HTMaterialProperties const& _material_properties;
@@ -208,6 +217,7 @@ protected:
         Eigen::aligned_allocator<
             IntegrationPointData<NodalRowVectorType, GlobalDimNodalMatrixType>>>
         _ip_data;
+    std::vector<double> _tauSUPG;
 
     double getHeatEnergyCoefficient(
         MaterialPropertyLib::VariableArray const& vars,

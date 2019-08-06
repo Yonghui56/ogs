@@ -10,6 +10,7 @@
 #include "CreateHTProcess.h"
 
 #include "MaterialLib/MPL/CreateMaterialSpatialDistributionMap.h"
+#include "MaterialLib/PorousMedium/CreatePorousMediaProperties.h"
 #include "MeshLib/IO/readMeshFromFile.h"
 #include "ParameterLib/ConstantParameter.h"
 #include "ParameterLib/Utils.h"
@@ -78,7 +79,9 @@ std::unique_ptr<Process> createHTProcess(
     // process variables.
     const int _heat_transport_process_id = 0;
     const int _hydraulic_process_id = 1;
-
+    MaterialLib::PorousMedium::PorousMediaProperties porous_media_properties{
+        MaterialLib::PorousMedium::createPorousMediaProperties(
+            mesh, config, parameters) };
     // Specific body force parameter.
     Eigen::VectorXd specific_body_force;
     std::vector<double> const b =
@@ -141,6 +144,7 @@ std::unique_ptr<Process> createHTProcess(
     std::unique_ptr<HTMaterialProperties> material_properties =
         std::make_unique<HTMaterialProperties>(
             std::move(media_map),
+            std::move(porous_media_properties),
             has_fluid_thermal_expansion,
             *solid_thermal_expansion,
             *biot_constant,

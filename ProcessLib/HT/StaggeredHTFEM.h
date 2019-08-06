@@ -76,7 +76,11 @@ public:
         GlobalVector const& current_solution,
         NumLib::LocalToGlobalIndexMap const& dof_table,
         std::vector<double>& cache) const override;
-
+    std::vector<double> const& getIntPtTauSUPG(
+        const double t,
+        GlobalVector const& current_solution,
+        NumLib::LocalToGlobalIndexMap const& dof_table,
+        std::vector<double>& cache) const override;
 private:
     void assembleHydraulicEquation(double const t,
                                    std::vector<double>& local_M_data,

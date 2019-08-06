@@ -84,6 +84,7 @@ public:
         auto const num_nodes = ShapeFunction::NPOINTS;
 
         auto Ktt = local_K.template block<num_nodes, num_nodes>(0, 0);
+        auto Ktp = local_K.template block<num_nodes, num_nodes>(0, num_nodes);
         auto Mtt = local_M.template block<num_nodes, num_nodes>(0, 0);
         auto Kpp =
             local_K.template block<num_nodes, num_nodes>(num_nodes, num_nodes);
@@ -104,7 +105,7 @@ public:
         auto const& solid_phase = medium.phase("Solid");
 
         auto const& b = process_data.specific_body_force;
-
+        //Eigen::Vector2d b = Eigen::Vector2d::Zero();
         GlobalDimMatrixType const& I(
             GlobalDimMatrixType::Identity(GlobalDim, GlobalDim));
 
@@ -134,6 +135,14 @@ public:
             NumLib::shapeFunctionInterpolate(local_x, N, T_int_pt, p_int_pt);
 
             auto const porosity =
+                process_data.porous_media_properties.getPorosity(t, pos)
+                .getValue(t, pos, 0.0, p_int_pt);
+
+            auto const& intrinsic_permeability =
+                process_data.porous_media_properties.getIntrinsicPermeability(
+                    t, pos).getValue(t, pos, 0.0, 0.0);
+            const double K = std::pow(10, intrinsic_permeability(0, 0));
+            /*auto const porosity =
                 solid_phase
                     .property(MaterialPropertyLib::PropertyType::porosity)
                     .template value<double>(vars);
@@ -143,7 +152,7 @@ public:
                     solid_phase
                         .property(
                             MaterialPropertyLib::PropertyType::permeability)
-                        .value(vars));
+                        .value(vars));*/
 
             vars[static_cast<int>(MaterialPropertyLib::Variable::temperature)] =
                 T_int_pt;
@@ -165,24 +174,52 @@ public:
             auto const viscosity = liquid_phase
                     .property(MaterialPropertyLib::PropertyType::viscosity)
                     .template value<double>(vars);
-            GlobalDimMatrixType K_over_mu = intrinsic_permeability / viscosity;
+            double const K_over_mu = K / viscosity;
 
-            GlobalDimVectorType const velocity =
+            GlobalDimVectorType const velocity = 
                 process_data.has_gravity
                     ? GlobalDimVectorType(-K_over_mu * (dNdx * p_nodal_values -
                                                         fluid_density * b))
                     : GlobalDimVectorType(-K_over_mu * dNdx * p_nodal_values);
+            GlobalDimVectorType const velocity_supg =
+                process_data.has_gravity
+                ? GlobalDimVectorType(-K_over_mu * (dNdx * p_nodal_values -
+                    fluid_density * b))
+                : GlobalDimVectorType(-K_over_mu * dNdx * p_nodal_values);
+            //velocity norm
+            double u_norm = GlobalDim > 2 ? (std::pow(velocity_supg(0), 2) +
+                std::pow(velocity_supg(1), 2) +
+                std::pow(velocity_supg(2), 2))
+                : (std::pow(velocity_supg(0), 2) +
+                    std::pow(velocity_supg(1), 2));
+            u_norm = std::sqrt(u_norm);
+            double& tau2 = _ip_data[ip].tauSUPG;
 
-            // matrix assembly
+            auto min_length = sqrt(this->_element.getContent());
+            auto vdN = dNdx.transpose() * velocity_supg;//4*1 pow(0 / (0.5*dt),2.0)+
+            double alpha = 0.5 * u_norm * min_length / (2 * K * 0.1); // this is the Peclet number
+            const double xi_tilde = cosh_relation(alpha);
+            tau2 = xi_tilde == 0
+                ? 0
+                : 0;
+            /*: 0.5 * min_length / u_norm * xi_tilde;*/
+            
             GlobalDimMatrixType const thermal_conductivity_dispersivity =
                 this->getThermalConductivityDispersivity(
                     vars, porosity, fluid_density, specific_heat_capacity_fluid,
                     velocity, I);
+            //tau
+            /*tau2 = 1 / sqrt(pow(2.0 * u_norm / min_length, 2.0)
+                + 9 * pow(4 * thermal_conductivity_dispersivity(0,0) / min_length / min_length, 2.0));*/
+            // matrix assembly
             Ktt.noalias() +=
                 (dNdx.transpose() * thermal_conductivity_dispersivity * dNdx +
                  N.transpose() * velocity.transpose() * dNdx * fluid_density *
                      specific_heat_capacity_fluid) *
                 w;
+            /*Ktp.noalias() +=
+                dNdx.transpose()*fluid_density*specific_heat_capacity_fluid*K_over_mu*(T_int_pt-273.15)
+                *dNdx*w;*/
             Kpp.noalias() += w * dNdx.transpose() * K_over_mu * dNdx;
             Mtt.noalias() +=
                 w *
@@ -190,6 +227,12 @@ public:
                                                specific_heat_capacity_fluid) *
                 N.transpose() * N;
             Mpp.noalias() += w * N.transpose() * specific_storage * N;
+            //SUPG
+            Ktt.noalias() += dNdx.transpose() *fluid_density*specific_heat_capacity_fluid
+                * velocity
+                * vdN.transpose() *tau2* w;
+            Mtt.noalias() += tau2 * this->getHeatEnergyCoefficient(vars, porosity, fluid_density,
+                specific_heat_capacity_fluid)*vdN*N*w;
             if (process_data.has_gravity)
             {
                 Bp += w * fluid_density * dNdx.transpose() * K_over_mu * b;
@@ -197,6 +240,22 @@ public:
             /* with Oberbeck-Boussing assumption density difference only exists
              * in buoyancy effects */
         }
+        if (true)
+        {
+            for (unsigned row = 0; row < Mtt.cols(); row++)
+            {
+                for (unsigned column = 0; column < Mtt.cols(); column++)
+                {
+                    if (row != column)
+                    {
+                        Mtt(row, row) += Mtt(row, column);
+                        Mtt(row, column) = 0.0;
+                        Mpp(row, row) += Mpp(row, column);
+                        Mpp(row, column) = 0.0;
+                    }
+                }
+            }
+        }  // end of mass-lumping
     }
 
     std::vector<double> const& getIntPtDarcyVelocity(
@@ -217,6 +276,27 @@ public:
         local_x.erase(local_x.begin() + local_x.size() / 2, local_x.end());
 
         return this->getIntPtDarcyVelocityLocal(t, local_p, local_x, cache);
+    }
+
+    std::vector<double> const&
+        getIntPtTauSUPG(const double /*t*/,
+            GlobalVector const& /*current_solution*/,
+            NumLib::LocalToGlobalIndexMap const& /*dof_table*/,
+            std::vector<double>& cache) const
+    {
+        auto const num_intpts = _ip_data.size();
+
+        cache.clear();
+        auto cache_mat = MathLib::createZeroedMatrix<
+            Eigen::Matrix<double, 1, Eigen::Dynamic, Eigen::RowMajor>>(cache, 1,
+                num_intpts);
+
+        for (unsigned ip = 0; ip < num_intpts; ++ip)
+        {
+            cache_mat[ip] = _ip_data[ip].tauSUPG;
+        }
+
+        return cache;
     }
 };
 
