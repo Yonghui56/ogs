@@ -417,6 +417,7 @@ public:
                 grad_p_cap = -dNdx * p_L;
             local_rhs.noalias() += dNdx.transpose()*rho_Ki_over_mu*dNdx*w*p_L;
             local_rhs.noalias() -= dNdx.transpose()*rho_Ki_over_mu*rho_LR*w*body_force;
+            local_Jac.noalias() += dNdx.transpose()*rho_Ki_over_mu*dNdx*w;
            /* local_Jac
                 .noalias() += dNdx.transpose() * rho_Ki_over_mu * grad_p_cap *
                 dk_rel_dS_l * dS_L_dp_cap * N * w;
