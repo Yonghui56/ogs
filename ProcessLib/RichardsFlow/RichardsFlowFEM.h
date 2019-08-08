@@ -177,6 +177,8 @@ public:
             Eigen::Map<const NodalVectorType>(local_x.data(),
                 pressure_size);
         double const& dt = _process_data.dt;
+        /**/
+        
         for (unsigned ip = 0; ip < n_integration_points; ip++)
         {
             pos.setIntegrationPoint(ip);
@@ -247,31 +249,7 @@ public:
                 : (std::pow(velocity(0), 2) +
                     std::pow(velocity(1), 2));
             u_norm = std::sqrt(u_norm);
-            //double const min_length = 0.02;
-            //tau for SUPG
-            double& tau2 = _ip_data[ip].tauSUPG;
-            /*tau2 = dt == 0
-                ? 0
-                : std::pow(1 / (0.5 * dt) + 2.0 * u_norm / min_length +
-                    4 * 1e-15 / pow(min_length, 2.0),
-                    -1);*/
-            auto min_length = (this->_element.getContent());
-            /*tau2 = dt == 0
-                ? 0
-                : 1/sqrt( pow(2.0 * u_norm / min_length, 2.0));*/
-            auto vdN = dNdx.transpose() * velocity;//4*1 pow(0 / (0.5*dt),2.0)+
-            /*auto norm_b = (2.0 * u_norm) / min_length;
-            double alpha = 0.5 * u_norm * min_length / (2*permeability(0,0) * 0.1); // this is the Peclet number
-            const double xi_tilde = cosh_relation(alpha);
-            tau2 = xi_tilde / norm_b;*/
-            //tau2 = 0;
-            double alpha = 0.5 * u_norm * min_length / (2 * permeability(0, 0) *100); // this is the Peclet number
-            const double xi_tilde = cosh_relation(alpha);
-            tau2 = 0.5 * min_length / u_norm * xi_tilde;
-            local_K.noalias() += dNdx.transpose() * (permeability/mu)
-                * (-1)*(-grad_p_cap-body_force*rho_LR) *
-                dk_rel_dS_l * dSw_dpc *vdN.transpose() *tau2* w;
-            local_M.noalias() += tau2 * mass_mat_coeff*vdN*N*w;
+
             if (_process_data.has_gravity)
             {
                 assert(body_force.size() == GlobalDim);
@@ -302,6 +280,7 @@ public:
         std::vector<double>& local_Jac_data)
     {
         double const pressure_size = ShapeFunction::NPOINTS;
+        int const num_nodes = ShapeFunction::NPOINTS;
         double const pressure_index = 0;
         assert(local_x.size() == pressure_size);
         auto p_L =
@@ -351,7 +330,153 @@ public:
         {
             permeability.diagonal().setConstant(perm(0, 0));
         }
+        //loop for each node
+        std::vector<double> S_L_node;
+        std::vector<double> K_rel_node;
+        std::vector<double> d_K_rel_d_S_node;
+        std::vector<double> dS_L_dp_cap_node;
+        std::vector<double> dtotal_mass_out;
+        std::vector<double> dtotal_in;
+        S_L_node.resize(num_nodes);
+        K_rel_node.resize(num_nodes);
+        d_K_rel_d_S_node.resize(num_nodes);
+        dS_L_dp_cap_node.resize(num_nodes);
+        dtotal_mass_out.resize(num_nodes);
+        dtotal_in.resize(num_nodes);
+        for (unsigned int nodenum = 0; nodenum < num_nodes; ++nodenum)
+        {
+            S_L_node[nodenum] = 0;
+            K_rel_node[nodenum] = 0;
+            d_K_rel_d_S_node[nodenum] = 0;
+            dS_L_dp_cap_node[nodenum] = 0;
+            dtotal_mass_out[nodenum] = 0;
+            dtotal_in[nodenum] = 0;
+        }
+        for (unsigned int nodenum = 0; nodenum < num_nodes; ++nodenum)
+        {
+            S_L_node[nodenum] = _process_data.material->getSaturation(
+                material_id, t, x_position, p_L(nodenum), 293.15, -p_L(nodenum));
+            dS_L_dp_cap_node[nodenum] = _process_data.material->getSaturationDerivative(
+                material_id, t, x_position, p_L(nodenum), 293.15, S_L_node[nodenum]);
+            K_rel_node[nodenum] = _process_data.material->getRelativePermeability(
+                t, x_position, p_L(nodenum), 293.15, S_L_node[nodenum]);
+            d_K_rel_d_S_node[nodenum] = _process_data.material->getRelativePermeabilityDerivative(
+                t, x_position, p_L(nodenum), 293.15, S_L_node[nodenum]);
+        }
+        //loop for each gauss point
+        for (unsigned ip = 0; ip < n_integration_points; ip++)
+        {
+            x_position.setIntegrationPoint(ip);
+            auto const& w = _ip_data[ip].integration_weight;
 
+            auto const& N = _ip_data[ip].N;
+            auto const& dNdx = _ip_data[ip].dNdx;
+            auto const x_coord =
+                interpolateXCoordinate<ShapeFunction,
+                ShapeMatricesType>(_element,
+                    N);
+            double p_cap_ip;
+            NumLib::shapeFunctionInterpolate(-p_L, N, p_cap_ip);//PC on each itegrate point
+
+            double p_cap_dot_ip;
+            NumLib::shapeFunctionInterpolate(-p_L_dot, N, p_cap_dot_ip);
+            double temperature = 293.15;
+            auto const porosity = _process_data.material->getPorosity(
+                material_id, t, x_position, -p_cap_ip, temperature, 0);
+
+            auto const rho_LR = _process_data.material->getFluidDensity(
+                -p_cap_ip, temperature);
+
+            double& S_L = _ip_data[ip].saturation;
+            S_L = _process_data.material->getSaturation(
+                material_id, t, x_position, -p_cap_ip, temperature, p_cap_ip);
+
+            double const dS_L_dp_cap =
+                _process_data.material->getSaturationDerivative(
+                    material_id, t, x_position, -p_cap_ip, temperature, S_L);
+
+            double const d2S_L_dp_cap_2 =
+                _process_data.material->getSaturationDerivative2(
+                    material_id, t, x_position, -p_cap_ip, temperature, S_L);
+
+            double const k_rel =
+                _process_data.material->getRelativePermeability(
+                    t, x_position, -p_cap_ip, temperature, S_L);
+            //flux change
+            double const dk_rel_dS_l =
+                _process_data.material->getRelativePermeabilityDerivative(
+                    t, x_position, -p_cap_ip, temperature, S_L);
+            auto const mu = _process_data.material->getFluidViscosity(
+                -p_cap_ip, temperature);
+            auto const& body_force = _process_data.specific_body_force;
+
+            GlobalDimMatrixType const rho_Ki_over_mu =
+                permeability *
+                (rho_LR / mu);
+            typename ShapeMatricesType::GlobalDimVectorType const
+                grad_p_cap = -dNdx * p_L;
+            local_rhs.noalias() += dNdx.transpose()*rho_Ki_over_mu*dNdx*w*p_L;
+            local_rhs.noalias() -= dNdx.transpose()*rho_Ki_over_mu*rho_LR*w*body_force;
+           /* local_Jac
+                .noalias() += dNdx.transpose() * rho_Ki_over_mu * grad_p_cap *
+                dk_rel_dS_l * dS_L_dp_cap * N * w;
+            //gravitional part
+            local_Jac
+                .noalias() += dNdx.transpose() * rho_LR * rho_Ki_over_mu * body_force *
+                dk_rel_dS_l * dS_L_dp_cap * N * w;*/
+        }
+        bool reached_steady = true;
+
+        for (unsigned int nodenum = 0; nodenum < num_nodes; ++nodenum)
+        {
+            if ((local_rhs(nodenum)) >= 1E-20)
+            {
+                reached_steady = false;
+                break;
+            }
+        }
+        double total_mass_out = 0;
+        // total flux in
+        double total_in = 0;
+        for (unsigned int nodenum = 0; nodenum < num_nodes; ++nodenum)
+        {
+            if (local_rhs(nodenum) >= 0 || reached_steady)
+            {
+                for (unsigned int _j = 0; _j < pressure_size; _j++)
+                {
+                    local_Jac(nodenum, _j) *= K_rel_node[nodenum];
+                }
+                local_Jac(nodenum, nodenum) +=
+                    d_K_rel_d_S_node[nodenum] * dS_L_dp_cap_node[nodenum]*(-1)*local_rhs(nodenum);
+                for (unsigned int _j = 0; _j < pressure_size; _j++)
+                {
+                    dtotal_mass_out[_j] += local_Jac(nodenum, _j);
+                }
+                local_rhs(nodenum) *= K_rel_node[nodenum];
+                total_mass_out += local_rhs(nodenum);
+            }
+            else {
+                total_in -= local_rhs(nodenum); // note the -= means the result is positive
+                for (unsigned int _j = 0; _j < pressure_size; _j++)
+                    dtotal_in[_j] -= local_Jac(nodenum, _j);
+            }
+        }
+        // CONSERVE MASS
+        // proportion the total_mass_out mass to the inflow nodes, weighting by their _local_re values
+        if (!reached_steady)
+            for (unsigned int nodenum = 0; nodenum < num_nodes; ++nodenum)
+                if (local_rhs(nodenum) < 0)
+                {
+                    for (unsigned int _j = 0; _j < pressure_size; _j++)
+                    {
+                        local_Jac(nodenum, _j) *= total_mass_out / total_in;
+                        local_Jac(nodenum, _j) +=
+                            local_rhs(nodenum) * (dtotal_mass_out[_j] / total_in -
+                                dtotal_in[_j] * total_mass_out / total_in / total_in);
+                    }
+                    local_rhs(nodenum) *= total_mass_out / total_in;
+                }
+        local_rhs *= -1;
         //loop for each gauss point
         for (unsigned ip = 0; ip < n_integration_points; ip++)
         {
@@ -406,22 +531,6 @@ public:
                     rho_LR * body_force))
                 : GlobalDimVectorType(-permeability * (k_rel / mu) * dNdx *
                     p_L);
-            //velocity norm
-            double u_norm = GlobalDim > 2 ? (std::pow(velocity(0), 2) +
-                std::pow(velocity(1), 2) +
-                std::pow(velocity(2), 2))
-                : (std::pow(velocity(0), 2) +
-                    std::pow(velocity(1), 2));
-            u_norm = std::sqrt(u_norm);
-            double const min_length = 0.02;
-            //tau for SUPG
-            auto tau2 = dt == 0
-                ? 0
-                : std::pow(1 / (0.5 * dt) + 2.0 * u_norm / min_length +
-                    4 * 1e-15 / pow(min_length, 2.0),
-                    -1);
-            auto vdN = dNdx.transpose() * velocity;
-
 
             laplace_p.noalias() +=
                 dNdx.transpose() * k_rel * rho_Ki_over_mu * dNdx * w;
@@ -445,30 +554,25 @@ public:
             typename ShapeMatricesType::GlobalDimVectorType const
                 grad_p_cap = -dNdx * p_L;
 
-            GlobalDimVectorType supg_kernel =
-                dNdx.transpose() * rho_Ki_over_mu * grad_p_cap *
-                dk_rel_dS_l * dS_L_dp_cap *vdN.transpose() *p_L * w;//CHECK FOR NEGATIVE OR POSITYVE
-            local_rhs.noalias() += supg_kernel;
-
-            local_Jac
+            /*local_Jac
                 .noalias() += dNdx.transpose() * rho_Ki_over_mu * grad_p_cap *
-                dk_rel_dS_l * dS_L_dp_cap * N * w;
+                dk_rel_dS_l * dS_L_dp_cap * N * w;*/
            //gravitional part
-            local_Jac
+            /*local_Jac
                 .noalias() += dNdx.transpose() * rho_LR * rho_Ki_over_mu * body_force *
-                dk_rel_dS_l * dS_L_dp_cap * N * w;
+                dk_rel_dS_l * dS_L_dp_cap * N * w;*/
             //right hand side for the gravitional part
-            local_rhs.noalias() +=
-                dNdx.transpose() * rho_LR * k_rel * rho_Ki_over_mu * body_force * w;
+            /*local_rhs.noalias() +=
+                dNdx.transpose() * rho_LR * k_rel * rho_Ki_over_mu * body_force * w;*/
 
         }
         // pressure equation, pressure part.
         local_Jac
-            .noalias() += laplace_p + storage_p / dt;
+            .noalias() += storage_p / dt;
 
         // pressure equation
         local_rhs.noalias() -=
-            laplace_p * p_L + storage_p * p_L_dot;
+             storage_p * p_L_dot;
 
 
     }
