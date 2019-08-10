@@ -169,6 +169,10 @@ public:
                 liquid_phase
                     .property(MaterialPropertyLib::PropertyType::density)
                     .template value<double>(vars);
+            auto const d_density_d_T =
+                liquid_phase
+                .property(MaterialPropertyLib::PropertyType::density)
+                .template dValue<double>(vars, MaterialPropertyLib::Variable::temperature);
 
             // Use the viscosity model to compute the viscosity
             auto const viscosity = liquid_phase
@@ -199,10 +203,10 @@ public:
             auto vdN = dNdx.transpose() * velocity_supg;//4*1 pow(0 / (0.5*dt),2.0)+
             double alpha = 0.5 * u_norm * min_length / (2 * K * 0.1); // this is the Peclet number
             const double xi_tilde = cosh_relation(alpha);
-            tau2 = xi_tilde == 0
+            tau2 = 0;
+                /*xi_tilde == 0
                 ? 0
-                : 0;
-            /*: 0.5 * min_length / u_norm * xi_tilde;*/
+                : 0.5 * min_length / u_norm * xi_tilde;*/
             
             GlobalDimMatrixType const thermal_conductivity_dispersivity =
                 this->getThermalConductivityDispersivity(
@@ -221,10 +225,18 @@ public:
                 dNdx.transpose()*fluid_density*specific_heat_capacity_fluid*K_over_mu*(T_int_pt-273.15)
                 *dNdx*w;*/
             Kpp.noalias() += w * dNdx.transpose() * K_over_mu * dNdx;
+            auto const specific_heat_capacity_solid =
+                solid_phase
+                .property(
+                    MaterialPropertyLib::PropertyType::specific_heat_capacity)
+                .template value<double>(vars);
+            double d_heat_energy_coefficient_fluid_d_T
+                = d_density_d_T * specific_heat_capacity_fluid*(T_int_pt - 273.15)*porosity;
             Mtt.noalias() +=
                 w *
-                this->getHeatEnergyCoefficient(vars, porosity, fluid_density,
-                                               specific_heat_capacity_fluid) *
+                (this->getHeatEnergyCoefficient(vars, porosity, fluid_density,
+                                               specific_heat_capacity_fluid)
+                    + d_heat_energy_coefficient_fluid_d_T) *
                 N.transpose() * N;
             Mpp.noalias() += w * N.transpose() * specific_storage * N;
             //SUPG
