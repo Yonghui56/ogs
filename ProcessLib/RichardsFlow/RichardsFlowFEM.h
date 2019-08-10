@@ -145,13 +145,30 @@ public:
         // This assertion is valid only if all nodal d.o.f. use the same shape
         // matrices.
         assert(local_matrix_size == ShapeFunction::NPOINTS * NUM_NODAL_DOF);
-
+        
         auto local_M = MathLib::createZeroedMatrix<NodalMatrixType>(
             local_M_data, local_matrix_size, local_matrix_size);
         auto local_K = MathLib::createZeroedMatrix<NodalMatrixType>(
             local_K_data, local_matrix_size, local_matrix_size);
         auto local_b = MathLib::createZeroedVector<NodalVectorType>(
             local_b_data, local_matrix_size);
+        int const num_nodes = ShapeFunction::NPOINTS;
+        int const pressure_size = ShapeFunction::NPOINTS;
+        auto p_L =
+            Eigen::Map<const NodalVectorType>(local_x.data(),
+                pressure_size);
+
+        NodalVectorType local_rhs;
+        local_rhs.resize(pressure_size);
+        for (unsigned int nodenum = 0; nodenum < num_nodes; ++nodenum)
+        {
+            local_rhs[nodenum] = 0;
+        }
+
+
+        typename ShapeMatricesType::NodalMatrixType laplace_p =
+            ShapeMatricesType::NodalMatrixType::Zero(pressure_size,
+                pressure_size);
 
         unsigned const n_integration_points =
             _integration_method.getNumberOfPoints();
@@ -172,13 +189,140 @@ public:
         {
             permeability.diagonal().setConstant(perm(0, 0));
         }
-        double const pressure_size = ShapeFunction::NPOINTS;
-        auto p_L =
-            Eigen::Map<const NodalVectorType>(local_x.data(),
-                pressure_size);
+
         double const& dt = _process_data.dt;
         /**/
+        //loop for each node
+        std::vector<double> S_L_node;
+        std::vector<double> K_rel_node;
+        std::vector<double> d_K_rel_d_S_node;
+        std::vector<double> dS_L_dp_cap_node;
+        std::vector<double> dtotal_mass_out;
+        std::vector<double> dtotal_in;
+        S_L_node.resize(num_nodes);
+        K_rel_node.resize(num_nodes);
+        d_K_rel_d_S_node.resize(num_nodes);
+        dS_L_dp_cap_node.resize(num_nodes);
+        dtotal_mass_out.resize(num_nodes);
+        dtotal_in.resize(num_nodes);
+        for (unsigned int nodenum = 0; nodenum < num_nodes; ++nodenum)
+        {
+            S_L_node[nodenum] = 0;
+            K_rel_node[nodenum] = 0;
+            d_K_rel_d_S_node[nodenum] = 0;
+            dS_L_dp_cap_node[nodenum] = 0;
+            dtotal_mass_out[nodenum] = 0;
+            dtotal_in[nodenum] = 0;
+        }
+        for (unsigned int nodenum = 0; nodenum < num_nodes; ++nodenum)
+        {
+            S_L_node[nodenum] = _process_data.material->getSaturation(
+                material_id, t, pos, p_L(nodenum), 293.15, -p_L(nodenum));
+            dS_L_dp_cap_node[nodenum] = _process_data.material->getSaturationDerivative(
+                material_id, t, pos, p_L(nodenum), 293.15, S_L_node[nodenum]);
+            K_rel_node[nodenum] = _process_data.material->getRelativePermeability(
+                t, pos, p_L(nodenum), 293.15, S_L_node[nodenum]);
+            d_K_rel_d_S_node[nodenum] = _process_data.material->getRelativePermeabilityDerivative(
+                t, pos, p_L(nodenum), 293.15, S_L_node[nodenum]);
+        }
+        //loop for each gauss point
+        for (unsigned ip = 0; ip < n_integration_points; ip++)
+        {
+            pos.setIntegrationPoint(ip);
+            auto const& w = _ip_data[ip].integration_weight;
+
+            auto const& N = _ip_data[ip].N;
+            auto const& dNdx = _ip_data[ip].dNdx;
+            auto const x_coord =
+                interpolateXCoordinate<ShapeFunction,
+                ShapeMatricesType>(_element,
+                    N);
+            double p_cap_ip;
+            NumLib::shapeFunctionInterpolate(-p_L, N, p_cap_ip);//PC on each itegrate point
+
+            double temperature = 293.15;
+            auto const porosity = _process_data.material->getPorosity(
+                material_id, t, pos, -p_cap_ip, temperature, 0);
+
+            auto const rho_LR = _process_data.material->getFluidDensity(
+                -p_cap_ip, temperature);
+
+            double& S_L = _ip_data[ip].saturation;
+            S_L = _process_data.material->getSaturation(
+                material_id, t, pos, -p_cap_ip, temperature, p_cap_ip);
+
+            double const dS_L_dp_cap =
+                _process_data.material->getSaturationDerivative(
+                    material_id, t, pos, -p_cap_ip, temperature, S_L);
+
+            double const d2S_L_dp_cap_2 =
+                _process_data.material->getSaturationDerivative2(
+                    material_id, t, pos, -p_cap_ip, temperature, S_L);
+
+            double const k_rel =
+                _process_data.material->getRelativePermeability(
+                    t, pos, -p_cap_ip, temperature, S_L);
+            //flux change
+            double const dk_rel_dS_l =
+                _process_data.material->getRelativePermeabilityDerivative(
+                    t, pos, -p_cap_ip, temperature, S_L);
+            auto const mu = _process_data.material->getFluidViscosity(
+                -p_cap_ip, temperature);
+            auto const& body_force = _process_data.specific_body_force;
+
+            GlobalDimMatrixType const rho_Ki_over_mu =
+                permeability *
+                (rho_LR / mu);
+            typename ShapeMatricesType::GlobalDimVectorType const
+                grad_p_cap = -dNdx * p_L;
+            laplace_p.noalias() += dNdx.transpose()*rho_Ki_over_mu*dNdx*w;
+            local_b.noalias()+= dNdx.transpose()*rho_Ki_over_mu*rho_LR*w*body_force;
+        }
+        local_rhs.noalias() += laplace_p * p_L;
+        local_rhs.noalias() -= local_b;
+        bool reached_steady = true;
+
+        for (unsigned int nodenum = 0; nodenum < num_nodes; ++nodenum)
+        {
+            if ((local_rhs(nodenum)) >= 1E-20)
+            {
+                reached_steady = false;
+                break;
+            }
+        }
         
+        double total_mass_out = 0;
+        // total flux in
+        double total_in = 0;
+        for (unsigned int nodenum = 0; nodenum < num_nodes; ++nodenum)
+        {
+            if (local_rhs(nodenum) >= 0 || reached_steady)
+            {
+                for (unsigned int _j = 0; _j < pressure_size; _j++)
+                {
+                    laplace_p(nodenum, _j) *= K_rel_node[nodenum];
+                }
+                local_rhs(nodenum) *= K_rel_node[nodenum];
+                total_mass_out += local_rhs(nodenum);
+                local_b(nodenum)*= K_rel_node[nodenum];
+            }
+            else {
+                total_in -= local_rhs(nodenum); // note the -= means the result is positive
+            }
+        }
+        // CONSERVE MASS
+        // proportion the total_mass_out mass to the inflow nodes, weighting by their _local_re values
+        if (!reached_steady)
+            for (unsigned int nodenum = 0; nodenum < num_nodes; ++nodenum)
+                if (local_rhs(nodenum) < 0)
+                {
+                    for (unsigned int _j = 0; _j < pressure_size; _j++)
+                    {
+                        laplace_p(nodenum, _j) *= total_mass_out / total_in;
+                    }
+                    local_rhs(nodenum) *= total_mass_out / total_in;
+                    local_b(nodenum) *= total_mass_out / total_in;
+                }
         for (unsigned ip = 0; ip < n_integration_points; ip++)
         {
             pos.setIntegrationPoint(ip);
@@ -213,7 +357,7 @@ public:
             auto const storage = _process_data.material->getStorage(
                 material_id, t, pos, p_int_pt, temperature, 0);
             double const mass_mat_coeff =
-                storage * Sw + porosity * Sw * drhow_dp - porosity * dSw_dpc;
+                storage * Sw + porosity * Sw * drhow_dp - rho_LR*porosity * dSw_dpc;
 
 
             local_M.noalias() += mass_mat_coeff * _ip_data[ip].mass_operator;
@@ -223,9 +367,9 @@ public:
                     t, pos, p_int_pt, temperature, Sw);
             auto const mu = _process_data.material->getFluidViscosity(
                 p_int_pt, temperature);
-            local_K.noalias() += _ip_data[ip].dNdx.transpose() * permeability *
+            /*local_K.noalias() += _ip_data[ip].dNdx.transpose() * permeability *
                 _ip_data[ip].dNdx *
-                _ip_data[ip].integration_weight * (k_rel / mu);
+                _ip_data[ip].integration_weight * (k_rel / mu);*/
 
             double const dk_rel_dS_l =
                 _process_data.material->getRelativePermeabilityDerivative(
@@ -256,10 +400,11 @@ public:
                 NodalVectorType gravity_operator =
                     _ip_data[ip].dNdx.transpose() * permeability * body_force *
                     _ip_data[ip].integration_weight;
-                local_b.noalias() += (k_rel / mu) * rho_LR * gravity_operator;
+                //local_b.noalias() += (k_rel / mu) * rho_LR * gravity_operator;
                 //local_b.noalias() +=  dk_rel_dS_l * dSw_dpc* rho_w*(permeability/mu)* body_force*vdN.transpose()*tau2*w;
             }
         }
+        local_K.noalias() += laplace_p;
         if (_process_data.has_mass_lumping)
         {
             for (int idx_ml = 0; idx_ml < local_M.cols(); idx_ml++)
