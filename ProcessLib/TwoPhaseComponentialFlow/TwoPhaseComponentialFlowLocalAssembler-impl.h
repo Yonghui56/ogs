@@ -1148,7 +1148,8 @@ namespace ProcessLib
                             (fluid_volume_backfill - _ip_data[ip].fluid_volume_prev_backfill) / dt;
                         // co2 consumption
                         F_vec_coeff(2) -= rho_mol_co2_kinetic_rate_backfill;
-                        co2_consumption_rate -= rho_mol_co2_kinetic_rate_backfill;
+                        co2_consumption_rate -=
+                            rho_mol_co2_kinetic_rate_backfill;
                         // water source/sink term
                         double const fluid_change_volume
                             = (fluid_volume_rate*rho_mol_water);
@@ -1189,7 +1190,8 @@ namespace ProcessLib
                             *(_saturation[ip] * rho_mol_wet*X_L_co2_gp
                                 + (1 - _saturation[ip])*rho_mol_nonwet*X3_int_pt)/ dt;
                         F_vec_coeff(2) += gas_co2_variation_rate_porosity;
-                        co2_consumption_rate+= gas_co2_variation_rate_porosity;
+                        co2_consumption_rate +=
+                            gas_co2_variation_rate_porosity;
                         double const gas_nitrogen_variation_rate_porosity =
                             +(_ip_data[ip].porosity_prev_backfill - porosity2)
                             * (_saturation[ip] *rho_mol_wet*x_wet_air
@@ -1226,7 +1228,7 @@ namespace ProcessLib
                     //store the source term for each component
                     // thanks to the facts that the source terms are all for gas phase
                     _gas_ch4_generation_rate[ip] = F_vec_coeff(1);
-                    _gas_co2_generation_rate[ip] = co2_consumption_rate;// F_vec_coeff(2);
+                    _gas_co2_generation_rate[ip] = co2_consumption_rate;
                     _gas_co2_degradation_rate[ip] = co2_degradation_rate;
                     //_gas_air_variation_rate_porosity[ip] = F_vec_coeff(3);
                     //-------------debugging------------------------
@@ -1765,7 +1767,7 @@ namespace ProcessLib
                 length = std::sqrt(std::pow(rx1 - rx2, 2) + std::pow(ry1 - ry2, 2));
                 neumann_vec[0] = 0.0;
                 neumann_vec[3] = 0;
-                radial_sym_fac = 2 * 3.14159*Rdummy;
+                radial_sym_fac = 2 * 3.14159 * Rdummy;
                 neumn_h2 = 0.003733333* ele_bazant_power;
                 neumann_vec[1] = neumn_h2;
                 neumann_vec[2] = neumn_h2;
@@ -1778,7 +1780,7 @@ namespace ProcessLib
                 length = std::sqrt(std::pow(rx0 - rx2, 2) + std::pow(ry0 - ry2, 2));
                 neumann_vec[1] = 0.0;
                 neumann_vec[3] = 0;
-                radial_sym_fac = 2 * 3.1415926*Rdummy;
+                radial_sym_fac = 2 * 3.1415926 * Rdummy;
                 neumn_h2 = 0.003733333* ele_bazant_power;
                 neumann_vec[0] = neumn_h2;
                 neumann_vec[2] = neumn_h2;
@@ -1791,7 +1793,7 @@ namespace ProcessLib
                 length = std::sqrt(std::pow(rx0 - rx3, 2) + std::pow(ry0 - ry3, 2));
                 neumann_vec[1] = 0.0;
                 neumann_vec[2] = 0.0;
-                radial_sym_fac = 2 * 3.1415926*Rdummy;
+                radial_sym_fac = 2 * 3.1415926 * Rdummy;
                 neumn_h2 = 0.003733333* ele_bazant_power;
                 neumann_vec[0] = neumn_h2;
                 neumann_vec[3] = neumn_h2;
@@ -1804,7 +1806,7 @@ namespace ProcessLib
                 length = std::sqrt(std::pow(rx2 - rx3, 2) + std::pow(ry2 - ry3, 2));
                 neumann_vec[0] = 0.0;
                 neumann_vec[1] = 0.0;
-                radial_sym_fac = 2 * 3.1415926*Rdummy;
+                radial_sym_fac = 2 * 3.1415926 * Rdummy;
                 neumn_h2 = 0.003733333* ele_bazant_power;
                 neumann_vec[2] = neumn_h2;
                 neumann_vec[3] = neumn_h2;
@@ -1817,7 +1819,7 @@ namespace ProcessLib
                 length = std::sqrt(std::pow(rx1 - rx3, 2) + std::pow(ry1 - ry3, 2));
                 neumann_vec[0] = 0.0;
                 neumann_vec[2] = 0.0;
-                radial_sym_fac = 2 * 3.1415926*Rdummy;
+                radial_sym_fac = 2 * 3.1415926 * Rdummy;
                 neumn_h2 = 0.003733333* ele_bazant_power;
 
                 neumann_vec[1] = neumn_h2;
